@@ -44,8 +44,44 @@ export type IncentiveLine = {
   basis: string; // 산출 근거 설명 (감사용)
 };
 
-/** F-010에서 구현. 재현성 테스트(F-013 REQ-022)가 이 함수를 대상으로 한다. */
-export function evaluate(_records: CommissionInput[], _rules: IncentiveRule[]): IncentiveLine[] {
-  // TODO(F-010): priority 정렬 -> 조건 매칭 -> overlapPolicy 적용 -> 라인 산출
-  throw new Error("TODO F-010");
+/** 단일 룰이 레코드에 적용되는지 (조건 매칭). */
+export function ruleMatches(rule: IncentiveRule, rec: CommissionInput): boolean {
+  const c = rule.condition;
+  if (rec.contractDate < c.period.from || rec.contractDate > c.period.to) return false;
+  if (c.insurerIds && !c.insurerIds.includes(rec.insurerId)) return false;
+  if (c.orgUnitIds && !c.orgUnitIds.includes(rec.orgUnitId)) return false;
+  if (c.productPatterns && !c.productPatterns.some((p) => rec.productName.includes(p))) return false;
+  if (c.performanceBand) {
+    const { minPremium, maxPremium } = c.performanceBand;
+    if (minPremium != null && rec.premium < minPremium) return false;
+    if (maxPremium != null && rec.premium > maxPremium) return false;
+  }
+  if (c.excludeFamilyContracts && rec.isFamilyContract) return false;
+  return true;
+}
+
+function amountOf(action: RuleAction, premium: number): number {
+  return action.kind === "rate" ? Math.round(premium * action.rate) : action.amount;
+}
+
+/**
+ * 시책 룰 평가 (F-010). 순수·결정적: priority 오름차순(동순위는 id) 정렬 -> 조건 매칭 ->
+ * overlapPolicy 적용(exclusive면 그 룰만 적용 후 중단, stack이면 누적). 재현성(FR-13).
+ * 재현성 테스트(F-013 REQ-022) + 시뮬레이션(F-012)이 이 함수를 공유한다.
+ */
+export function evaluate(records: CommissionInput[], rules: IncentiveRule[]): IncentiveLine[] {
+  const sorted = [...rules].sort((a, b) => a.priority - b.priority || a.id.localeCompare(b.id));
+  const lines: IncentiveLine[] = [];
+  for (const rec of records) {
+    for (const rule of sorted) {
+      if (!ruleMatches(rule, rec)) continue;
+      const amount = amountOf(rule.action, rec.premium);
+      const basis = rule.action.kind === "rate"
+        ? `${rule.name}: 보험료 ${rec.premium} x ${rule.action.rate} = ${amount}`
+        : `${rule.name}: 고정 ${amount}`;
+      lines.push({ recordId: rec.recordId, ruleId: rule.id, amount, basis });
+      if (rule.overlapPolicy === "exclusive") break; // 최우선 배타 룰이 하위 룰 차단
+    }
+  }
+  return lines;
 }

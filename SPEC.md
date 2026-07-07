@@ -98,9 +98,10 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 - **REQ-018**: 조건(기간/원수사/상품/조직/실적구간)+액션(지급률|고정액) 선언형 JSON, 관리 화면 CRUD (FR-12)
 - **REQ-019**: 우선순위·중복 정책 명시, 평가기는 순수 함수 (FR-13)
 - **Acceptance**:
-  - [ ] packages/rules 표 기반(case table) 단위 테스트
-- **Status**: TODO
+  - [x] packages/rules 표 기반(case table) 단위 테스트 (8 케이스: rate/fixed/stack/exclusive/결정정렬/조건매칭)
+- **Status**: DONE
 - **Sprint**: S2
+- **Notes**: packages/rules evaluate() 순수·결정적(priority 오름차순+동순위 id 정렬 → 조건매칭 → overlapPolicy exclusive는 break/stack은 누적). ruleMatches(기간/원수사/조직/상품패턴/실적구간/가족제외). routes/rules.ts CRUD(conditionJson={condition,overlapPolicy}, actionJson) + loadRules(F-013 소비). 테스트: rules 8(case table) + api 3(CRUD+로드평가 통합). 관리 UI는 후속.
 
 ### F-011 · 가족계약 감지 (HITL)
 - **REQ-020**: 성명+생년월일 매칭 후보 자동 생성, 확정은 실무자만, 해제 가능, 이력 보존 (FR-14)
