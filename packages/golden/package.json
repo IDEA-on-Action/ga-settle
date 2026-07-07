@@ -1,0 +1,14 @@
+{
+  "name": "@ga-settle/golden",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": { "@ga-settle/mapping": "workspace:*" },
+  "devDependencies": { "typescript": "^5.6.0", "vitest": "^2.1.0" }
+}

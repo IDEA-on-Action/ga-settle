@@ -7,6 +7,7 @@ import { describe, it, expect } from "vitest";
 import {
   ONTOLOGY, norm, parseDate, parseNumber, maskSample, detectHeaderRow,
   profileColumns, inferType, localMap, feeFormulaCheck, runConsistency, applyEvidence,
+  validateRows, columnMapOf,
   type Grid, type Cell, type CandidateMap,
 } from "../src/index";
 
@@ -97,6 +98,37 @@ describe("L1 REQ-007 산출물 (F-004)", () => {
     expect(inferType({ numericRate: 1, dateRate: 1 })).toBe("date");  // yymmdd 겹침 -> 날짜
     expect(inferType({ numericRate: 1, dateRate: 0 })).toBe("number");
     expect(inferType({ numericRate: 0.3, dateRate: 0.2 })).toBe("text");
+  });
+});
+
+describe("행 검증 (F-008 REQ-015)", () => {
+  const cm = { 계약번호: 0, 설계사명: 1, 지급수수료: 2, 보험료: 3, 계약일: 4, 납입회차: 5 };
+
+  it("타입/필수/중복 검증 - 오류 행 전량 수집, 통과 행만 staged", () => {
+    const rows: Cell[][] = [
+      ["C-1", "김철수", 50000, 1000000, "2026-06-01", 1],
+      ["C-2", "이영희", 60000, 1200000, "2026-06-02", 1],
+      ["C-3", "", 70000, 1400000, "2026-06-03", 1],           // 설계사명(필수) 누락
+      ["C-4", "박길동", "텍스트", 1600000, "2026-06-04", 1],   // 지급수수료 숫자 아님
+      ["C-1", "김철수", 50000, 1000000, "2026-06-01", 1],      // 중복(C-1, 회차1)
+    ];
+    const { staged, errors } = validateRows(rows, cm);
+    expect(staged.map((s) => s.rowNo)).toEqual([1, 2]);
+    expect(errors.find((e) => e.rowNo === 3)?.field).toBe("설계사명");
+    expect(errors.find((e) => e.rowNo === 4)?.field).toBe("지급수수료");
+    expect(errors.find((e) => e.rowNo === 5)?.reason).toContain("중복");
+    expect(staged[0]!.fields["지급수수료"]).toBe(50000);   // 표준화(파싱)됨
+    expect(staged[0]!.fields["계약일"]).toBe("2026-06-01");
+  });
+
+  it("필수 필드 미매핑이면 전 행 오류", () => {
+    const { staged, errors } = validateRows([["C-1", "김철수", 50000]], { 계약번호: 0, 설계사명: 1 });
+    expect(staged).toHaveLength(0);
+    expect(errors.some((e) => e.field === "지급수수료" && e.reason.includes("미매핑"))).toBe(true);
+  });
+
+  it("columnMapOf: CandidateMap -> field->ci", () => {
+    expect(columnMapOf({ 보험료: { ci: 3, confidence: 0.9, reason: "", source: "local" } })).toEqual({ 보험료: 3 });
   });
 });
 

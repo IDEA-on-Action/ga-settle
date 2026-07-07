@@ -16,6 +16,7 @@
     "hono": "^4.6.0",
     "zod": "^3.23.0",
     "drizzle-orm": "^0.36.0",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "@ga-settle/schema": "workspace:*",
     "@ga-settle/mapping": "workspace:*",
     "@ga-settle/rules": "workspace:*"

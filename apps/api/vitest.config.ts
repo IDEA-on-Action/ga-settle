@@ -9,6 +9,7 @@ export default defineWorkersConfig(async () => {
   const migrations = await readD1Migrations(path.join(dir, "migrations"));
   return {
     test: {
+      testTimeout: 30000, // workerd에서 XLSX 파싱이 느려 여유 (F-008 parse.test)
       setupFiles: ["./test/apply-migrations.ts"],
       poolOptions: {
         workers: {
