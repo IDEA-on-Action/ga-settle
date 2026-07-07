@@ -311,7 +311,14 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 | B-003 | 시책 룰 자연어 → JSON 초안 생성 | — | mid |
 | B-004 | 원수사 API 직접 연동 | - | low |
 | ~~B-005~~ | ~~전 엔드포인트 인증 롤아웃~~ -> F-024로 승격·완료 | 완료 | - |
-| ~~B-006~~ | ~~SPA 화면 구축 + Playwright 브라우저 E2E 5흐름~~ -> F-025~F-030으로 승격 | 완료 | - |
+| B-006 | 정식 SPA 운영 UI + Playwright 브라우저 E2E (현재 루트는 F-026 데모 랜딩 임시 대체) | 3+파일·관찰가능 | mid |
+| B-007 | OTP 이메일 발송 설정(Resend API 키 + 도메인 검증) - F-027 실사용 요건 | 인프라 설정 | high |
+| B-008 | 세분화 RBAC - 엔드포인트별 role/org 스코프(마스터변경 admin, 조직데이터 스코프) | 다수 파일 | mid |
+| B-009 | 토큰 폐기(token_version) + 비번 해시 PBKDF2/argon2 강화 | 다수 파일 | mid |
+| B-010 | 실제 ATA 로고 파일 임베드(현재 SVG 재현) | 관찰가능 | low |
+| B-011 | 원수사 코드 체계 실제 값으로 조정(현재 영문 슬러그) | 데이터 | low |
+
+> 프로덕션: `https://ata.minu.best` 배포·운영 중. admin=sinclairseo@gmail.com(비번). @atasset.co.kr=OTP. 주요 원수사 26곳 등록. 상세 next-task는 세션 Task 목록(#1~#7) 참조.
 
 > 승격 기준 (`.claude/rules/task-promotion.md`): D1 migration / 3+ 파일 / 사용자 관찰가능 / Sprint 필요 — 1개 충족 시 F-item으로
 
