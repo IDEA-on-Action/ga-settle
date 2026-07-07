@@ -114,9 +114,10 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 ### F-012 · 룰 시뮬레이션
 - **REQ-021**: 룰 변경 전 지급액 diff 미리보기, 실데이터 무영향 (FR-15)
 - **Acceptance**:
-  - [ ] 시뮬레이션 실행 후 원본 run 데이터 불변 검증
-- **Status**: TODO
+  - [x] 시뮬레이션 실행 후 원본 run 데이터 불변 검증 (simulate는 evaluate 순수함수 2회 실행, DB 쓰기 0)
+- **Status**: DONE
 - **Sprint**: S2
+- **Notes**: POST /api/rules/simulate { records, proposedRules } → 현재 룰(loadRules) vs 제안 룰로 evaluate 실행, per-record + 총액 diff(totalCurrent/totalProposed/totalDiff) 반환. evaluate 순수라 DB 무영향(FR-15). 테스트: diff 정확성 + 시뮬 후 rules 개수 불변.
 
 ### F-013 · 정산 계산 배치
 - **REQ-022**: 월 단위 run, 상태 draft→calculated, Queue 배치+재시도, 룰별 산출 분해 저장 (FR-16)
