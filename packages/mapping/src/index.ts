@@ -36,11 +36,14 @@ export const REVIEW_TH = 0.5;
 export type Cell = string | number | Date | null | undefined;
 export type Grid = Cell[][];
 
+// 데이터에서 관측 가능한 대표 타입. int/number 구분은 온톨로지(의미)의 몫이라 여기선 제외.
+export type ColumnType = "text" | "number" | "date";
+
 export type ColumnProfile = {
   ci: number; header: string; count: number; total: number;
   nullRate: number; numericRate: number; dateRate: number; distinctRatio: number;
   numAvg: number | null; numMin: number | null; numMax: number | null;
-  samples: string[];
+  samples: string[]; type: ColumnType;
 };
 
 export type Candidate = {
@@ -138,6 +141,17 @@ export function detectHeaderRow(g: Grid): number {
   return best;
 }
 
+/**
+ * 열별 대표 타입 판정 (REQ-007 "타입 분포"의 소비 가능한 산출).
+ * 날짜/숫자는 겹칠 수 있어(yymmdd 생년월일 등) 우세율로 판정, 임계 미만이면 text.
+ * int vs number 는 데이터로 구별 불가(정수형 금액 흔함) -> 온톨로지에서 정제.
+ */
+export function inferType(p: Pick<ColumnProfile, "numericRate" | "dateRate">): ColumnType {
+  if (p.dateRate >= 0.7 && p.dateRate >= p.numericRate) return "date";
+  if (p.numericRate >= 0.7) return "number";
+  return "text";
+}
+
 export function profileColumns(g: Grid, hIdx: number): { profiles: ColumnProfile[]; rows: Cell[][] } {
   const headers = (g[hIdx] ?? []).map((h) => (h == null ? "" : String(h)));
   const rows = g.slice(hIdx + 1).filter((r) => r && r.some((c) => c != null && c !== ""));
@@ -152,12 +166,13 @@ export function profileColumns(g: Grid, hIdx: number): { profiles: ColumnProfile
       if (parseDate(v).ok) date++;
       distinct.add(String(v));
     });
+    const numericRate = num / n, dateRate = date / n;
     return {
       ci, header: h, count: vals.length, total: rows.length,
       nullRate: 1 - vals.length / (rows.length || 1),
-      numericRate: num / n, dateRate: date / n, distinctRatio: distinct.size / n,
+      numericRate, dateRate, distinctRatio: distinct.size / n,
       numAvg: numN ? sum / numN : null, numMin: numN ? min : null, numMax: numN ? max : null,
-      samples: [...distinct].slice(0, 8),
+      samples: [...distinct].slice(0, 8), type: inferType({ numericRate, dateRate }),
     };
   }).filter((p) => p.header || p.count > 0);
   return { profiles, rows };
@@ -273,6 +288,6 @@ export function applyEvidence(cands: CandidateMap, evs: Evidence[], engineMode: 
 export function buildProfilePrompt(profiles: ColumnProfile[], mask = true): string {
   return profiles.map((p) => {
     const samples = p.samples.map((v) => (mask ? maskSample(v) : v)).join(", ");
-    return `- "${p.header || `(무제 ${p.ci + 1}열)`}" [열${p.ci}]: 숫자 ${Math.round(p.numericRate * 100)}% / 날짜형 ${Math.round(p.dateRate * 100)}% / 널 ${Math.round(p.nullRate * 100)}% / 유니크 ${Math.round(p.distinctRatio * 100)}%\n  표본: ${samples}`;
+    return `- "${p.header || `(무제 ${p.ci + 1}열)`}" [열${p.ci}]: 추정타입 ${p.type} / 숫자 ${Math.round(p.numericRate * 100)}% / 날짜형 ${Math.round(p.dateRate * 100)}% / 널 ${Math.round(p.nullRate * 100)}% / 유니크 ${Math.round(p.distinctRatio * 100)}%\n  표본: ${samples}`;
   }).join("\n");
 }

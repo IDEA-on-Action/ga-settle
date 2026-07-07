@@ -6,7 +6,7 @@
 import { describe, it, expect } from "vitest";
 import {
   ONTOLOGY, norm, parseDate, parseNumber, maskSample, detectHeaderRow,
-  profileColumns, localMap, feeFormulaCheck, runConsistency, applyEvidence,
+  profileColumns, inferType, localMap, feeFormulaCheck, runConsistency, applyEvidence,
   type Grid,
 } from "../src/index";
 
@@ -50,6 +50,53 @@ describe("L1 프로파일링 + 헤더 감지", () => {
     expect(profiles).toHaveLength(12);
     expect(profiles[8]!.numericRate).toBeGreaterThan(0.99); // 실적보험료
     expect(profiles[1]!.dateRate).toBeGreaterThan(0.99);    // 계약체결일
+  });
+});
+
+describe("L1 REQ-007 산출물 (F-004)", () => {
+  const grid: Grid = [
+    ["명세서 제목"],
+    ["증권", "보험료", "계약일", "설계사"],
+    ["A-1", "100000", "2026-06-01", "김철수"],
+    ["A-2", "200000", "2026-06-02", "김철수"],
+    ["A-3", "", "2026-06-03", "이영희"],   // 보험료 빈 셀 1건
+    ["A-4", "400000", "bad-date", "김철수"], // 계약일 노이즈 1건
+  ];
+  const { profiles } = profileColumns(grid, detectHeaderRow(grid));
+  const col = (h: string) => profiles.find((p) => p.header === h)!;
+
+  it("헤더 행을 찾는다", () => expect(detectHeaderRow(grid)).toBe(1));
+
+  it("널률: 빈 셀 비율", () => {
+    expect(col("보험료").nullRate).toBeCloseTo(0.25); // 4행 중 1 빈값
+    expect(col("계약일").nullRate).toBe(0);
+  });
+
+  it("유니크: distinctRatio", () => {
+    expect(col("증권").distinctRatio).toBe(1);          // 전부 고유
+    expect(col("설계사").distinctRatio).toBeCloseTo(0.5); // 김철수/이영희
+  });
+
+  it("수치범위: min/max/avg (빈 셀 제외)", () => {
+    const p = col("보험료");
+    expect(p.numMin).toBe(100000);
+    expect(p.numMax).toBe(400000);
+    expect(p.numAvg).toBeCloseTo((100000 + 200000 + 400000) / 3);
+  });
+
+  it("표본: distinct 최대 8개", () => {
+    expect(col("설계사").samples).toEqual(["김철수", "이영희"]);
+    expect(col("증권").samples.length).toBeLessThanOrEqual(8);
+  });
+
+  it("inferType: 대표 타입은 number/date/text (int 배제, 날짜 우선)", () => {
+    expect(col("보험료").type).toBe("number");
+    expect(col("계약일").type).toBe("date");   // dateRate 0.75, 노이즈 있어도 우세
+    expect(col("설계사").type).toBe("text");
+    expect(col("증권").type).toBe("text");
+    expect(inferType({ numericRate: 1, dateRate: 1 })).toBe("date");  // yymmdd 겹침 -> 날짜
+    expect(inferType({ numericRate: 1, dateRate: 0 })).toBe("number");
+    expect(inferType({ numericRate: 0.3, dateRate: 0.2 })).toBe("text");
   });
 });
 
