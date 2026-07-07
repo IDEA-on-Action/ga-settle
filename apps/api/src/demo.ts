@@ -6,15 +6,15 @@ export const DEMO_HTML = `<!doctype html>
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%235b8cff'/%3E%3Cstop offset='1' stop-color='%23b06bff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='url(%23g)'/%3E%3C/svg%3E" />
-<title>GA-Settle · GA 수수료 정산/대사 시스템 | 생각과 행동</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%230a72e8'/%3E%3Cstop offset='1' stop-color='%2326d3ff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='%230a0e1a'/%3E%3Cpath d='M4 24 Q9 6 16 18 Q23 6 28 24' fill='none' stroke='url(%23g)' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+<title>ATA · 수수료 정산/대사 시스템</title>
 <meta name="description" content="30개 원수사의 제각각 엑셀을 AI 온톨로지 매핑으로 표준화하고, 결정적 코드로 정산·대사·마감까지 자동화하는 GA 수수료 통합 정산 시스템." />
 <style>
   :root{
     --bg:#0a0e1a;--bg2:#0f1524;--card:#141b2d;--card2:#1a2338;--line:#232d44;
     --fg:#e8edf7;--mut:#93a1bd;--dim:#647089;
-    --brand:#5b8cff;--brand2:#7c6bff;--ok:#2ee6a8;--warn:#ffb020;--bad:#ff5c7a;
-    --grad:linear-gradient(120deg,#5b8cff,#7c6bff 60%,#b06bff);
+    --brand:#0d8bff;--brand2:#22c3ff;--ok:#2ee6a8;--warn:#ffb020;--bad:#ff5c7a;
+    --grad:linear-gradient(120deg,#0a72e8,#1f9bff 55%,#26d3ff);
   }
   *{box-sizing:border-box}
   html,body{margin:0;padding:0}
@@ -25,8 +25,8 @@ export const DEMO_HTML = `<!doctype html>
   header{position:sticky;top:0;z-index:20;backdrop-filter:blur(10px);background:rgba(10,14,26,.72);border-bottom:1px solid var(--line)}
   .nav{display:flex;align-items:center;gap:14px;height:60px}
   .logo{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:-.02em}
-  .logo .mark{width:26px;height:26px;border-radius:7px;background:var(--grad);box-shadow:0 4px 18px rgba(91,140,255,.45)}
-  .logo small{font-weight:600;color:var(--mut);font-size:12px}
+  .logo .mark{height:27px;width:auto;filter:drop-shadow(0 3px 10px rgba(13,139,255,.5))}
+  .logo small{font-weight:600;color:var(--mut);font-size:11px;letter-spacing:.01em}
   .nav .sp{flex:1}
   .badge{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--mut);border:1px solid var(--line);background:var(--card);padding:6px 11px;border-radius:999px}
   .dot{width:8px;height:8px;border-radius:50%;background:var(--dim);box-shadow:0 0 0 0 rgba(46,230,168,.5)}
@@ -96,7 +96,7 @@ export const DEMO_HTML = `<!doctype html>
 </head>
 <body>
 <header><div class="wrap nav">
-  <div class="logo"><span class="mark"></span><div>GA-Settle<br><small>생각과 행동</small></div></div>
+  <div class="logo"><svg class="mark" viewBox="0 0 62 30" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="atam" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#0a72e8"/><stop offset="1" stop-color="#26d3ff"/></linearGradient></defs><path d="M4 25 Q17 3 29 22 Q41 3 58 25" stroke="url(#atam)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><div style="font-size:17px;line-height:1.15">ATA<br><small>Autoinsurance To Assetmanagement</small></div></div>
   <span class="sp"></span>
   <span class="badge"><span class="dot" id="hdot"></span><span id="hstat">API 상태 확인 중…</span></span>
   <a class="btn g" href="#demo">라이브 데모</a>
@@ -159,9 +159,9 @@ export const DEMO_HTML = `<!doctype html>
 </div></section>
 
 <footer><div class="wrap frow">
-  <div class="logo"><span class="mark"></span><b>GA-Settle</b></div>
+  <div class="logo"><svg class="mark" viewBox="0 0 62 30" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="atamf" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#0a72e8"/><stop offset="1" stop-color="#26d3ff"/></linearGradient></defs><path d="M4 25 Q17 3 29 22 Q41 3 58 25" stroke="url(#atamf)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>ATA</b></div>
   <span class="sp" style="flex:1"></span>
-  <span>© 2026 생각과 행동 (idea-on-action)</span>
+  <span>© 2026 ATA · Autoinsurance To Assetmanagement · 정산 엔진 by 생각과 행동</span>
   <span class="badge"><span class="dot" id="fdot"></span><span id="fstat">…</span></span>
 </div></footer>
 
