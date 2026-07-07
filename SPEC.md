@@ -43,10 +43,10 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 ### F-004 · L1 데이터 프로파일링
 - **REQ-007**: 컬럼별 타입 분포/널률/유니크/수치범위/표본을 산출한다
 - **Acceptance**:
-  - [ ] packages/mapping 단위 테스트 PASS (프로토타입 검증 케이스 이식됨)
-- **Status**: TODO
+  - [x] packages/mapping 단위 테스트 PASS (프로토타입 이식 10 + L1 REQ-007 보강 6 = 16)
+- **Status**: DONE
 - **Sprint**: S1
-- **Notes**: 코어 로직은 packages/mapping에 이식 완료 (2026-07-07 프로토타입에서 검증)
+- **Notes**: 코어 로직 이식 완료(프로토타입). F-004에서 REQ-007 각 산출물(널률/유니크/수치범위/표본) 명시 단언 추가 + `inferType()`(열별 대표 타입 text/number/date, int는 온톨로지 몫이라 배제, yymmdd 겹침은 날짜 우선) 추가 + `ColumnProfile.type` 필드 + buildProfilePrompt에 추정타입 노출. 이식 로직 불변(추가만).
 
 ### F-005 · L2 AI 시맨틱 매핑 + 폴백
 - **REQ-008**: 온톨로지+프로파일을 Claude API에 전달, 매핑 후보+신뢰도+근거 JSON 수신 (FR-02)
