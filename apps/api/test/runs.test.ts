@@ -1,7 +1,7 @@
 import { env, SELF } from "cloudflare:test";
 import { describe, it, expect, beforeEach } from "vitest";
 import { eq } from "drizzle-orm";
-import { insurers, orgUnits, agents, agentAssignments, uploads, commissionRecords, settlementLines, auditLogs } from "@ga-settle/schema";
+import { insurers, orgUnits, agents, agentAssignments, uploads, commissionRecords, settlementLines, settlementRuns, auditLogs } from "@ga-settle/schema";
 import { getDb } from "../src/db";
 
 const getJson = async (path: string) => (await SELF.fetch(`https://x${path}`)).json();
@@ -94,5 +94,28 @@ describe("F-013 정산 계산 배치", () => {
     // 감사 로그 동반
     const audits = await getDb(env).select().from(auditLogs).all();
     expect(audits.some((a) => a.action === "adjustment.create" && a.entityId === adjId)).toBe(true);
+  });
+
+  it("마감: 이중 잠금 - 마감 후 API/DB 양쪽 쓰기 거부 + 스냅샷 (F-016 REQ-025)", async () => {
+    const { id } = (await (await post("/api/runs", { settlementMonth: "2026-06" })).json()) as { id: string };
+    await post(`/api/runs/${id}/calculate`);
+    const close = await post(`/api/runs/${id}/close`, { closedBy: "admin" });
+    expect(close.status).toBe(200);
+    const body = (await close.json()) as { status: string; snapshotR2Key: string };
+    expect(body.status).toBe("closed");
+    // 마감 스냅샷 R2 보관 (head = 스트림 없음, 격리 스토리지 안전)
+    expect(await env.UPLOADS.head(body.snapshotR2Key)).not.toBeNull();
+
+    // (1) API 잠금: 재계산/보정/재마감 -> 409
+    expect((await post(`/api/runs/${id}/calculate`)).status).toBe(409);
+    expect((await post(`/api/runs/${id}/adjustments`, { targetType: "line", targetId: "cr1", amount: 1, reason: "x" })).status).toBe(409);
+    expect((await post(`/api/runs/${id}/close`, { closedBy: "admin" })).status).toBe(409);
+
+    // (2) DB 트리거 잠금(우회 불가): 마감 run에 직접 settlement_lines insert / run UPDATE -> ABORT
+    const db = getDb(env);
+    await expect(db.insert(settlementLines).values({
+      id: "hack1", runId: id, commissionRecordId: "cr1", agentId: "ag1", orgUnitId: "team1", amountEnc: "1", createdAt: "2026-07-07",
+    })).rejects.toThrow();
+    await expect(db.update(settlementRuns).set({ closedBy: "hacker" }).where(eq(settlementRuns.id, id))).rejects.toThrow();
   });
 });

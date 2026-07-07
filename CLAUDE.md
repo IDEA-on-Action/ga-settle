@@ -52,7 +52,7 @@ pnpm -F api d1:migrate:local           # 로컬 D1에 마이그레이션 적용 
 - POST /api/runs · POST /api/runs/:id/calculate · GET /api/runs/:id - 월 정산 run + 룰 계산(재현성) (F-013)
 - GET /api/runs/:id/reconciliation - 대사(원수사 보고액 vs 계산액, 계약 단위 차액 드릴다운) (F-014)
 - POST /api/runs/:id/adjustments · GET - 수동 보정(reason 필수)+감사로그 (F-015)
-- POST /api/runs/:id/close - 마감 이중 잠금 (F-016, 미구현 501)
+- POST /api/runs/:id/close - 월 마감(이중 잠금 API+DB 트리거, R2 스냅샷) (F-016)
 
 ## 도메인 요지
 

@@ -146,9 +146,10 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 ### F-016 · 월 마감 (이중 잠금 + 스냅샷)
 - **REQ-025**: closed 상태에서 API+DB 트리거 이중 쓰기 차단, 마감 스냅샷 R2 보관 (FR-20, NFR-05)
 - **Acceptance**:
-  - [ ] 마감 후 UPDATE 시도가 API/DB 양쪽에서 거부되는 테스트
-- **Status**: TODO
+  - [x] 마감 후 UPDATE 시도가 API/DB 양쪽에서 거부되는 테스트 (API calculate/adjust 409 + DB 트리거 ABORT)
+- **Status**: DONE
 - **Sprint**: S3
+- **Notes**: POST /api/runs/:id/close: calculated→closed(낙관적 락), 마감 스냅샷(run+lines+recon JSON) R2 put snapshotR2Key, closedAt/closedBy, run.close 감사. 이중 잠금: API(closed run calculate/adjust/재close 409) + DB(F-002 트리거가 마감 run/종속 테이블 insert/update ABORT, 우회 불가). 테스트로 양층 검증. **Phase 3(S3) 완료 = 마일스톤 2.**
 
 ### F-017 · RBAC + 계정/공지
 - **REQ-026**: 직책별 조직 스코프 권한, 세션 인증, 관리자 IP 허용목록 (FR-25~26, NFR-03)
