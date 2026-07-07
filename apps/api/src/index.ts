@@ -6,6 +6,7 @@ import { mappingRoutes } from "./routes/mapping";
 import { runsRoutes } from "./routes/runs";
 import { orgRoutes } from "./routes/org";
 import { rulesRoutes } from "./routes/rules";
+import { familyRoutes } from "./routes/family";
 
 export type { Env };
 
@@ -25,6 +26,7 @@ app.route("/", mappingRoutes); // F-005/F-007 매핑
 app.route("/", runsRoutes);    // F-013~F-016 정산/대사/마감
 app.route("/", orgRoutes);     // F-009 조직/설계사/소속 이력
 app.route("/", rulesRoutes);   // F-010 시책 룰 CRUD
+app.route("/", familyRoutes);  // F-011 가족계약 감지 HITL
 
 export default {
   fetch: app.fetch,

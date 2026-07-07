@@ -106,9 +106,10 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 ### F-011 · 가족계약 감지 (HITL)
 - **REQ-020**: 성명+생년월일 매칭 후보 자동 생성, 확정은 실무자만, 해제 가능, 이력 보존 (FR-14)
 - **Acceptance**:
-  - [ ] 자동 확정 경로가 존재하지 않음을 테스트로 보장
-- **Status**: TODO
+  - [x] 자동 확정 경로가 존재하지 않음을 테스트로 보장 (감지는 candidate만, confirmed는 confirmedBy 필수 수동 전이)
+- **Status**: DONE
 - **Sprint**: S2
+- **Notes**: src/family.ts findFamilyCandidates 순수함수(성명 norm + 생년월일 parseDate 정규화 매칭, 생년월일 없으면 오탐 방지 제외). routes/family.ts: POST /detect(candidate만 생성), POST /:id/confirm(confirmedBy 필수 400·candidate에서만 409), POST /:id/release(행 유지 status만), GET /family. 테스트 4: 순수매칭 + 자동확정부재(Acceptance)+실무자확정+해제이력보존.
 
 ### F-012 · 룰 시뮬레이션
 - **REQ-021**: 룰 변경 전 지급액 diff 미리보기, 실데이터 무영향 (FR-15)
