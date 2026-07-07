@@ -46,6 +46,38 @@ authRoutes.post("/api/auth/login", async (c) => {
   return c.json({ token: await signToken(u.id, c.env.SESSION_SECRET), role: u.role, orgUnitId: u.orgUnitId });
 });
 
+// 비밀번호 변경 (본인, 현재 비번 확인) - F-025 REQ-034
+authRoutes.post("/api/auth/change-password", async (c) => {
+  const db = getDb(c.env);
+  const user = await authUser(c.req.raw, db, c.env.SESSION_SECRET);
+  if (!user) return c.json({ error: "인증이 필요해요" }, 401);
+  const b = z.object({ currentPassword: z.string().min(1), newPassword: z.string().min(8) })
+    .safeParse(await c.req.json().catch(() => null));
+  if (!b.success) return c.json({ error: "비밀번호 검증 실패 (currentPassword 필수, newPassword 8자+)" }, 400);
+  if (!ctEq(user.passwordHash, await hashPassword(b.data.currentPassword, c.env.SESSION_SECRET))) {
+    return c.json({ error: "현재 비밀번호가 틀려요" }, 401);
+  }
+  if (b.data.newPassword === b.data.currentPassword) return c.json({ error: "새 비밀번호가 기존과 같아요" }, 400);
+  await db.update(users).set({ passwordHash: await hashPassword(b.data.newPassword, c.env.SESSION_SECRET) }).where(eq(users.id, user.id));
+  await writeAudit(db, { actor: user.id, action: "auth.change_password", entity: "users", entityId: user.id });
+  return c.json({ ok: true });
+});
+
+// 비밀번호 초기화 (admin이 타 계정 - 분실 대응) - F-025 REQ-034
+authRoutes.post("/api/users/:id/reset-password", async (c) => {
+  const db = getDb(c.env);
+  const admin = await authUser(c.req.raw, db, c.env.SESSION_SECRET);
+  if (!admin || admin.role !== "admin") return c.json({ error: "관리자만 비밀번호를 초기화할 수 있어요" }, 403);
+  const b = z.object({ newPassword: z.string().min(8) }).safeParse(await c.req.json().catch(() => null));
+  if (!b.success) return c.json({ error: "비밀번호 검증 실패 (newPassword 8자+)" }, 400);
+  const targetId = c.req.param("id");
+  const target = await db.select({ id: users.id }).from(users).where(eq(users.id, targetId)).get();
+  if (!target) return c.json({ error: "없는 계정이에요" }, 404);
+  await db.update(users).set({ passwordHash: await hashPassword(b.data.newPassword, c.env.SESSION_SECRET) }).where(eq(users.id, targetId));
+  await writeAudit(db, { actor: admin.id, action: "auth.reset_password", entity: "users", entityId: targetId, summary: { by: admin.id } });
+  return c.json({ ok: true, userId: targetId });
+});
+
 // 조직 스코프 보호 조회: 해당 org의 현재 소속 설계사. 스코프 밖이면 403 (Acceptance).
 authRoutes.get("/api/orgs/:orgUnitId/agents", async (c) => {
   const db = getDb(c.env);

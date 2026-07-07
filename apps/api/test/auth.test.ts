@@ -62,4 +62,39 @@ describe("F-024 인증 롤아웃 + F-017 RBAC", () => {
     expect((await post("/api/users", { email: "b@x.com", name: "b", role: "viewer", password: "pw1234" })).status).toBe(403); // 토큰 없이
     expect((await post("/api/users", { email: "b@x.com", name: "b", role: "viewer", password: "pw1234" }, admin)).status).toBe(201); // admin
   });
+
+  it("비밀번호 변경(본인): 현재 비번 확인 -> 새 비번으로만 로그인 (F-025)", async () => {
+    const admin = await bootstrapAdmin();
+    // 틀린 현재 비번 -> 401
+    expect((await post("/api/auth/change-password", { currentPassword: "wrong", newPassword: "newpw12345" }, admin)).status).toBe(401);
+    // 새 비번 8자 미만 -> 400
+    expect((await post("/api/auth/change-password", { currentPassword: "pw1234", newPassword: "short" }, admin)).status).toBe(400);
+    // 정상 변경 -> 200
+    expect((await post("/api/auth/change-password", { currentPassword: "pw1234", newPassword: "newpw12345" }, admin)).status).toBe(200);
+    // 기존 비번 로그인 실패, 새 비번 로그인 성공
+    expect((await post("/api/auth/login", { email: "root@x.com", password: "pw1234" })).status).toBe(401);
+    expect((await post("/api/auth/login", { email: "root@x.com", password: "newpw12345" })).status).toBe(200);
+  });
+
+  it("비밀번호 변경: 무인증 -> 401", async () => {
+    await bootstrapAdmin();
+    expect((await post("/api/auth/change-password", { currentPassword: "pw1234", newPassword: "newpw12345" })).status).toBe(401);
+  });
+
+  it("비밀번호 초기화(admin): 타 계정 초기화 -> 새 비번 로그인 (F-025)", async () => {
+    const admin = await bootstrapAdmin();
+    const created = (await (await post("/api/users", { email: "u@x.com", name: "u", role: "staff", password: "pw1234" }, admin)).json()) as { id: string };
+    // 정상 초기화 -> 200, 새 비번 로그인 성공
+    expect((await post(`/api/users/${created.id}/reset-password`, { newPassword: "resetpw12345" }, admin)).status).toBe(200);
+    expect((await post("/api/auth/login", { email: "u@x.com", password: "resetpw12345" })).status).toBe(200);
+    // 없는 계정 -> 404
+    expect((await post("/api/users/nope/reset-password", { newPassword: "resetpw12345" }, admin)).status).toBe(404);
+  });
+
+  it("비밀번호 초기화: 비admin -> 403", async () => {
+    const admin = await bootstrapAdmin();
+    await post("/api/users", { email: "v@x.com", name: "v", role: "viewer", password: "pw1234" }, admin);
+    const viewer = await login("v@x.com", "pw1234");
+    expect((await post("/api/users/whoever/reset-password", { newPassword: "resetpw12345" }, viewer)).status).toBe(403);
+  });
 });
