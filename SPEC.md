@@ -276,6 +276,14 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 - **Sprint**: S13
 - **Notes**: F-026~F-029 화면 완성 의존. F-021에서 브라우저 E2E는 B-006(=F-030)으로 미뤄둔 부분을 완결. CI 통합 여부는 Plan에서 결정.
 
+### F-025 · 비밀번호 변경/초기화 API
+- **REQ-034**: 사용자가 자기 비밀번호를 변경하고, admin이 타 계정 비밀번호를 초기화할 수 있다
+- **Acceptance**:
+  - [x] 본인 변경은 현재 비밀번호 확인 후 새 비번(8자+)으로만 로그인 가능, admin 초기화는 admin만
+- **Status**: DONE
+- **Sprint**: S7
+- **Notes**: POST /api/auth/change-password(본인, currentPassword 확인 + ctEq, newPassword 8자+, 기존과 동일 거부, audit) + POST /api/users/:id/reset-password(admin only, 분실 대응, audit). 계정 생성(min 4)보다 강한 8자+ 정책. 한계: HMAC 토큰은 서버측 폐기 없음 - 변경 후 기존 토큰은 exp(8h)까지 유효(토큰 버전/블록리스트는 후속). api 62 PASS.
+
 ## §3. Backlog (F-item 승격 대기)
 
 | ID | 한 줄 | 승격 기준 충족? | 우선 |

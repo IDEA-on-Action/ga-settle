@@ -50,6 +50,7 @@ pnpm -F api d1:migrate:local           # 로컬 D1에 마이그레이션 적용 
 - POST /api/rules/simulate - 룰 변경 지급액 diff 미리보기(실데이터 무영향) (F-012)
 - POST /api/family/detect · /:id/confirm · /:id/release · GET /api/family - 가족계약 감지 HITL (F-011)
 - POST /api/users · POST /api/auth/login · GET /api/orgs/:id/agents - 계정/세션인증/RBAC 조직스코프 (F-017)
+- POST /api/auth/change-password · POST /api/users/:id/reset-password - 본인 비번 변경(현재 비번 확인)·admin 초기화 (F-025)
 - POST /api/runs · POST /api/runs/:id/calculate · GET /api/runs/:id - 월 정산 run + 룰 계산(재현성) (F-013)
 - GET /api/runs/:id/reconciliation - 대사(원수사 보고액 vs 계산액, 계약 단위 차액 드릴다운) (F-014)
 - GET /api/runs/:id/parallel-verify - 병행 검증(저장 vs 재계산 차액 0원 무결성) (F-022)
