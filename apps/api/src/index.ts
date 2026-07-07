@@ -47,6 +47,15 @@ app.route("/", payslipsRoutes); // F-018 지급 내역서/출력물
 app.route("/", statsRoutes);   // F-019 통계/집계
 app.route("/", insurersRoutes); // F-026 원수사 마스터 CRUD
 
+// SPA 서빙 (B-006 단일 오리진, run_worker_first=true라 모든 요청이 Worker 경유).
+// 루트=랜딩(위 app.get("/")), /api·/health는 위에서 처리. 그 외(/app, /app/*, /assets/*)는:
+// assets(html_handling=none + not_found_handling=SPA)가 실제 파일이면 그대로, 미스면 index.html 셸.
+app.all("*", (c) => {
+  const path = new URL(c.req.url).pathname;
+  if (path.startsWith("/api/")) return c.json({ error: "찾을 수 없어요" }, 404);
+  return c.env.ASSETS.fetch(c.req.raw);
+});
+
 export default {
   fetch: app.fetch,
   queue: queueConsumer,

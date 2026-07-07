@@ -100,6 +100,7 @@ export const DEMO_HTML = `<!doctype html>
   <span class="sp"></span>
   <span class="badge"><span class="dot" id="hdot"></span><span id="hstat">API 상태 확인 중…</span></span>
   <a class="btn g" href="#demo">라이브 데모</a>
+  <a class="btn p" href="/app">시작하기 →</a>
 </div></header>
 
 <div class="demo0"></div>
