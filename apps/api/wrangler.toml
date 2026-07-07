@@ -28,6 +28,16 @@ OTP_FROM_EMAIL = "no-reply@atasset.co.kr" # OTP 메일 발신 주소
 # 시크릿은 .dev.vars / wrangler secret put:
 #   ANTHROPIC_API_KEY, FIELD_ENCRYPTION_KEY, SESSION_SECRET, ADMIN_IP_ALLOWLIST, RESEND_API_KEY(OTP 메일)
 
+# 정적 자산(SPA) - apps/web/dist를 같은 오리진에서 서빙 (B-006 단일 오리진).
+# run_worker_first: Worker가 / (랜딩) 소유. html_handling=none(리다이렉트 없음) + not_found_handling=SPA(미스는 index.html).
+[assets]
+directory = "../web/dist"
+binding = "ASSETS"
+run_worker_first = true
+not_found_handling = "single-page-application"
+html_handling = "none"
+
+
 # ─────────────────────────────────────────────────────────────
 # 프로덕션 환경 (배포: wrangler deploy --env production)
 # 커스텀 도메인 ata.minu.best (minu.best 가 이 CF 계정의 zone이어야 자동 DNS/cert 발급).
@@ -43,6 +53,14 @@ routes = [
 ENV = "production"
 OTP_EMAIL_DOMAIN = "atasset.co.kr"
 OTP_FROM_EMAIL = "no-reply@atasset.co.kr"
+
+# 프로덕션 정적 자산 (env-scoped라 재선언)
+[env.production.assets]
+directory = "../web/dist"
+binding = "ASSETS"
+run_worker_first = true
+not_found_handling = "single-page-application"
+html_handling = "none"
 
 [[env.production.d1_databases]]
 binding = "DB"
