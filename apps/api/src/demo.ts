@@ -104,24 +104,24 @@ export const DEMO_HTML = `<!doctype html>
 
 <div class="demo0"></div>
 <section class="hero"><div class="wrap">
-  <span class="kicker">◆ GA 수수료·시책 통합 정산/대사</span>
-  <h1>30개 원수사, 제각각 엑셀.<br><span class="g">하나의 정산으로.</span></h1>
-  <p class="lead">매월 서로 다른 양식으로 들어오는 수수료 내역을 AI 온톨로지 매핑으로 표준화하고, 정산 숫자는 100% 결정적 코드가 계산합니다. 원본 행까지 역추적되는 감사 가능한 정산·대사·마감을 자동화합니다.</p>
+  <span class="kicker">◆ 보험 GA 수수료·시책 정산 자동화</span>
+  <h1>30개 원수사, 제각각 엑셀.<br><span class="g">정산은 오차 0, 근거는 원본까지.</span></h1>
+  <p class="lead">수기 대사와 엑셀 취합으로 며칠씩 태우던 마감을 자동화합니다. AI가 제각각인 컬럼을 표준 필드로 매핑하면, 검증된 결정적 코드가 정산-대사-마감까지 끝냅니다. 모든 숫자는 원본 엑셀 행까지 역추적되어 감사에 그대로 답이 됩니다.</p>
   <div class="cta">
-    <a class="btn p" href="#demo">▶ 파이프라인 데모 보기</a>
-    <a class="btn g" href="#feat">핵심 원칙</a>
+    <a class="btn p" href="#demo">▶ 60초 파이프라인 데모</a>
+    <a class="btn g" href="#feat">타협 없는 원칙</a>
   </div>
   <div class="stats">
-    <div class="stat"><b>30+</b><span>원수사 양식 자동 대응</span></div>
-    <div class="stat"><b>L0~L4</b><span>5단계 AI 매핑 파이프라인</span></div>
-    <div class="stat"><b>0원</b><span>병행 검증 차액 (재현성)</span></div>
-    <div class="stat"><b>2-join</b><span>어떤 숫자든 원본 행 역추적</span></div>
+    <div class="stat"><b>30+</b><span>원수사 양식, 손 안 대고 대응</span></div>
+    <div class="stat"><b>L0~L4</b><span>사람 개입 없는 자동 매핑</span></div>
+    <div class="stat"><b>0원</b><span>재계산해도 차액 0원</span></div>
+    <div class="stat"><b>2-join</b><span>모든 숫자, 원본 행까지 추적</span></div>
   </div>
 </div></section>
 
 <section class="demo" id="demo"><div class="wrap">
-  <h2>파이프라인 라이브 데모</h2>
-  <p class="sub">실제 시스템의 업로드 → AI 매핑 → 검증 → 원장 → 정산 → 대사 → 마감 흐름을 그대로 재현합니다. 아래 <b>다음 단계</b>로 진행하세요.</p>
+  <h2>엑셀 한 장이, 마감된 정산서가 되기까지</h2>
+  <p class="sub">원수사 엑셀 한 장이 마감 정산서가 되는 실제 처리 흐름 그대로입니다. <b>다음 단계</b>로 직접 넘겨보세요.</p>
   <div class="steps" id="steps"></div>
   <div class="stage" id="stage"></div>
   <div class="demo-ctl">
@@ -133,13 +133,13 @@ export const DEMO_HTML = `<!doctype html>
 </div></section>
 
 <section id="feat"><div class="wrap">
-  <h2>불변 원칙</h2>
-  <p class="sub">정산 시스템이 감사와 재현성을 보장하기 위해 반드시 지키는 규칙입니다.</p>
+  <h2>타협하지 않는 4가지 원칙</h2>
+  <p class="sub">감사와 재현성을 위해, 시스템이 예외 없이 지키는 규칙입니다.</p>
   <div class="grid4">
-    <div class="feat"><div class="ic">🔎</div><h4>역추적 불변식</h4><p>모든 수수료 레코드는 upload_id + row_no를 보유. 어떤 정산 숫자든 원본 엑셀 행까지 2-join으로 도달합니다.</p></div>
-    <div class="feat"><div class="ic">🔒</div><h4>마감 이중 잠금</h4><p>마감된 정산은 API 거부 + DB 트리거로 이중 차단. 마감 스냅샷은 불변 보관됩니다.</p></div>
-    <div class="feat"><div class="ic">🤖</div><h4>AI는 후보만</h4><p>정산 숫자는 전부 결정적 코드가 계산. LLM은 매핑 후보·근거·초안만 제시하고 확정은 검증/사람이 합니다.</p></div>
-    <div class="feat"><div class="ic">🛡️</div><h4>필드 암호화</h4><p>금액·인적정보는 AES-GCM으로 암호화 저장. LLM 전송은 마스킹된 표본만 사용합니다.</p></div>
+    <div class="feat"><div class="ic">🔎</div><h4>원본까지 역추적</h4><p>모든 수수료 레코드는 업로드 파일과 행 번호를 품습니다. 어떤 정산액이든 원본 엑셀 행까지 되짚어, 감사에 그대로 답이 됩니다.</p></div>
+    <div class="feat"><div class="ic">🔒</div><h4>마감은 이중 잠금</h4><p>마감된 정산은 API가 거부하고 DB 트리거가 다시 막습니다. 마감 스냅샷은 누구도 바꿀 수 없게 보관됩니다.</p></div>
+    <div class="feat"><div class="ic">🤖</div><h4>돈은 코드가 계산</h4><p>정산 숫자는 언제나 검증된 결정적 코드가 계산합니다. AI는 매핑 후보와 근거만 제시하고, 확정은 정합성 검증 또는 사람이 합니다.</p></div>
+    <div class="feat"><div class="ic">🛡️</div><h4>민감정보 암호화</h4><p>금액과 개인정보는 AES-GCM으로 암호화해 저장합니다. AI에는 마스킹된 표본만 보내, 원문이 새어 나가지 않습니다.</p></div>
   </div>
   <h2 style="margin-top:56px">처리 흐름</h2>
   <div class="flow">
@@ -183,12 +183,12 @@ export const DEMO_HTML = `<!doctype html>
 
 // ---- 파이프라인 스텝 데모 ----
 var STEPS = [
-  {t:'1. 원수사 엑셀 업로드', d:'원수사마다 헤더 이름이 제각각입니다. 삼성생명 6월 수수료 내역(예시) - 헤더가 표준과 다릅니다.', r:stageUpload},
-  {t:'2. AI 온톨로지 매핑 (L0~L4)', d:'동의어·문맥·수치 프로파일로 각 컬럼을 표준 필드에 매핑하고 신뢰도를 부여합니다.', r:stageMap},
-  {t:'3. 정합성 검증', d:'지급수수료 ≈ 보험료 × 수수료율. 결정적 규칙으로 전 행을 검증합니다.', r:stageValidate},
-  {t:'4. 원장 커밋 (역추적·암호화)', d:'승인 시 원장에 커밋. 각 행은 upload_id+row_no로 역추적되고 금액은 암호화 저장됩니다.', r:stageLedger},
-  {t:'5. 정산 · 대사', d:'시책 룰로 지급액을 계산하고, 원수사 보고액과 대조해 차액을 계약 단위로 드릴다운합니다.', r:stageRecon},
-  {t:'6. 마감 (이중 잠금)', d:'월 마감 시 API + DB 트리거 이중 잠금. 스냅샷을 불변 보관하고 병행 검증 차액 0원을 확인합니다.', r:stageClose},
+  {t:'1. 원수사 엑셀 업로드', d:'원수사마다 헤더가 제각각입니다. 사람이 매달 손으로 맞추던 그 엑셀을, 그대로 올리기만 하세요.', r:stageUpload},
+  {t:'2. AI 온톨로지 매핑 (L0~L4)', d:'동의어-문맥-수치 패턴으로 각 컬럼을 표준 필드에 자동 매핑하고, 얼마나 확신하는지 근거까지 남깁니다.', r:stageMap},
+  {t:'3. 정합성 검증', d:'지급수수료 ≈ 보험료 × 수수료율. 결정적 규칙이 전 행을 초 단위로 검증합니다.', r:stageValidate},
+  {t:'4. 원장 커밋 (역추적·암호화)', d:'승인하면 원장에 커밋됩니다. 모든 행은 원본까지 역추적되고, 금액은 암호화되어 저장됩니다.', r:stageLedger},
+  {t:'5. 정산 · 대사', d:'시책 룰로 지급액을 계산하고 원수사 보고액과 대조합니다. 차이 나는 계약을 계약 단위로 짚어냅니다.', r:stageRecon},
+  {t:'6. 마감 (이중 잠금)', d:'월 마감은 API와 DB가 이중으로 잠급니다. 스냅샷을 불변 보관하고, 재계산해도 차액 0원임을 증명합니다.', r:stageClose},
 ];
 var cur=0;
 var stepsEl=document.getElementById('steps'), stageEl=document.getElementById('stage'), progEl=document.getElementById('prog');
