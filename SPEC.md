@@ -15,8 +15,8 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 - **REQ-002**: GitHub Actions에서 push마다 lint+typecheck+test가 돌아야 한다
 - **Acceptance**:
   - [x] `pnpm install` PASS, `wrangler dev` GET /health 200
-  - [ ] CI 그린 (로컬 typecheck+test+build 8/8 그린, push 후 확인)
-- **Status**: IN_PROGRESS
+  - [x] CI 그린 (GitHub Actions run 28867146909 PASS, PR #1)
+- **Status**: DONE
 - **Sprint**: S0
 - **Notes**: dot-* rename은 scripts/setup.sh가 처리. 2026-07-07 D1/R2/Queue 리소스 생성 완료(D1 id 기입), 부트스트랩 정합성 수정: schema Drizzle extraConfig 객체형(drizzle 0.36 유지), api ExportedHandler 큐 타입 파라미터, /health vitest 스모크 추가.
 
