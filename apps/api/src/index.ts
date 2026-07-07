@@ -12,10 +12,15 @@ import { familyRoutes } from "./routes/family";
 import { authRoutes } from "./routes/auth";
 import { payslipsRoutes } from "./routes/payslips";
 import { statsRoutes } from "./routes/stats";
+import { insurersRoutes } from "./routes/insurers";
+import { DEMO_HTML } from "./demo";
 
 export type { Env };
 
 export const app = new Hono<{ Bindings: Env }>();
+
+// 루트: 고객 데모용 랜딩/인터랙티브 페이지 (정식 SPA는 B-006).
+app.get("/", (c) => c.html(DEMO_HTML));
 
 app.get("/health", (c) => c.json({ ok: true, env: c.env.ENV }));
 
@@ -39,6 +44,7 @@ app.route("/", familyRoutes);  // F-011 가족계약 감지 HITL
 app.route("/", authRoutes);    // F-017 계정/세션 인증/RBAC 스코프
 app.route("/", payslipsRoutes); // F-018 지급 내역서/출력물
 app.route("/", statsRoutes);   // F-019 통계/집계
+app.route("/", insurersRoutes); // F-026 원수사 마스터 CRUD
 
 export default {
   fetch: app.fetch,
