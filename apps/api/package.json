@@ -9,6 +9,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "deploy": "wrangler deploy",
+    "deploy:prod": "wrangler deploy --env production",
+    "deploy:prod:dry": "wrangler deploy --env production --dry-run",
     "d1:migrate:local": "wrangler d1 migrations apply ga-settle-db --local",
     "d1:migrate:remote": "wrangler d1 migrations apply ga-settle-db --remote"
   },
