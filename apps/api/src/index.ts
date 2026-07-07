@@ -7,6 +7,7 @@ import { runsRoutes } from "./routes/runs";
 import { orgRoutes } from "./routes/org";
 import { rulesRoutes } from "./routes/rules";
 import { familyRoutes } from "./routes/family";
+import { authRoutes } from "./routes/auth";
 
 export type { Env };
 
@@ -27,6 +28,7 @@ app.route("/", runsRoutes);    // F-013~F-016 정산/대사/마감
 app.route("/", orgRoutes);     // F-009 조직/설계사/소속 이력
 app.route("/", rulesRoutes);   // F-010 시책 룰 CRUD
 app.route("/", familyRoutes);  // F-011 가족계약 감지 HITL
+app.route("/", authRoutes);    // F-017 계정/세션 인증/RBAC 스코프
 
 export default {
   fetch: app.fetch,
