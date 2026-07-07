@@ -7,9 +7,7 @@ import { ingestParsed } from "../src/queue";
 
 // F-021 핵심 흐름 E2E (API 레벨): 업로드/파싱 -> 매핑확정 -> 승인원장 -> 정산 -> 대사 -> 내역서 -> 마감.
 // (브라우저 Playwright E2E는 SPA 화면 필요 -> B-006 backlog. 로직 관통은 여기서 실측.)
-const post = (path: string, body: unknown = {}) =>
-  SELF.fetch(`https://x${path}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
-const getJson = async (path: string) => (await SELF.fetch(`https://x${path}`)).json();
+import { apost as post, agetJson as getJson, aget } from "./helpers";
 
 // 12 valid 행. FC사번 -> 설계사코드(=agentId), 항목A -> 지급수수료(산식 발굴).
 function grid(): Cell[][] {

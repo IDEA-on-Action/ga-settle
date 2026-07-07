@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { insurers, uploads } from "@ga-settle/schema";
 import { getDb } from "../src/db";
 import { resolveTemplate } from "../src/routes/mapping";
+import { aget, apost } from "./helpers";
 
 const H1 = ["증권No", "계약일", "실적보험료", "항목A"];
 const CM1 = { 계약번호: 0, 계약일: 1, 보험료: 2, 지급수수료: 3 };
@@ -19,9 +20,7 @@ async function seedUpload(id: string) {
   });
 }
 const confirm = (uploadId: string, headers: string[], columnMap: Record<string, number>) =>
-  SELF.fetch(`https://x/api/uploads/${uploadId}/mapping/confirm`, {
-    method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ headers, columnMap }),
-  });
+  apost(`/api/uploads/${uploadId}/mapping/confirm`, { headers, columnMap });
 
 describe("F-007 TemplateVersion + L0 캐시", () => {
   it("확정 -> TemplateVersion v1 저장 + L0 시그니처 캐시 적중 (REQ-013)", async () => {
@@ -59,16 +58,14 @@ describe("F-007 TemplateVersion + L0 캐시", () => {
     expect(body.version).toBe(2);
 
     // 관리 화면용 이력: 2개 버전 최신순
-    const list = (await (await SELF.fetch("https://x/api/insurers/ins1/templates")).json()) as { version: number }[];
+    const list = (await (await aget("/api/insurers/ins1/templates")).json()) as { version: number }[];
     expect(list.map((t) => t.version)).toEqual([2, 1]);
   });
 
   it("없는 업로드 확정 -> 404, 본문 누락 -> 400", async () => {
     expect((await confirm("nope", H1, CM1)).status).toBe(404);
     await seedUpload("u9");
-    const bad = await SELF.fetch("https://x/api/uploads/u9/mapping/confirm", {
-      method: "POST", headers: { "content-type": "application/json" }, body: "{}",
-    });
+    const bad = await apost("/api/uploads/u9/mapping/confirm", {});
     expect(bad.status).toBe(400);
   });
 });

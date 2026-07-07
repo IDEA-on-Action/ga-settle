@@ -1,9 +1,7 @@
 import { SELF } from "cloudflare:test";
 import { describe, it, expect } from "vitest";
 
-const post = (path: string, body: unknown) =>
-  SELF.fetch(`https://x${path}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
-const getJson = async (path: string) => (await SELF.fetch(`https://x${path}`)).json();
+import { apost as post, agetJson as getJson, aget } from "./helpers";
 
 describe("F-009 조직 + 소속 이력", () => {
   it("소속 이동 후 이전 월 재계산 시 이전 소속으로 계산 (Acceptance, FR-11)", async () => {

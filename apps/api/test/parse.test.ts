@@ -5,6 +5,7 @@ import type { Cell } from "@ga-settle/mapping";
 import { insurers, uploads, commissionRecords } from "@ga-settle/schema";
 import { getDb } from "../src/db";
 import { ingestParsed } from "../src/queue";
+import { aget, apost } from "./helpers";
 
 // F-008 파이프라인은 합성 Grid 주입으로 결정적 테스트(XLSX round-trip은 workerd 환경편차로
 // flaky -> sheetToGrid는 프로덕션 스모크로 검증). 산식 발굴이 n>=10을 요구하므로 12 valid +
@@ -50,7 +51,7 @@ describe("F-008 파싱 파이프라인 + 승인 커밋", () => {
     expect(up?.status).toBe("review");
     expect(up?.okCount).toBe(12);
 
-    const errs = (await (await SELF.fetch("https://x/api/uploads/u1/errors")).json()) as { rowNo: number; field: string }[];
+    const errs = (await (await aget("/api/uploads/u1/errors")).json()) as { rowNo: number; field: string }[];
     expect(errs.length).toBe(2);
     expect(errs.some((e) => e.rowNo === 13 && e.field === "설계사명")).toBe(true);
     expect(errs.some((e) => e.rowNo === 14)).toBe(true); // 중복
@@ -59,7 +60,7 @@ describe("F-008 파싱 파이프라인 + 승인 커밋", () => {
   it("승인: review -> 원장 커밋, upload_id+row_no 역추적 (REQ-016)", async () => {
     await seedUpload();
     await ingest();
-    const res = await SELF.fetch("https://x/api/uploads/u1/approve", { method: "POST" });
+    const res = await apost("/api/uploads/u1/approve");
     expect(res.status).toBe(200);
     expect((await res.json() as { committed: number }).committed).toBe(12);
 
@@ -72,15 +73,15 @@ describe("F-008 파싱 파이프라인 + 승인 커밋", () => {
   it("이중 승인 방지(낙관적 락): 승인 후 재승인 -> 409, 원장 중복 없음", async () => {
     await seedUpload();
     await ingest();
-    expect((await SELF.fetch("https://x/api/uploads/u1/approve", { method: "POST" })).status).toBe(200);
-    expect((await SELF.fetch("https://x/api/uploads/u1/approve", { method: "POST" })).status).toBe(409);
+    expect((await apost("/api/uploads/u1/approve")).status).toBe(200);
+    expect((await apost("/api/uploads/u1/approve")).status).toBe(409);
     const recs = await getDb(env).select().from(commissionRecords).where(eq(commissionRecords.uploadId, "u1")).all();
     expect(recs.length).toBe(12); // 중복 커밋 없음
   });
 
   it("승인은 review 상태에서만 (REQ-016): queued 승인 -> 409, 원장 미커밋", async () => {
     await seedUpload("queued");
-    const res = await SELF.fetch("https://x/api/uploads/u1/approve", { method: "POST" });
+    const res = await apost("/api/uploads/u1/approve");
     expect(res.status).toBe(409);
     expect((await getDb(env).select().from(commissionRecords).where(eq(commissionRecords.uploadId, "u1")).all()).length).toBe(0);
   });

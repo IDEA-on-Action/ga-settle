@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { uploads, jobs, insurers } from "@ga-settle/schema";
 import { getDb } from "../src/db";
 import { queueConsumer, type ParseJob } from "../src/queue";
+import { authHeader } from "./helpers";
 
 // D1 은 FK 를 강제하므로 원수사 부모 행을 먼저 시드 (격리 스토리지라 테스트마다)
 beforeEach(async () => {
@@ -17,7 +18,7 @@ function form(bytes: Uint8Array, opts: { insurerId?: string; month?: string; fil
   fd.set("settlementMonth", opts.month ?? "2026-07");
   return fd;
 }
-const post = (body: FormData) => SELF.fetch("https://x/api/uploads", { method: "POST", body });
+const post = async (body: FormData) => SELF.fetch("https://x/api/uploads", { method: "POST", body, headers: await authHeader() });
 
 describe("POST /api/uploads (F-003)", () => {
   it("업로드 -> 202, uploads/jobs 생성", async () => {
@@ -37,7 +38,7 @@ describe("POST /api/uploads (F-003)", () => {
 
   it("x-user-id 헤더는 신뢰하지 않음 (createdBy=system), auth-bypass 방지", async () => {
     const res = await SELF.fetch("https://x/api/uploads", {
-      method: "POST", headers: { "x-user-id": "attacker" }, body: form(new Uint8Array([5, 5, 5])),
+      method: "POST", headers: { "x-user-id": "attacker", ...(await authHeader()) }, body: form(new Uint8Array([5, 5, 5])),
     });
     expect(res.status).toBe(202);
     const { uploadId } = (await res.json()) as { uploadId: string };
