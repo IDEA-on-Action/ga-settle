@@ -177,8 +177,11 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 
 ### F-020 · 보안 하드닝
 - **REQ-029**: 금액/인적정보 필드 AES-GCM 암호화, 키는 Workers Secret (NFR-02)
-- **Status**: TODO
+- **Acceptance**:
+  - [x] AES-GCM 왕복 + 평문 미저장 + fail-closed 테스트, 기존 금액 테스트가 복호화 경유로 통과
+- **Status**: DONE
 - **Sprint**: S6
+- **Notes**: db.ts encField/decField/decNum AES-GCM(비동기). 키=FIELD_ENCRYPTION_KEY SHA-256→AES-256, base64(iv[12]+ct), 빈 키 fail-closed. 전 *Enc 쓰기(uploads approve/runs calculate·adjust·recon/payslips/family)·읽기(stats/recon/payslips/runs GET) await 전환. 집계는 복호화 후 합산(Promise.all). 랜덤 IV라 재현성은 복호화값으로 비교. vitest 바인딩 FIELD_ENCRYPTION_KEY 주입. 테스트: 암호화 4 + 기존 금액 테스트 리플 통과. 패스워드 해시(F-017 salted SHA-256)도 하드닝 후보(PBKDF2)나 별도 backlog.
 
 ### F-021 · 골든 회귀 + E2E
 - **REQ-030**: 원수사별 골든 표본 → 기대 원장 스냅샷 회귀, Playwright 핵심 5흐름 (NFR-06)

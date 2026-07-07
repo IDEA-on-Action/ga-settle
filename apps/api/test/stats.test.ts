@@ -2,6 +2,7 @@ import { env, SELF } from "cloudflare:test";
 import { describe, it, expect, beforeEach } from "vitest";
 import { insurers, orgUnits, agents, agentAssignments, uploads, commissionRecords } from "@ga-settle/schema";
 import { getDb } from "../src/db";
+import { enc } from "./helpers";
 
 const post = (path: string, body: unknown = {}) =>
   SELF.fetch(`https://x${path}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
@@ -19,9 +20,9 @@ beforeEach(async () => {
   ]);
   await db.insert(uploads).values({ id: "up1", insurerId: "ins1", r2Key: "k", fileHash: "h", status: "approved", settlementMonth: "2026-06", createdBy: "system", createdAt: now });
   await db.insert(commissionRecords).values([
-    { id: "cr1", uploadId: "up1", rowNo: 1, settlementMonth: "2026-06", insurerId: "ins1", contractNo: "C1", agentId: "ag1", premiumEnc: "100000", commissionEnc: "10000" },
-    { id: "cr2", uploadId: "up1", rowNo: 2, settlementMonth: "2026-06", insurerId: "ins1", contractNo: "C2", agentId: "ag1", premiumEnc: "100000", commissionEnc: "10000" },
-    { id: "cr3", uploadId: "up1", rowNo: 3, settlementMonth: "2026-06", insurerId: "ins1", contractNo: "C3", agentId: "ag2", premiumEnc: "200000", commissionEnc: "20000" },
+    { id: "cr1", uploadId: "up1", rowNo: 1, settlementMonth: "2026-06", insurerId: "ins1", contractNo: "C1", agentId: "ag1", premiumEnc: await enc("100000"), commissionEnc: await enc("10000") },
+    { id: "cr2", uploadId: "up1", rowNo: 2, settlementMonth: "2026-06", insurerId: "ins1", contractNo: "C2", agentId: "ag1", premiumEnc: await enc("100000"), commissionEnc: await enc("10000") },
+    { id: "cr3", uploadId: "up1", rowNo: 3, settlementMonth: "2026-06", insurerId: "ins1", contractNo: "C3", agentId: "ag2", premiumEnc: await enc("200000"), commissionEnc: await enc("20000") },
   ]);
   await post("/api/rules", { name: "6월", priority: 10, overlapPolicy: "stack", condition: { period: { from: "2026-06-01", to: "2026-06-30" }, insurerIds: ["ins1"] }, action: { kind: "rate", rate: 0.1 } });
   const { id } = (await (await post("/api/runs", { settlementMonth: "2026-06" })).json()) as { id: string };

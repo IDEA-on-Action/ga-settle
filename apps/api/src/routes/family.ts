@@ -29,7 +29,7 @@ familyRoutes.post("/api/family/detect", async (c) => {
   for (const cd of cands) {
     await db.insert(familyFlags).values({
       id: crypto.randomUUID(), contractNo: cd.contractNo, agentId: cd.agentId,
-      matchedNameEnc: encField(cd.matchedName), status: "candidate", confirmedBy: null, createdAt: now,
+      matchedNameEnc: await encField(cd.matchedName, c.env.FIELD_ENCRYPTION_KEY), status: "candidate", confirmedBy: null, createdAt: now,
     });
     created++;
   }

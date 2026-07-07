@@ -118,7 +118,8 @@ uploadsRoutes.post("/api/uploads/:id/approve", async (c) => {
     .where(and(eq(uploads.id, up.id), eq(uploads.status, "review")));
   if (claim.meta.changes === 0) return c.json({ error: "이미 승인됐거나 review 상태가 아니에요" }, 409);
 
-  const recs = staged.map((s) => ({
+  const key = c.env.FIELD_ENCRYPTION_KEY;
+  const recs = await Promise.all(staged.map(async (s) => ({
     id: crypto.randomUUID(),
     uploadId: up.id, rowNo: s.rowNo, settlementMonth: up.settlementMonth, insurerId: up.insurerId,
     contractNo: String(s.fields["계약번호"] ?? ""),
@@ -126,10 +127,10 @@ uploadsRoutes.post("/api/uploads/:id/approve", async (c) => {
     agentId: s.fields["설계사코드"] != null ? String(s.fields["설계사코드"]) : null,
     productName: s.fields["상품명"] != null ? String(s.fields["상품명"]) : null,
     contractDate: s.fields["계약일"] != null ? String(s.fields["계약일"]) : null,
-    premiumEnc: encField(s.fields["보험료"]),
-    commissionEnc: encField(s.fields["지급수수료"]),
-    clawbackEnc: encField(s.fields["환수금액"]),
-  }));
+    premiumEnc: await encField(s.fields["보험료"], key),
+    commissionEnc: await encField(s.fields["지급수수료"], key),
+    clawbackEnc: await encField(s.fields["환수금액"], key),
+  })));
 
   // 상태는 claim에서 전환됨. 원장 insert만 (있을 때) batch 커밋.
   if (recs.length) {

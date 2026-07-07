@@ -4,7 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { settlementRuns, settlementLines, commissionRecords, familyFlags, reconciliations, adjustments } from "@ga-settle/schema";
 import { evaluate, type CommissionInput } from "@ga-settle/rules";
 import type { Env } from "../types";
-import { getDb, encField, writeAudit } from "../db";
+import { getDb, encField, decNum, writeAudit } from "../db";
 import { resolveAssignment } from "./org";
 import { loadRules } from "./rules";
 
@@ -39,6 +39,7 @@ runsRoutes.post("/api/runs/:id/calculate", async (c) => {
     (await db.select({ contractNo: familyFlags.contractNo }).from(familyFlags).where(eq(familyFlags.status, "confirmed")).all()).map((f) => f.contractNo),
   );
 
+  const key = c.env.FIELD_ENCRYPTION_KEY;
   const meta = new Map<string, { agentId: string; orgUnitId: string }>();
   const inputs: CommissionInput[] = [];
   for (const cr of crs) {
@@ -48,7 +49,7 @@ runsRoutes.post("/api/runs/:id/calculate", async (c) => {
     inputs.push({
       recordId: cr.id, insurerId: cr.insurerId, productName: cr.productName ?? "", orgUnitId,
       agentId: cr.agentId, contractDate: cr.contractDate ?? `${run.settlementMonth}-01`,
-      premium: Number(cr.premiumEnc ?? 0) || 0, isFamilyContract: confirmedFam.has(cr.contractNo),
+      premium: await decNum(cr.premiumEnc, key), isFamilyContract: confirmedFam.has(cr.contractNo),
     });
     meta.set(cr.id, { agentId: cr.agentId, orgUnitId });
   }
@@ -56,13 +57,13 @@ runsRoutes.post("/api/runs/:id/calculate", async (c) => {
   const rules = await loadRules(db);
   const lines = evaluate(inputs, rules); // 순수·결정적
   const now = new Date().toISOString();
-  const rows = lines.map((l) => {
+  const rows = await Promise.all(lines.map(async (l) => {
     const m = meta.get(l.recordId)!;
     return {
       id: crypto.randomUUID(), runId: run.id, commissionRecordId: l.recordId, ruleId: l.ruleId,
-      agentId: m.agentId, orgUnitId: m.orgUnitId, amountEnc: encField(l.amount)!, breakdownJson: l.basis, createdAt: now,
+      agentId: m.agentId, orgUnitId: m.orgUnitId, amountEnc: (await encField(l.amount, key))!, breakdownJson: l.basis, createdAt: now,
     };
-  });
+  }));
 
   // 멱등 재계산: 기존 라인 제거 후 재삽입
   await db.delete(settlementLines).where(eq(settlementLines.runId, run.id));
@@ -77,8 +78,8 @@ runsRoutes.get("/api/runs/:id", async (c) => {
   const run = await db.select().from(settlementRuns).where(eq(settlementRuns.id, c.req.param("id"))).get();
   if (!run) return c.json({ error: "없는 run이에요" }, 404);
   const lines = await db.select().from(settlementLines).where(eq(settlementLines.runId, run.id)).all();
-  const totalAmount = lines.reduce((s, l) => s + (Number(l.amountEnc ?? 0) || 0), 0);
-  return c.json({ ...run, lineCount: lines.length, totalAmount });
+  const amts = await Promise.all(lines.map((l) => decNum(l.amountEnc, c.env.FIELD_ENCRYPTION_KEY)));
+  return c.json({ ...run, lineCount: lines.length, totalAmount: amts.reduce((s, a) => s + a, 0) });
 });
 
 /**
@@ -93,15 +94,16 @@ runsRoutes.get("/api/runs/:id/reconciliation", async (c) => {
 
   const crs = await db.select().from(commissionRecords).where(eq(commissionRecords.settlementMonth, run.settlementMonth)).all();
   const lines = await db.select().from(settlementLines).where(eq(settlementLines.runId, run.id)).all();
+  const key = c.env.FIELD_ENCRYPTION_KEY;
   const calcByRecord = new Map<string, number>();
-  for (const l of lines) calcByRecord.set(l.commissionRecordId, (calcByRecord.get(l.commissionRecordId) ?? 0) + (Number(l.amountEnc ?? 0) || 0));
+  for (const l of lines) calcByRecord.set(l.commissionRecordId, (calcByRecord.get(l.commissionRecordId) ?? 0) + (await decNum(l.amountEnc, key)));
 
   // 계약(record) 단위 diff
-  const contracts = crs.map((cr) => {
-    const insurerAmount = Number(cr.commissionEnc ?? 0) || 0;
+  const contracts = await Promise.all(crs.map(async (cr) => {
+    const insurerAmount = await decNum(cr.commissionEnc, key);
     const calculatedAmount = calcByRecord.get(cr.id) ?? 0;
     return { commissionRecordId: cr.id, contractNo: cr.contractNo, insurerId: cr.insurerId, insurerAmount, calculatedAmount, diff: insurerAmount - calculatedAmount };
-  });
+  }));
   const diffContracts = contracts.filter((x) => x.diff !== 0);
 
   // 원수사별 집계 + reconciliations 갱신(멱등)
@@ -118,11 +120,11 @@ runsRoutes.get("/api/runs/:id/reconciliation", async (c) => {
     status: agg.insurer - agg.calc === 0 ? "matched" : "diff",
   }));
   if (summary.length) {
-    const rows = summary.map((s) => ({
+    const rows = await Promise.all(summary.map(async (s) => ({
       id: crypto.randomUUID(), runId: run.id, insurerId: s.insurerId,
-      insurerTotalEnc: encField(s.insurerTotal)!, calculatedTotalEnc: encField(s.calculatedTotal)!,
-      diffEnc: encField(s.diff)!, status: s.status, createdAt: now,
-    }));
+      insurerTotalEnc: (await encField(s.insurerTotal, key))!, calculatedTotalEnc: (await encField(s.calculatedTotal, key))!,
+      diffEnc: (await encField(s.diff, key))!, status: s.status, createdAt: now,
+    })));
     await db.batch([db.insert(reconciliations).values(rows[0]!), ...rows.slice(1).map((r) => db.insert(reconciliations).values(r))]);
   }
 
@@ -147,7 +149,7 @@ runsRoutes.post("/api/runs/:id/adjustments", async (c) => {
   const now = new Date().toISOString();
   await db.insert(adjustments).values({
     id, runId: run.id, targetType: b.data.targetType, targetId: b.data.targetId,
-    amountEnc: encField(b.data.amount)!, reason: b.data.reason, createdBy: "system",
+    amountEnc: (await encField(b.data.amount, c.env.FIELD_ENCRYPTION_KEY))!, reason: b.data.reason, createdBy: "system",
     approvedBy: b.data.approvedBy ?? null, createdAt: now,
   });
   await writeAudit(db, {

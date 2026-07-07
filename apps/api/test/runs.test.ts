@@ -2,7 +2,8 @@ import { env, SELF } from "cloudflare:test";
 import { describe, it, expect, beforeEach } from "vitest";
 import { eq } from "drizzle-orm";
 import { insurers, orgUnits, agents, agentAssignments, uploads, commissionRecords, settlementLines, settlementRuns, auditLogs } from "@ga-settle/schema";
-import { getDb } from "../src/db";
+import { getDb, decNum } from "../src/db";
+import { enc } from "./helpers";
 
 const getJson = async (path: string) => (await SELF.fetch(`https://x${path}`)).json();
 
@@ -20,18 +21,21 @@ beforeEach(async () => {
   for (let i = 1; i <= 3; i++) {
     await db.insert(commissionRecords).values({
       id: `cr${i}`, uploadId: "up1", rowNo: i, settlementMonth: "2026-06", insurerId: "ins1",
-      contractNo: `C${i}`, agentId: "ag1", productName: "종신보험", contractDate: "2026-06-10", premiumEnc: "100000",
+      contractNo: `C${i}`, agentId: "ag1", productName: "종신보험", contractDate: "2026-06-10", premiumEnc: await enc("100000"),
       // 원수사 보고액: C1/C2는 계산액(10000)과 일치, C3만 9000으로 의도적 차액
-      commissionEnc: i === 3 ? "9000" : "10000",
+      commissionEnc: await enc(i === 3 ? "9000" : "10000"),
     });
   }
   // 6월 시책: 보험료 x 10%
   await post("/api/rules", { name: "6월시책", priority: 10, overlapPolicy: "stack", condition: { period: { from: "2026-06-01", to: "2026-06-30" }, insurerIds: ["ins1"] }, action: { kind: "rate", rate: 0.1 } });
 });
 
-const lineTuples = async (runId: string) =>
-  (await getDb(env).select().from(settlementLines).where(eq(settlementLines.runId, runId)).all())
-    .map((l) => `${l.commissionRecordId}|${l.ruleId}|${l.amountEnc}|${l.orgUnitId}`).sort();
+// 재현성은 복호화된 금액으로 비교 (AES-GCM은 IV 랜덤이라 암호문 자체는 매번 다름)
+const lineTuples = async (runId: string) => {
+  const rows = await getDb(env).select().from(settlementLines).where(eq(settlementLines.runId, runId)).all();
+  const t = await Promise.all(rows.map(async (l) => `${l.commissionRecordId}|${l.ruleId}|${await decNum(l.amountEnc, env.FIELD_ENCRYPTION_KEY)}|${l.orgUnitId}`));
+  return t.sort();
+};
 
 describe("F-013 정산 계산 배치", () => {
   it("당월 records -> 룰 evaluate -> settlement_lines (룰별 산출 분해)", async () => {
