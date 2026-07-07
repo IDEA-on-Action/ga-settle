@@ -62,6 +62,22 @@ curl -X POST https://ata.minu.best/api/auth/login -H 'content-type: application/
 - [ ] 스모크: https://ata.minu.best/health 200(env=production), 부트스트랩 계정, 로그인
 - [ ] 실샘플 업로드 -> 파싱 -> 매핑 -> 승인 -> 정산 -> 대사 -> 마감 1건 수동 검증
 
+## 트러블슈팅: ata.minu.best 403 "Attention Required" (WAF)
+
+**증상**: 배포·도메인·TLS 정상인데 `curl https://ata.minu.best/health`가 Cloudflare `Attention Required! | Cloudflare` 403. 브라우저 UA로도 403(= UA/봇 기반 아님, 전면 차단).
+
+**원인**: `minu.best` zone(Pro)의 Cloudflare 보안이 워커 도달 전 엣지에서 차단. 실측 2종:
+1. **WAF 관리 규칙 집합** (Managed Ruleset) - `/health` 같은 단순 GET도 오탐 차단.
+2. **Super Bot Fight Mode** - 세부 규칙 `manage definite bots`가 curl/Go-http-client 등 "명백한 자동화"를 차단. **API는 프로그램 호출이 정상**이라 이게 진짜 원인이었음. (보안 이벤트 로그 `서비스별 이벤트`에서 차단 주체 확인 가능: minu.best → Security → Analytics → 이벤트)
+
+**해결 (적용됨, 2026-07-08)**: `ata.minu.best`만 예외 처리하는 WAF Custom Rule(Skip). 나머지 minu.best 보호 유지.
+- 경로: minu.best → Security → 보안 규칙 → 규칙 생성 → 사용자 지정 규칙
+- 식: `(http.host eq "ata.minu.best")`
+- 작업: 건너뛰기(Skip) → **☑ 모든 관리 규칙 + ☑ 모든 Super Bot Fight 모드 규칙** (둘 다 필수 - 관리 규칙만으론 SBFM이 계속 막음)
+- 규칙 ID: `c2271915624d4dd1a8a4419d069c0e1a`
+
+**재배포/도메인 변경 시**: 도메인을 바꾸면 위 Skip 규칙의 식(`http.host`)도 갱신. 새 zone에 배포하면 그 zone의 SBFM/관리규칙 상태를 먼저 확인.
+
 ## 롤백
 
 Worker: `wrangler rollback --env production [version-id]`. D1 스키마 롤다운은 역적용 스크립트 필요(미제공 - 마감 스냅샷 R2 보관으로 데이터 복구).
