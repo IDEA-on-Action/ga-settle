@@ -72,9 +72,10 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 - **REQ-013**: 매핑 확정 시 TemplateVersion 저장(버전 이력), 헤더 시그니처 캐시로 재업로드 즉시 매핑 (FR-03)
 - **REQ-014**: 양식 변경 감지 시 새 버전 등록 플로우 (개발자 개입 없음)
 - **Acceptance**:
-  - [ ] 확정 → 재업로드 → L0 캐시 적중 E2E
-- **Status**: TODO
+  - [x] 확정 → 재업로드 → L0 캐시 적중 (API/통합 레벨 pool-workers 실측, 브라우저 Playwright E2E는 F-021)
+- **Status**: DONE
 - **Sprint**: S1 (마일스톤 1 게이트: 실샘플 변환 성공률 리포트)
+- **Notes**: POST /api/uploads/:id/mapping/confirm(headers+columnMap → signatureOf L0 시그니처로 TemplateVersion 저장, 동일 sig 재사용=cached, 다른 양식=새 버전 REQ-014). resolveTemplate() L0 캐시 조회(F-008 파서가 재사용). GET /api/insurers/:id/templates 버전 이력. apps/web MappingAdmin 최소 화면(신규 의존성 없음). GET .../mapping 결과 조회는 F-008 파싱 후 결선. 브라우저 E2E는 F-021.
 
 ### F-008 · 행 검증 + 오류 리포트 + 승인 커밋
 - **REQ-015**: 타입/필수/중복 검증, 오류 행 번호+사유 전량 표시 (FR-04, FR-05)
