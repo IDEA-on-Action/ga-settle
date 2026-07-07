@@ -14,11 +14,11 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 - **REQ-001**: pnpm install → pnpm dev(web+api) → pnpm test 가 통과해야 한다
 - **REQ-002**: GitHub Actions에서 push마다 lint+typecheck+test가 돌아야 한다
 - **Acceptance**:
-  - [ ] `pnpm install` PASS, `wrangler dev` GET /health 200
-  - [ ] CI 그린
-- **Status**: TODO
+  - [x] `pnpm install` PASS, `wrangler dev` GET /health 200
+  - [x] CI 그린 (GitHub Actions run 28867146909 PASS, PR #1)
+- **Status**: DONE
 - **Sprint**: S0
-- **Notes**: dot-* rename은 scripts/setup.sh가 처리
+- **Notes**: dot-* rename은 scripts/setup.sh가 처리. 2026-07-07 D1/R2/Queue 리소스 생성 완료(D1 id 기입), 부트스트랩 정합성 수정: schema Drizzle extraConfig 객체형(drizzle 0.36 유지), api ExportedHandler 큐 타입 파라미터, /health vitest 스모크 추가.
 
 ### F-002 · D1 스키마 + 마이그레이션
 - **REQ-003**: 아키텍처 §4의 18개 엔티티가 Drizzle 스키마로 정의되어야 한다
