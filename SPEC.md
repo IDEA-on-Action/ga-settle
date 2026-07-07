@@ -89,9 +89,10 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 ### F-009 · 조직도 + ERP 동기화 + 소속 이력
 - **REQ-017**: 본부>사업단>팀 트리, ERP 엑셀 일괄 등록, 월 정산은 당월 소속 기준 (FR-09~11)
 - **Acceptance**:
-  - [ ] 소속 이동 후 이전 월 재계산 시 이전 소속으로 계산되는 테스트
-- **Status**: TODO
+  - [x] 소속 이동 후 이전 월 재계산 시 이전 소속으로 계산되는 테스트 (resolveAssignment [validFrom,validTo) 구간)
+- **Status**: DONE
 - **Sprint**: S2
+- **Notes**: routes/org.ts. POST /api/org/units + GET /api/org/tree(parentId 중첩). POST /api/agents. POST /api/agents/:id/assignments(소속 이동: 기존 열린 배정 validTo 닫고 새 배정). GET /api/agents/:id/org?date=(resolveAssignment 시점 소속, FR-11). POST /api/erp/agents 일괄 등록(xlsx는 sheetToGrid로 파싱해 투입). 테스트 4(pool-workers): 소속이동 시점조회/트리/ERP일괄/검증. 조직 관리 UI는 후속.
 
 ### F-010 · 시책 룰 빌더
 - **REQ-018**: 조건(기간/원수사/상품/조직/실적구간)+액션(지급률|고정액) 선언형 JSON, 관리 화면 CRUD (FR-12)
