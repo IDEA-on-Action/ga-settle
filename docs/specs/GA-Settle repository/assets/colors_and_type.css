@@ -1,0 +1,453 @@
+/* ==========================================================================
+   AXIS Design System — Colors & Type
+   Source: packages/axis-tokens (primitives) + semantic/light|dark.json
+          + apps/web/src/app/globals.css (shadcn HSL layer)
+
+   Fonts: Pretendard (UI default) + D2Coding (CLI / code / dev-env)
+          Loaded from jsdelivr CDN; no bundled webfont files.
+   ========================================================================== */
+
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css');
+@import url('https://cdn.jsdelivr.net/gh/wan2land/d2coding/d2coding-ligature-subset.css');
+
+:root {
+  /* ---------- PRIMITIVE COLORS ----------
+     Tailwind-style 11-step scales used across all axis-* packages.
+     Naming: --axis-color-{hue}-{step}
+  ---------------------------------------- */
+
+  --axis-color-white: #FFFFFF;
+  --axis-color-black: #000000;
+
+  --axis-color-gray-50:  #F9FAFB;
+  --axis-color-gray-100: #F3F4F6;
+  --axis-color-gray-200: #E5E7EB;
+  --axis-color-gray-300: #D1D5DB;
+  --axis-color-gray-400: #9CA3AF;
+  --axis-color-gray-500: #6B7280;
+  --axis-color-gray-600: #4B5563;
+  --axis-color-gray-700: #374151;
+  --axis-color-gray-800: #1F2937;
+  --axis-color-gray-900: #111827;
+  --axis-color-gray-950: #030712;
+
+  --axis-color-blue-50:  #EFF6FF;
+  --axis-color-blue-100: #DBEAFE;
+  --axis-color-blue-200: #BFDBFE;
+  --axis-color-blue-300: #93C5FD;
+  --axis-color-blue-400: #60A5FA;
+  --axis-color-blue-500: #3B82F6;   /* brand */
+  --axis-color-blue-600: #2563EB;
+  --axis-color-blue-700: #1D4ED8;
+  --axis-color-blue-800: #1E40AF;
+  --axis-color-blue-900: #1E3A8A;
+  --axis-color-blue-950: #172554;
+
+  --axis-color-green-50:  #F0FDF4;
+  --axis-color-green-100: #DCFCE7;
+  --axis-color-green-200: #BBF7D0;
+  --axis-color-green-300: #86EFAC;
+  --axis-color-green-400: #4ADE80;
+  --axis-color-green-500: #22C55E;
+  --axis-color-green-600: #16A34A;
+  --axis-color-green-700: #15803D;
+  --axis-color-green-800: #166534;
+  --axis-color-green-900: #14532D;
+  --axis-color-green-950: #052E16;
+
+  --axis-color-red-50:  #FEF2F2;
+  --axis-color-red-100: #FEE2E2;
+  --axis-color-red-200: #FECACA;
+  --axis-color-red-300: #FCA5A5;
+  --axis-color-red-400: #F87171;
+  --axis-color-red-500: #EF4444;
+  --axis-color-red-600: #DC2626;
+  --axis-color-red-700: #B91C1C;
+  --axis-color-red-800: #991B1B;
+  --axis-color-red-900: #7F1D1D;
+  --axis-color-red-950: #450A0A;
+
+  --axis-color-yellow-50:  #FEFCE8;
+  --axis-color-yellow-100: #FEF9C3;
+  --axis-color-yellow-200: #FEF08A;
+  --axis-color-yellow-300: #FDE047;
+  --axis-color-yellow-400: #FACC15;
+  --axis-color-yellow-500: #EAB308;
+  --axis-color-yellow-600: #CA8A04;
+  --axis-color-yellow-700: #A16207;
+  --axis-color-yellow-800: #854D0E;
+  --axis-color-yellow-900: #713F12;
+  --axis-color-yellow-950: #422006;
+
+  --axis-color-orange-50:  #FFF7ED;
+  --axis-color-orange-100: #FFEDD5;
+  --axis-color-orange-200: #FED7AA;
+  --axis-color-orange-300: #FDBA74;
+  --axis-color-orange-400: #FB923C;
+  --axis-color-orange-500: #F97316;
+  --axis-color-orange-600: #EA580C;
+  --axis-color-orange-700: #C2410C;
+  --axis-color-orange-800: #9A3412;
+  --axis-color-orange-900: #7C2D12;
+
+  --axis-color-purple-50:  #FAF5FF;
+  --axis-color-purple-100: #F3E8FF;
+  --axis-color-purple-200: #E9D5FF;
+  --axis-color-purple-300: #D8B4FE;
+  --axis-color-purple-400: #C084FC;
+  --axis-color-purple-500: #A855F7;
+  --axis-color-purple-600: #9333EA;
+  --axis-color-purple-700: #7C3AED;
+  --axis-color-purple-800: #6B21A8;
+  --axis-color-purple-900: #581C87;
+
+  /* ---------- SEMANTIC — LIGHT (default) ---------- */
+  --axis-surface-default:    var(--axis-color-white);
+  --axis-surface-secondary:  var(--axis-color-gray-100);
+  --axis-surface-tertiary:   var(--axis-color-gray-200);
+  --axis-surface-inverse:    var(--axis-color-gray-900);
+  --axis-surface-brand:      var(--axis-color-blue-500);
+  --axis-surface-success:    var(--axis-color-green-50);
+  --axis-surface-warning:    var(--axis-color-yellow-50);
+  --axis-surface-error:      var(--axis-color-red-50);
+  --axis-surface-info:       var(--axis-color-blue-50);
+
+  --axis-text-primary:       var(--axis-color-gray-900);
+  --axis-text-secondary:     var(--axis-color-gray-600);
+  --axis-text-tertiary:      var(--axis-color-gray-500);
+  --axis-text-inverse:       var(--axis-color-white);
+  --axis-text-brand:         var(--axis-color-blue-600);
+  --axis-text-success:       var(--axis-color-green-700);
+  --axis-text-warning:       var(--axis-color-yellow-700);
+  --axis-text-error:         var(--axis-color-red-700);
+  --axis-text-info:           var(--axis-color-blue-700);
+
+  --axis-border-default:     var(--axis-color-gray-200);
+  --axis-border-secondary:   var(--axis-color-gray-300);
+  --axis-border-focus:       var(--axis-color-blue-500);
+  --axis-border-error:       var(--axis-color-red-500);
+  --axis-border-success:     var(--axis-color-green-500);
+
+  --axis-icon-default:       var(--axis-color-gray-600);
+  --axis-icon-secondary:     var(--axis-color-gray-400);
+  --axis-icon-inverse:       var(--axis-color-white);
+  --axis-icon-brand:         var(--axis-color-blue-500);
+  --axis-icon-success:       var(--axis-color-green-500);
+  --axis-icon-warning:       var(--axis-color-yellow-500);
+  --axis-icon-error:         var(--axis-color-red-500);
+
+  /* ---------- COMPONENT TOKENS (used in axis-ui-react) ---------- */
+  --axis-button-bg-default:   var(--axis-color-gray-900);
+  --axis-button-bg-hover:     var(--axis-color-gray-800);
+  --axis-button-bg-active:    var(--axis-color-gray-700);
+  --axis-button-text-default: var(--axis-color-white);
+  --axis-button-border-focus: var(--axis-color-blue-500);
+  --axis-button-secondary-bg-default: var(--axis-color-gray-100);
+  --axis-button-secondary-bg-hover:   var(--axis-color-gray-200);
+  --axis-button-secondary-bg-active:  var(--axis-color-gray-300);
+  --axis-button-secondary-text-default: var(--axis-color-gray-900);
+  --axis-button-ghost-bg-default: transparent;
+  --axis-button-ghost-bg-hover:   var(--axis-color-gray-100);
+  --axis-button-ghost-bg-active:  var(--axis-color-gray-200);
+  --axis-button-ghost-text-default: var(--axis-color-gray-900);
+  --axis-button-destructive-bg-default: var(--axis-color-red-500);
+  --axis-button-destructive-bg-hover:   var(--axis-color-red-600);
+  --axis-button-destructive-bg-active:  var(--axis-color-red-700);
+  --axis-button-destructive-text-default: var(--axis-color-white);
+
+  --axis-card-bg-default:     var(--axis-color-white);
+  --axis-card-border-default: var(--axis-color-gray-200);
+
+  --axis-input-bg-default:    var(--axis-color-white);
+  --axis-input-text-default:  var(--axis-color-gray-900);
+  --axis-input-text-placeholder: var(--axis-color-gray-400);
+  --axis-input-border-default: var(--axis-color-gray-300);
+  --axis-input-border-hover:   var(--axis-color-gray-400);
+  --axis-input-border-focus:   var(--axis-color-blue-500);
+  --axis-input-border-error:   var(--axis-color-red-500);
+  --axis-input-bg-disabled:    var(--axis-color-gray-100);
+
+  --axis-badge-default-bg:   var(--axis-color-gray-900);
+  --axis-badge-default-text: var(--axis-color-white);
+  --axis-badge-success-bg:   var(--axis-color-green-100);
+  --axis-badge-success-text: var(--axis-color-green-700);
+  --axis-badge-warning-bg:   var(--axis-color-yellow-100);
+  --axis-badge-warning-text: var(--axis-color-yellow-700);
+  --axis-badge-error-bg:     var(--axis-color-red-100);
+  --axis-badge-error-text:   var(--axis-color-red-700);
+  --axis-badge-info-bg:      var(--axis-color-blue-100);
+  --axis-badge-info-text:    var(--axis-color-blue-700);
+  --axis-bg-muted:           var(--axis-color-gray-100);
+
+  /* ---------- RADIUS ---------- */
+  --axis-radius-none:    0;
+  --axis-radius-sm:      0.125rem;
+  --axis-radius-default: 0.25rem;
+  --axis-radius-md:      0.375rem;
+  --axis-radius-lg:      0.5rem;
+  --axis-radius-xl:      0.75rem;
+  --axis-radius-2xl:     1rem;
+  --axis-radius-3xl:     1.5rem;
+  --axis-radius-full:    9999px;
+
+  /* ---------- ELEVATION / SHADOW ---------- */
+  --axis-shadow-sm:   0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --axis-shadow:      0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --axis-shadow-md:   0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --axis-shadow-lg:   0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --axis-shadow-xl:   0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --axis-shadow-ring-focus: 0 0 0 2px var(--axis-surface-default), 0 0 0 4px var(--axis-border-focus);
+
+  /* ---------- TYPOGRAPHY ----------
+     Default UI: Pretendard Variable (Korean + Latin, optical-size-aware)
+     Code / CLI / dev env: D2Coding (Korean-friendly monospace, pairs with Hangul cleanly)
+  ---------------------------------------- */
+  --axis-font-sans:  'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+  --axis-font-serif: ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
+  --axis-font-mono:  'D2Coding', 'D2Coding ligature', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  /* Explicit alias for CLI / terminal / dev-env surfaces */
+  --axis-font-code:  var(--axis-font-mono);
+
+  --axis-text-xs:   0.75rem;
+  --axis-text-sm:   0.875rem;
+  --axis-text-base: 1rem;
+  --axis-text-lg:   1.125rem;
+  --axis-text-xl:   1.25rem;
+  --axis-text-2xl:  1.5rem;
+  --axis-text-3xl:  1.875rem;
+  --axis-text-4xl:  2.25rem;
+  --axis-text-5xl:  3rem;
+  --axis-text-6xl:  3.75rem;
+
+  --axis-weight-thin:       100;
+  --axis-weight-extralight: 200;
+  --axis-weight-light:      300;
+  --axis-weight-normal:     400;
+  --axis-weight-medium:     500;
+  --axis-weight-semibold:   600;
+  --axis-weight-bold:       700;
+  --axis-weight-extrabold:  800;
+  --axis-weight-black:      900;
+
+  --axis-lh-none:    1;
+  --axis-lh-tight:   1.25;
+  --axis-lh-snug:    1.375;
+  --axis-lh-normal:  1.5;
+  --axis-lh-relaxed: 1.625;
+  --axis-lh-loose:   2;
+
+  /* ---------- SPACING (Tailwind-parity scale) ---------- */
+  --axis-space-0:    0;
+  --axis-space-0-5:  0.125rem;
+  --axis-space-1:    0.25rem;
+  --axis-space-1-5:  0.375rem;
+  --axis-space-2:    0.5rem;
+  --axis-space-2-5:  0.625rem;
+  --axis-space-3:    0.75rem;
+  --axis-space-4:    1rem;
+  --axis-space-5:    1.25rem;
+  --axis-space-6:    1.5rem;
+  --axis-space-8:    2rem;
+  --axis-space-10:   2.5rem;
+  --axis-space-12:   3rem;
+  --axis-space-16:   4rem;
+  --axis-space-20:   5rem;
+  --axis-space-24:   6rem;
+
+  /* ---------- SHADCN HSL LAYER (app compatibility) ----------
+     apps/web uses hsl(var(--foreground)) etc. Mirror defaults here so
+     components copied out of the docs site keep rendering. */
+  --background: 0 0% 100%;
+  --foreground: 240 10% 3.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 240 10% 3.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 240 10% 3.9%;
+  --primary: 240 5.9% 10%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 240 4.8% 95.9%;
+  --secondary-foreground: 240 5.9% 10%;
+  --muted: 240 4.8% 95.9%;
+  --muted-foreground: 240 3.8% 46.1%;
+  --accent: 240 4.8% 95.9%;
+  --accent-foreground: 240 5.9% 10%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 240 5.9% 90%;
+  --input: 240 5.9% 90%;
+  --ring: 240 5.9% 10%;
+  --radius: 0.5rem;
+}
+
+/* ---------- DARK MODE ----------
+   Mirrors packages/axis-tokens/src/semantic/dark.json. Attach .dark on
+   <html> or <body>. */
+.dark,
+[data-theme="dark"] {
+  --axis-surface-default:   var(--axis-color-gray-950);
+  --axis-surface-secondary: var(--axis-color-gray-900);
+  --axis-surface-tertiary:  var(--axis-color-gray-800);
+  --axis-surface-inverse:   var(--axis-color-gray-100);
+  --axis-surface-brand:     var(--axis-color-blue-600);
+  --axis-surface-success:   var(--axis-color-green-950);
+  --axis-surface-warning:   var(--axis-color-yellow-950);
+  --axis-surface-error:     var(--axis-color-red-950);
+  --axis-surface-info:      var(--axis-color-blue-950);
+
+  --axis-text-primary:   var(--axis-color-gray-100);
+  --axis-text-secondary: var(--axis-color-gray-400);
+  --axis-text-tertiary:  var(--axis-color-gray-500);
+  --axis-text-inverse:   var(--axis-color-gray-900);
+  --axis-text-brand:     var(--axis-color-blue-400);
+  --axis-text-success:   var(--axis-color-green-400);
+  --axis-text-warning:   var(--axis-color-yellow-400);
+  --axis-text-error:     var(--axis-color-red-400);
+  --axis-text-info:      var(--axis-color-blue-400);
+
+  --axis-border-default:   var(--axis-color-gray-800);
+  --axis-border-secondary: var(--axis-color-gray-700);
+  --axis-border-focus:     var(--axis-color-blue-400);
+
+  --axis-icon-default:   var(--axis-color-gray-400);
+  --axis-icon-secondary: var(--axis-color-gray-500);
+  --axis-icon-brand:     var(--axis-color-blue-400);
+
+  --axis-card-bg-default:     var(--axis-color-gray-950);
+  --axis-card-border-default: var(--axis-color-gray-800);
+
+  --axis-input-bg-default:     var(--axis-color-gray-900);
+  --axis-input-text-default:   var(--axis-color-gray-100);
+  --axis-input-border-default: var(--axis-color-gray-700);
+  --axis-input-border-hover:   var(--axis-color-gray-600);
+  --axis-bg-muted:             var(--axis-color-gray-800);
+
+  --axis-button-bg-default:   var(--axis-color-gray-100);
+  --axis-button-bg-hover:     var(--axis-color-gray-200);
+  --axis-button-text-default: var(--axis-color-gray-900);
+  --axis-button-secondary-bg-default: var(--axis-color-gray-800);
+  --axis-button-secondary-bg-hover:   var(--axis-color-gray-700);
+  --axis-button-secondary-text-default: var(--axis-color-gray-100);
+  --axis-button-ghost-bg-hover:  var(--axis-color-gray-800);
+  --axis-button-ghost-text-default: var(--axis-color-gray-100);
+
+  --background: 240 10% 3.9%;
+  --foreground: 0 0% 98%;
+  --card: 240 10% 3.9%;
+  --card-foreground: 0 0% 98%;
+  --popover: 240 10% 3.9%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 0 0% 98%;
+  --primary-foreground: 240 5.9% 10%;
+  --secondary: 240 3.7% 15.9%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 240 3.7% 15.9%;
+  --muted-foreground: 240 5% 64.9%;
+  --accent: 240 3.7% 15.9%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 240 3.7% 15.9%;
+  --input: 240 3.7% 15.9%;
+  --ring: 240 4.9% 83.9%;
+}
+
+/* ==========================================================================
+   SEMANTIC TYPE ROLES
+   Use as element-level classes: <h1 class="axis-h1">, <code class="axis-code">
+   ========================================================================== */
+
+.axis-display {
+  font-family: var(--axis-font-sans);
+  font-size: var(--axis-text-6xl);
+  font-weight: var(--axis-weight-bold);
+  line-height: var(--axis-lh-tight);
+  letter-spacing: -0.025em;
+  color: var(--axis-text-primary);
+}
+
+.axis-h1 {
+  font-family: var(--axis-font-sans);
+  font-size: var(--axis-text-4xl);
+  font-weight: var(--axis-weight-bold);
+  line-height: var(--axis-lh-tight);
+  letter-spacing: -0.02em;
+  color: var(--axis-text-primary);
+}
+
+.axis-h2 {
+  font-family: var(--axis-font-sans);
+  font-size: var(--axis-text-3xl);
+  font-weight: var(--axis-weight-bold);
+  line-height: var(--axis-lh-tight);
+  letter-spacing: -0.015em;
+  color: var(--axis-text-primary);
+}
+
+.axis-h3 {
+  font-family: var(--axis-font-sans);
+  font-size: var(--axis-text-2xl);
+  font-weight: var(--axis-weight-semibold);
+  line-height: var(--axis-lh-snug);
+  color: var(--axis-text-primary);
+}
+
+.axis-h4 {
+  font-family: var(--axis-font-sans);
+  font-size: var(--axis-text-xl);
+  font-weight: var(--axis-weight-semibold);
+  line-height: var(--axis-lh-snug);
+  color: var(--axis-text-primary);
+}
+
+.axis-lead {
+  font-family: var(--axis-font-sans);
+  font-size: var(--axis-text-lg);
+  font-weight: var(--axis-weight-normal);
+  line-height: var(--axis-lh-relaxed);
+  color: var(--axis-text-secondary);
+}
+
+.axis-body {
+  font-family: var(--axis-font-sans);
+  font-size: var(--axis-text-base);
+  font-weight: var(--axis-weight-normal);
+  line-height: var(--axis-lh-normal);
+  color: var(--axis-text-primary);
+}
+
+.axis-small {
+  font-family: var(--axis-font-sans);
+  font-size: var(--axis-text-sm);
+  font-weight: var(--axis-weight-normal);
+  line-height: var(--axis-lh-normal);
+  color: var(--axis-text-secondary);
+}
+
+.axis-caption {
+  font-family: var(--axis-font-sans);
+  font-size: var(--axis-text-xs);
+  font-weight: var(--axis-weight-medium);
+  line-height: var(--axis-lh-normal);
+  color: var(--axis-text-tertiary);
+  letter-spacing: 0.01em;
+}
+
+.axis-code {
+  font-family: var(--axis-font-mono);
+  font-size: 0.9em;
+  background: var(--axis-surface-secondary);
+  padding: 0.1em 0.35em;
+  border-radius: var(--axis-radius-sm);
+  color: var(--axis-text-primary);
+}
+
+.axis-kbd {
+  font-family: var(--axis-font-mono);
+  font-size: 0.8em;
+  background: var(--axis-surface-default);
+  border: 1px solid var(--axis-border-secondary);
+  border-bottom-width: 2px;
+  border-radius: var(--axis-radius-md);
+  padding: 0.1em 0.4em;
+  color: var(--axis-text-primary);
+}

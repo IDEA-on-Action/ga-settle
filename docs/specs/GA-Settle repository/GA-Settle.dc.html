@@ -1,0 +1,1374 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<link rel="stylesheet" href="assets/colors_and_type.css">
+<style>
+html,body{margin:0;padding:0;height:100%;}
+body{font-family:var(--axis-font-sans);background:var(--axis-surface-secondary);color:var(--axis-text-primary);-webkit-font-smoothing:antialiased;}
+a{color:var(--axis-text-brand);text-decoration:none;}
+a:hover{text-decoration:underline;color:var(--axis-text-brand);}
+@keyframes axspin{to{transform:rotate(360deg);}}
+@keyframes axbounce{0%,80%,100%{transform:translateY(0);}40%{transform:translateY(-4px);}}
+@keyframes axpulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+*{box-sizing:border-box;}
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-thumb{background:var(--axis-color-gray-300);border-radius:6px;border:2px solid transparent;background-clip:content-box;}
+</style>
+</helmet>
+<div class="{{ rootClass }}" style="display:flex;height:100vh;overflow:hidden;font-family:var(--axis-font-sans);background:var(--axis-surface-secondary);color:var(--axis-text-primary);font-size:14px;">
+
+  <!-- ======================= SIDEBAR ======================= -->
+  <aside style="width:228px;flex:none;display:flex;flex-direction:column;background:var(--axis-surface-default);border-right:1px solid var(--axis-border-default);">
+    <div style="display:flex;align-items:center;gap:10px;padding:16px 16px 14px;border-bottom:1px solid var(--axis-border-default);">
+      <div style="width:30px;height:30px;flex:none;border-radius:6px;background:var(--axis-surface-inverse);color:var(--axis-text-inverse);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;">G</div>
+      <div style="display:flex;flex-direction:column;gap:1px;">
+        <div style="font-weight:700;font-size:14px;letter-spacing:-0.01em;">GA-Settle</div>
+        <div style="font-size:11px;color:var(--axis-text-tertiary);">수수료·시책 통합 정산</div>
+      </div>
+    </div>
+    <nav style="flex:1;overflow-y:auto;padding:12px 10px;display:flex;flex-direction:column;gap:2px;">
+      <div style="font-size:10.5px;font-weight:600;letter-spacing:0.06em;color:var(--axis-text-tertiary);padding:6px 10px 4px;">정산 파이프라인</div>
+      <div onClick="{{ nav.dashboard }}" style="display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;background:{{ nBg.dashboard }};color:{{ nFg.dashboard }};" style-hover="background:var(--axis-surface-secondary);">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect></svg>
+        <span>대시보드</span>
+      </div>
+      <div onClick="{{ nav.uploads }}" style="display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;background:{{ nBg.uploads }};color:{{ nFg.uploads }};" style-hover="background:var(--axis-surface-secondary);">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+        <span>업로드</span>
+      </div>
+      <div onClick="{{ nav.mapping }}" style="display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;background:{{ nBg.mapping }};color:{{ nFg.mapping }};" style-hover="background:var(--axis-surface-secondary);">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.7 5.8 1.9-5.8 1.9L12 18.2l-1.9-5.7-5.8-1.9 5.8-1.9z"></path></svg>
+        <span>AI 매핑 검토</span>
+        <span style="margin-left:auto;font-size:10.5px;font-weight:600;padding:1px 7px;border-radius:999px;background:var(--axis-badge-warning-bg);color:var(--axis-badge-warning-text);">{{ reviewLeft }}</span>
+      </div>
+      <div onClick="{{ nav.templates }}" style="display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;background:{{ nBg.templates }};color:{{ nFg.templates }};" style-hover="background:var(--axis-surface-secondary);">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+        <span>매핑 관리</span>
+      </div>
+      <div style="font-size:10.5px;font-weight:600;letter-spacing:0.06em;color:var(--axis-text-tertiary);padding:12px 10px 4px;">룰 · 검증</div>
+      <div onClick="{{ nav.rules }}" style="display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;background:{{ nBg.rules }};color:{{ nFg.rules }};" style-hover="background:var(--axis-surface-secondary);">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
+        <span>시책 룰</span>
+      </div>
+      <div onClick="{{ nav.family }}" style="display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;background:{{ nBg.family }};color:{{ nFg.family }};" style-hover="background:var(--axis-surface-secondary);">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        <span>가족계약 HITL</span>
+      </div>
+      <div style="font-size:10.5px;font-weight:600;letter-spacing:0.06em;color:var(--axis-text-tertiary);padding:12px 10px 4px;">마감</div>
+      <div onClick="{{ nav.runs }}" style="display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;background:{{ nBg.runs }};color:{{ nFg.runs }};" style-hover="background:var(--axis-surface-secondary);">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><path d="M9 16l2 2 4-4"></path></svg>
+        <span>정산 Run</span>
+      </div>
+      <div onClick="{{ nav.recon }}" style="display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;background:{{ nBg.recon }};color:{{ nFg.recon }};" style-hover="background:var(--axis-surface-secondary);">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"></circle><circle cx="6" cy="6" r="3"></circle><path d="M13 6h3a2 2 0 0 1 2 2v7"></path><path d="M11 18H8a2 2 0 0 1-2-2V9"></path></svg>
+        <span>대사 · 차액</span>
+        <span style="margin-left:auto;font-size:10.5px;font-weight:600;padding:1px 7px;border-radius:999px;background:var(--axis-badge-error-bg);color:var(--axis-badge-error-text);">{{ reconBadge }}</span>
+      </div>
+      <div style="font-size:10.5px;font-weight:600;letter-spacing:0.06em;color:var(--axis-text-tertiary);padding:12px 10px 4px;">출력</div>
+      <div onClick="{{ nav.payslips }}" style="display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;background:{{ nBg.payslips }};color:{{ nFg.payslips }};" style-hover="background:var(--axis-surface-secondary);">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1z"></path><line x1="8" y1="8" x2="16" y2="8"></line><line x1="8" y1="12" x2="16" y2="12"></line><line x1="8" y1="16" x2="12" y2="16"></line></svg>
+        <span>지급 내역서</span>
+      </div>
+      <div onClick="{{ nav.stats }}" style="display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;background:{{ nBg.stats }};color:{{ nFg.stats }};" style-hover="background:var(--axis-surface-secondary);">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg>
+        <span>통계</span>
+      </div>
+      <div style="font-size:10.5px;font-weight:600;letter-spacing:0.06em;color:var(--axis-text-tertiary);padding:12px 10px 4px;">관리</div>
+      <div onClick="{{ nav.org }}" style="display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;background:{{ nBg.org }};color:{{ nFg.org }};" style-hover="background:var(--axis-surface-secondary);">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="6" rx="1"></rect><rect x="2" y="16" width="6" height="6" rx="1"></rect><rect x="16" y="16" width="6" height="6" rx="1"></rect><path d="M12 8v4"></path><path d="M5 16v-2a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2"></path></svg>
+        <span>조직 · 계정</span>
+      </div>
+    </nav>
+    <div style="padding:12px 14px;border-top:1px solid var(--axis-border-default);display:flex;align-items:center;gap:10px;">
+      <div style="width:30px;height:30px;flex:none;border-radius:999px;background:var(--axis-color-blue-500);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;">이수</div>
+      <div style="display:flex;flex-direction:column;gap:1px;min-width:0;">
+        <div style="font-size:12.5px;font-weight:600;">이수진</div>
+        <div style="font-size:11px;color:var(--axis-text-tertiary);">정산팀 · staff</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ======================= MAIN ======================= -->
+  <div style="flex:1;display:flex;flex-direction:column;min-width:0;">
+    <header style="height:54px;flex:none;display:flex;align-items:center;gap:12px;padding:0 24px;background:var(--axis-surface-default);border-bottom:1px solid var(--axis-border-default);">
+      <div style="font-size:15px;font-weight:600;letter-spacing:-0.01em;">{{ title }}</div>
+      <div style="font-size:12px;color:var(--axis-text-tertiary);">{{ subtitle }}</div>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+        <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;padding:4px 10px;border-radius:6px;border:1px solid var(--axis-border-default);background:var(--axis-surface-default);">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="17" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          정산월 2026-06
+        </span>
+        <span style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;padding:4px 10px;border-radius:999px;background:{{ engineBg }};color:{{ engineFg }};font-family:var(--axis-font-mono);">{{ engineLabel }}</span>
+      </div>
+    </header>
+
+    <main style="flex:1;overflow-y:auto;padding:24px;">
+
+      <!-- ================ DASHBOARD ================ -->
+      <sc-if value="{{ show.dashboard }}" hint-placeholder-val="{{ true }}">
+        <div data-screen-label="대시보드" style="display:flex;flex-direction:column;gap:20px;max-width:1200px;">
+          <div style="background:var(--axis-card-bg-default);border:1px solid var(--axis-card-border-default);border-radius:8px;box-shadow:var(--axis-shadow-sm);padding:18px 22px;display:flex;align-items:center;gap:0;">
+            <div style="display:flex;align-items:center;gap:8px;flex:none;">
+              <div style="width:22px;height:22px;border-radius:999px;background:var(--axis-color-green-500);color:#fff;display:flex;align-items:center;justify-content:center;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"></path></svg></div>
+              <span style="font-size:13px;font-weight:600;">수집</span>
+              <span style="font-size:11px;color:var(--axis-text-tertiary);">5/5 원수사</span>
+            </div>
+            <div style="flex:1;height:2px;background:var(--axis-color-green-200);margin:0 14px;"></div>
+            <div style="display:flex;align-items:center;gap:8px;flex:none;">
+              <div style="width:22px;height:22px;border-radius:999px;background:var(--axis-color-green-500);color:#fff;display:flex;align-items:center;justify-content:center;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"></path></svg></div>
+              <span style="font-size:13px;font-weight:600;">매핑</span>
+              <span style="font-size:11px;color:var(--axis-text-tertiary);">검토 1건</span>
+            </div>
+            <div style="flex:1;height:2px;background:var(--axis-color-green-200);margin:0 14px;"></div>
+            <div style="display:flex;align-items:center;gap:8px;flex:none;">
+              <div style="width:22px;height:22px;border-radius:999px;background:var(--axis-color-green-500);color:#fff;display:flex;align-items:center;justify-content:center;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"></path></svg></div>
+              <span style="font-size:13px;font-weight:600;">계산</span>
+              <span style="font-size:11px;color:var(--axis-text-tertiary);">calculated</span>
+            </div>
+            <div style="flex:1;height:2px;background:var(--axis-color-blue-200);margin:0 14px;"></div>
+            <div style="display:flex;align-items:center;gap:8px;flex:none;">
+              <div style="width:22px;height:22px;border-radius:999px;background:var(--axis-color-blue-500);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">4</div>
+              <span style="font-size:13px;font-weight:600;color:var(--axis-text-brand);">대사</span>
+              <span style="font-size:11px;color:var(--axis-text-tertiary);">차액 1계약</span>
+            </div>
+            <div style="flex:1;height:2px;background:var(--axis-border-default);margin:0 14px;"></div>
+            <div style="display:flex;align-items:center;gap:8px;flex:none;">
+              <div style="width:22px;height:22px;border-radius:999px;background:var(--axis-surface-secondary);color:var(--axis-text-tertiary);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">5</div>
+              <span style="font-size:13px;font-weight:600;color:var(--axis-text-tertiary);">마감</span>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;">
+            <div style="background:var(--axis-card-bg-default);border:1px solid var(--axis-card-border-default);border-radius:8px;box-shadow:var(--axis-shadow-sm);padding:18px 20px;display:flex;flex-direction:column;gap:6px;">
+              <div style="font-size:12px;font-weight:500;color:var(--axis-text-tertiary);">당월 계산 지급액</div>
+              <div style="font-size:24px;font-weight:700;letter-spacing:-0.02em;font-variant-numeric:tabular-nums;">₩1,284,530,000</div>
+              <div style="font-size:12px;color:var(--axis-text-success);font-weight:500;">+3.2% 전월 대비</div>
+            </div>
+            <div style="background:var(--axis-card-bg-default);border:1px solid var(--axis-card-border-default);border-radius:8px;box-shadow:var(--axis-shadow-sm);padding:18px 20px;display:flex;flex-direction:column;gap:6px;">
+              <div style="font-size:12px;font-weight:500;color:var(--axis-text-tertiary);">변환 성공률</div>
+              <div style="font-size:24px;font-weight:700;letter-spacing:-0.02em;font-variant-numeric:tabular-nums;">99.91%</div>
+              <div style="font-size:12px;color:var(--axis-text-secondary);">목표 99%+ <span style="color:var(--axis-text-success);font-weight:500;">충족</span></div>
+            </div>
+            <div style="background:var(--axis-card-bg-default);border:1px solid var(--axis-card-border-default);border-radius:8px;box-shadow:var(--axis-shadow-sm);padding:18px 20px;display:flex;flex-direction:column;gap:6px;cursor:pointer;" onClick="{{ nav.recon }}" style-hover="border-color:var(--axis-border-secondary);">
+              <div style="font-size:12px;font-weight:500;color:var(--axis-text-tertiary);">대사 차액</div>
+              <div style="font-size:24px;font-weight:700;letter-spacing:-0.02em;font-variant-numeric:tabular-nums;color:{{ diffKpiColor }};">{{ diffKpi }}</div>
+              <div style="font-size:12px;color:var(--axis-text-secondary);">{{ diffKpiNote }}</div>
+            </div>
+            <div style="background:var(--axis-card-bg-default);border:1px solid var(--axis-card-border-default);border-radius:8px;box-shadow:var(--axis-shadow-sm);padding:18px 20px;display:flex;flex-direction:column;gap:6px;">
+              <div style="font-size:12px;font-weight:500;color:var(--axis-text-tertiary);">오류 행</div>
+              <div style="font-size:24px;font-weight:700;letter-spacing:-0.02em;font-variant-numeric:tabular-nums;">37</div>
+              <div style="font-size:12px;color:var(--axis-text-secondary);">총 42,318행 중</div>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:16px;align-items:start;">
+            <div style="background:var(--axis-card-bg-default);border:1px solid var(--axis-card-border-default);border-radius:8px;box-shadow:var(--axis-shadow-sm);overflow:hidden;">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--axis-border-default);">
+                <div style="font-size:13.5px;font-weight:600;">원수사 수신 현황</div>
+                <span onClick="{{ nav.uploads }}" style="font-size:12px;color:var(--axis-text-brand);cursor:pointer;font-weight:500;">업로드 관리 →</span>
+              </div>
+              <table style="width:100%;border-collapse:collapse;">
+                <thead><tr>
+                  <th style="text-align:left;padding:8px 18px;font-size:11.5px;font-weight:500;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);">원수사</th>
+                  <th style="text-align:right;padding:8px 12px;font-size:11.5px;font-weight:500;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);">행수</th>
+                  <th style="text-align:right;padding:8px 12px;font-size:11.5px;font-weight:500;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);">오류</th>
+                  <th style="text-align:left;padding:8px 18px;font-size:11.5px;font-weight:500;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);">상태</th>
+                </tr></thead>
+                <tbody>
+                  <sc-for list="{{ uploadRows }}" as="u" hint-placeholder-count="5">
+                    <tr>
+                      <td style="padding:10px 18px;font-size:13px;font-weight:500;border-bottom:1px solid var(--axis-border-default);">{{ u.insurer }}</td>
+                      <td style="padding:10px 12px;font-size:13px;text-align:right;font-variant-numeric:tabular-nums;border-bottom:1px solid var(--axis-border-default);">{{ u.rows }}</td>
+                      <td style="padding:10px 12px;font-size:13px;text-align:right;font-variant-numeric:tabular-nums;border-bottom:1px solid var(--axis-border-default);color:{{ u.errColor }};">{{ u.err }}</td>
+                      <td style="padding:10px 18px;border-bottom:1px solid var(--axis-border-default);"><span style="font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:999px;background:{{ u.stBg }};color:{{ u.stFg }};">{{ u.status }}</span></td>
+                    </tr>
+                  </sc-for>
+                </tbody>
+              </table>
+            </div>
+            <div style="background:var(--axis-card-bg-default);border:1px solid var(--axis-card-border-default);border-radius:8px;box-shadow:var(--axis-shadow-sm);overflow:hidden;">
+              <div style="padding:14px 18px;border-bottom:1px solid var(--axis-border-default);font-size:13.5px;font-weight:600;">최근 활동 (audit_logs)</div>
+              <div style="display:flex;flex-direction:column;">
+                <div style="display:flex;gap:10px;padding:11px 18px;border-bottom:1px solid var(--axis-border-default);align-items:baseline;">
+                  <span style="font-family:var(--axis-font-mono);font-size:11px;color:var(--axis-text-tertiary);flex:none;">14:21</span>
+                  <span style="font-size:12.5px;line-height:1.45;">이수진 · <b>run.calculate</b> 2026-06 재계산 (재현성 검증 통과)</span>
+                </div>
+                <div style="display:flex;gap:10px;padding:11px 18px;border-bottom:1px solid var(--axis-border-default);align-items:baseline;">
+                  <span style="font-family:var(--axis-font-mono);font-size:11px;color:var(--axis-text-tertiary);flex:none;">13:47</span>
+                  <span style="font-size:12.5px;line-height:1.45;">시스템 · <b>upload.parse</b> 가온손보 7,530행 · L0 캐시 적중 (v2)</span>
+                </div>
+                <div style="display:flex;gap:10px;padding:11px 18px;border-bottom:1px solid var(--axis-border-default);align-items:baseline;">
+                  <span style="font-family:var(--axis-font-mono);font-size:11px;color:var(--axis-text-tertiary);flex:none;">11:32</span>
+                  <span style="font-size:12.5px;line-height:1.45;">이수진 · <b>family.confirm</b> 김민준 ↔ 김도현 가족계약 확정</span>
+                </div>
+                <div style="display:flex;gap:10px;padding:11px 18px;border-bottom:1px solid var(--axis-border-default);align-items:baseline;">
+                  <span style="font-family:var(--axis-font-mono);font-size:11px;color:var(--axis-text-tertiary);flex:none;">10:05</span>
+                  <span style="font-size:12.5px;line-height:1.45;">시스템 · <b>mapping.ai</b> 세종생명 12컬럼 매핑 (자동 6 · 확인 3 · 수동 1)</span>
+                </div>
+                <div style="display:flex;gap:10px;padding:11px 18px;align-items:baseline;">
+                  <span style="font-family:var(--axis-font-mono);font-size:11px;color:var(--axis-text-tertiary);flex:none;">09:12</span>
+                  <span style="font-size:12.5px;line-height:1.45;">김관리 · <b>rule.update</b> R-007 시책 기간 연장 (~06-30)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ================ UPLOADS ================ -->
+      <sc-if value="{{ show.uploads }}" hint-placeholder-val="{{ false }}">
+        <div data-screen-label="업로드 파이프라인" style="display:flex;flex-direction:column;gap:16px;max-width:1200px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:stretch;">
+            <div style="border:1.5px dashed var(--axis-border-secondary);border-radius:8px;background:var(--axis-card-bg-default);padding:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;">
+              <div style="width:40px;height:40px;border-radius:999px;background:var(--axis-surface-info);color:var(--axis-icon-brand);display:flex;align-items:center;justify-content:center;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+              </div>
+              <div style="font-size:13.5px;font-weight:600;">원수사 엑셀 파일을 끌어다 놓으세요</div>
+              <div style="font-size:12px;color:var(--axis-text-tertiary);">xls · xlsx — SHA-256 해시로 중복 즉시 반려, R2 불변 보관</div>
+              <div style="display:flex;gap:8px;margin-top:4px;">
+                <button onClick="{{ startUpload }}" disabled="{{ simBusy }}" style="height:34px;padding:0 14px;border:none;border-radius:6px;background:var(--axis-button-bg-default);color:var(--axis-button-text-default);font-size:12.5px;font-weight:500;cursor:pointer;font-family:var(--axis-font-sans);" style-hover="background:var(--axis-button-bg-hover);">{{ uploadBtnLabel }}</button>
+                <sc-if value="{{ simDone }}" hint-placeholder-val="{{ false }}">
+                  <button onClick="{{ tryDup }}" style="height:34px;padding:0 14px;border:1px solid var(--axis-border-default);border-radius:6px;background:var(--axis-button-secondary-bg-default);color:var(--axis-button-secondary-text-default);font-size:12.5px;font-weight:500;cursor:pointer;font-family:var(--axis-font-sans);" style-hover="background:var(--axis-button-secondary-bg-hover);">같은 파일 재업로드 (멱등 테스트)</button>
+                </sc-if>
+              </div>
+              <sc-if value="{{ dupError }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:500;color:var(--axis-text-error);background:var(--axis-surface-error);border:1px solid var(--axis-color-red-200);border-radius:6px;padding:7px 12px;">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                  409 Conflict — 동일 해시 파일이 이미 존재합니다 (누리생명_수수료_202606.xlsx)
+                </div>
+              </sc-if>
+            </div>
+            <div style="background:var(--axis-card-bg-default);border:1px solid var(--axis-card-border-default);border-radius:8px;box-shadow:var(--axis-shadow-sm);border-left:4px solid {{ jobBorder }};overflow:hidden;">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--axis-border-default);">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="font-size:13px;font-weight:600;">파싱 Job</span>
+                  <span style="font-family:var(--axis-font-mono);font-size:11px;color:var(--axis-text-tertiary);">{{ jobName }}</span>
+                </div>
+                <span style="font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;background:{{ jobStBg }};color:{{ jobStFg }};">{{ jobStatus }}</span>
+              </div>
+              <div style="padding:6px 16px 4px;display:flex;align-items:center;gap:10px;">
+                <div style="flex:1;height:5px;border-radius:999px;background:var(--axis-surface-secondary);overflow:hidden;">
+                  <div style="height:100%;border-radius:999px;background:var(--axis-color-blue-500);transition:width .4s;width:{{ jobPct }};"></div>
+                </div>
+                <span style="font-size:11.5px;font-variant-numeric:tabular-nums;color:var(--axis-text-secondary);width:34px;text-align:right;">{{ jobPct }}</span>
+              </div>
+              <div style="display:flex;flex-direction:column;padding:4px 0 8px;">
+                <sc-for list="{{ jobPhases }}" as="p" hint-placeholder-count="6">
+                  <div style="display:flex;align-items:center;gap:10px;padding:5px 16px;">
+                    <span style="width:16px;height:16px;flex:none;display:flex;align-items:center;justify-content:center;color:{{ p.color }};">{{ p.icon }}</span>
+                    <span style="font-size:12.5px;color:{{ p.textColor }};">{{ p.label }}</span>
+                    <span style="margin-left:auto;font-size:11px;color:var(--axis-text-tertiary);font-family:var(--axis-font-mono);">{{ p.meta }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+
+          <div style="background:var(--axis-card-bg-default);border:1px solid var(--axis-card-border-default);border-radius:8px;box-shadow:var(--axis-shadow-sm);overflow:hidden;">
+            <div style="padding:14px 18px;border-bottom:1px solid var(--axis-border-default);font-size:13.5px;font-weight:600;">2026-06 업로드 목록</div>
+            <div style="overflow-x:auto;"><table style="width:100%;min-width:900px;border-collapse:collapse;">
+              <thead><tr>
+                <th style="text-align:left;padding:8px 18px;font-size:11.5px;font-weight:500;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);">파일</th>
+                <th style="text-align:left;padding:8px 12px;font-size:11.5px;font-weight:500;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);">원수사</th>
+                <th style="text-align:right;padding:8px 12px;font-size:11.5px;font-weight:500;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);">행수</th>
+                <th style="text-align:right;padding:8px 12px;font-size:11.5px;font-weight:500;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);">정상</th>
+                <th style="text-align:right;padding:8px 12px;font-size:11.5px;font-weight:500;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);">오류</th>
+                <th style="text-align:left;padding:8px 12px;font-size:11.5px;font-weight:500;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);">매핑</th>
+                <th style="text-align:left;padding:8px 18px;font-size:11.5px;font-weight:500;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);">상태</th>
+              </tr></thead>
+              <tbody>
+                <sc-for list="{{ uploadFiles }}" as="f" hint-placeholder-count="5">
+                  <tr>
+                    <td style="padding:10px 18px;font-family:var(--axis-font-mono);font-size:12px;border-bottom:1px solid var(--axis-border-default);">{{ f.file }}</td>
+                    <td style="padding:10px 12px;font-size:13px;border-bottom:1px solid var(--axis-border-default);">{{ f.insurer }}</td>
+                    <td style="padding:10px 12px;font-size:13px;text-align:right;font-variant-numeric:tabular-nums;border-bottom:1px solid var(--axis-border-default);">{{ f.rows }}</td>
+                    <td style="padding:10px 12px;font-size:13px;text-align:right;font-variant-numeric:tabular-nums;border-bottom:1px solid var(--axis-border-default);">{{ f.ok }}</td>
+                    <td style="padding:10px 12px;font-size:13px;text-align:right;font-variant-numeric:tabular-nums;font-weight:500;color:{{ f.errColor }};border-bottom:1px solid var(--axis-border-default);">{{ f.err }}</td>
+                    <td style="padding:10px 12px;font-size:12px;color:var(--axis-text-secondary);border-bottom:1px solid var(--axis-border-default);">{{ f.mappingNote }}</td>
+                    <td style="padding:10px 18px;border-bottom:1px solid var(--axis-border-default);"><span style="font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:999px;background:{{ f.stBg }};color:{{ f.stFg }};">{{ f.status }}</span></td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table></div>
+          </div>
+
+          <div style="background:var(--axis-card-bg-default);border:1px solid var(--axis-card-border-default);border-radius:8px;box-shadow:var(--axis-shadow-sm);overflow:hidden;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--axis-border-default);">
+              <div style="font-size:13.5px;font-weight:600;">오류 리포트 — 세종생명_수수료_202606.xlsx <span style="font-weight:500;color:var(--axis-text-error);">25건</span></div>
+              <span style="font-size:11.5px;color:var(--axis-text-tertiary);">upload_id: up_0619a2 · 행 번호 + 사유 전량 표시 (FR-04)</span>
+            </div>
+            <table style="width:100%;border-collapse:collapse;">
+              <thead><tr>
+                <th style="text-align:right;padding:8px 18px;font-size:11.5px;font-weight:500;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);width:70px;">행</th>
+                <th style="text-align:left;padding:8px 12px;font-size:11.5px;font-weight:500;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);width:120px;">유형</th>
+                <th style="text-align:left;padding:8px 12px;font-size:11.5px;font-weight:500;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);">사유</th>
+              </tr></thead>
+              <tbody>
+                <tr>
+                  <td style="padding:9px 18px;text-align:right;font-family:var(--axis-font-mono);font-size:12px;border-bottom:1px solid var(--axis-border-default);">142</td>
+                  <td style="padding:9px 12px;border-bottom:1px solid var(--axis-border-default);"><span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--axis-badge-error-bg);color:var(--axis-badge-error-text);">타입 오류</span></td>
+                  <td style="padding:9px 12px;font-size:12.5px;border-bottom:1px solid var(--axis-border-default);">수수료율 컬럼에 텍스트 혼입 — <span style="font-family:var(--axis-font-mono);font-size:11.5px;background:var(--axis-surface-secondary);padding:1px 5px;border-radius:3px;">"별도협의"</span></td>
+                </tr>
+                <tr>
+                  <td style="padding:9px 18px;text-align:right;font-family:var(--axis-font-mono);font-size:12px;border-bottom:1px solid var(--axis-border-default);">387</td>
+                  <td style="padding:9px 12px;border-bottom:1px solid var(--axis-border-default);"><span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--axis-badge-warning-bg);color:var(--axis-badge-warning-text);">필수 누락</span></td>
+                  <td style="padding:9px 12px;font-size:12.5px;border-bottom:1px solid var(--axis-border-default);">설계사코드 빈 값 — 필수 필드</td>
+                </tr>
+                <tr>
+                  <td style="padding:9px 18px;text-align:right;font-family:var(--axis-font-mono);font-size:12px;border-bottom:1px solid var(--axis-border-default);">1,204</td>
+                  <td style="padding:9px 12px;border-bottom:1px solid var(--axis-border-default);"><span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--axis-badge-info-bg);color:var(--axis-badge-info-text);">중복</span></td>
+                  <td style="padding:9px 12px;font-size:12.5px;border-bottom:1px solid var(--axis-border-default);">계약번호+회차 중복 — 행 927과 동일</td>
+                </tr>
+                <tr>
+                  <td style="padding:9px 18px;text-align:right;font-family:var(--axis-font-mono);font-size:12px;border-bottom:1px solid var(--axis-border-default);">2,861</td>
+                  <td style="padding:9px 12px;border-bottom:1px solid var(--axis-border-default);"><span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--axis-badge-error-bg);color:var(--axis-badge-error-text);">타입 오류</span></td>
+                  <td style="padding:9px 12px;font-size:12.5px;border-bottom:1px solid var(--axis-border-default);">계약일자 파싱 실패 — <span style="font-family:var(--axis-font-mono);font-size:11.5px;background:var(--axis-surface-secondary);padding:1px 5px;border-radius:3px;">"26.13.02"</span></td>
+                </tr>
+                <tr>
+                  <td style="padding:9px 18px;text-align:right;font-family:var(--axis-font-mono);font-size:12px;">5,530</td>
+                  <td style="padding:9px 12px;"><span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--axis-badge-warning-bg);color:var(--axis-badge-warning-text);">필수 누락</span></td>
+                  <td style="padding:9px 12px;font-size:12.5px;">보험료 빈 값 — 외 20건 <a href="#">전체 보기</a></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ================ AI MAPPING ================ -->
+      <sc-if value="{{ show.mapping }}" hint-placeholder-val="{{ false }}">
+        <div data-screen-label="AI 매핑 검토" style="display:flex;flex-direction:column;gap:14px;max-width:1280px;">
+          <sc-if value="{{ isFallback }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;align-items:center;gap:10px;padding:11px 16px;border-radius:8px;background:var(--axis-surface-warning);border:1px solid var(--axis-color-yellow-200);">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--axis-icon-warning)" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+              <span style="font-size:12.5px;font-weight:500;color:var(--axis-text-warning);">LLM 장애 — 규칙 기반 엔진으로 강등 동작 중 (engine=local). 자동 확정이 비활성화되었습니다 (REQ-009).</span>
+            </div>
+          </sc-if>
+          <sc-if value="{{ mappingConfirmed }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;align-items:center;gap:10px;padding:11px 16px;border-radius:8px;background:var(--axis-surface-success);border:1px solid var(--axis-color-green-200);">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--axis-icon-success)" stroke-width="2.5" stroke-linecap="round"><path d="M5 13l4 4L19 7"></path></svg>
+              <span style="font-size:12.5px;font-weight:500;color:var(--axis-text-success);">TemplateVersion v1 저장됨 — 헤더 시그니처 캐시 등록. 동일 양식 재업로드 시 L0 캐시로 즉시 매핑됩니다 (FR-03). <span onClick="{{ nav.templates }}" style="text-decoration:underline;cursor:pointer;">매핑 관리에서 보기</span></span>
+            </div>
+          </sc-if>
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start;">
+            <div style="background:var(--axis-card-bg-default);border:1px solid var(--axis-card-border-default);border-radius:8px;box-shadow:var(--axis-shadow-sm);overflow:hidden;">
+              <div style="display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--axis-border-default);">
+                <span style="font-family:var(--axis-font-mono);font-size:12.5px;font-weight:500;">세종생명_수수료_202606.xlsx</span>
+                <span style="font-size:11.5px;color:var(--axis-text-tertiary);">9,204행 · 12컬럼 · 헤더 3행 감지</span>
+                <span style="margin-left:auto;font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;background:var(--axis-badge-info-bg);color:var(--axis-badge-info-text);">신규 양식 — v1 후보</span>
+              </div>
+              <div style="overflow-x:auto;"><table style="width:100%;min-width:900px;border-collapse:collapse;">
+                <thead><tr>
+                  <th style="text-align:left;padding:8px 18px;font-size:11.5px;font-weight:500;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);white-space:nowrap;">원본 컬럼 · 표본 (마스킹)</th>
+                  <th style="text-align:left;padding:8px 12px;font-size:11.5px;font-weight:500;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);">표준 필드</th>
+                  <th style="text-align:left;padding:8px 12px;font-size:11.5px;font-weight:500;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);width:120px;">신뢰도</th>
+                  <th style="text-align:left;padding:8px 12px;font-size:11.5px;font-weight:500;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);">등급</th>
+                  <th style="text-align:left;padding:8px 12px;font-size:11.5px;font-weight:500;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);">근거</th>
+                  <th style="text-align:right;padding:8px 18px;font-size:11.5px;font-weight:500;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);width:80px;"></th>
+                </tr></thead>
+                <tbody>
+                  <sc-for list="{{ mapCols }}" as="c" hint-placeholder-count="10">
+                    <tr style="background:{{ c.rowBg }};">
+                      <td style="padding:10px 18px;border-bottom:1px solid var(--axis-border-default);">
+                        <div style="font-size:13px;font-weight:600;">{{ c.src }}</div>
+                        <div style="font-family:var(--axis-font-mono);font-size:11px;color:var(--axis-text-tertiary);margin-top:2px;">{{ c.sample }}</div>
+                      </td>
+                      <td style="padding:10px 12px;border-bottom:1px solid var(--axis-border-default);">
+                        <div style="font-family:var(--axis-font-mono);font-size:12px;font-weight:500;color:var(--axis-text-brand);">{{ c.tgt }}</div>
+                        <div style="font-size:11.5px;color:var(--axis-text-secondary);margin-top:1px;">{{ c.tgtKo }}</div>
+                      </td>
+                      <td style="padding:10px 12px;border-bottom:1px solid var(--axis-border-default);">
+                        <div style="display:flex;align-items:center;gap:8px;">
+                          <div style="flex:1;height:4px;border-radius:999px;background:var(--axis-surface-secondary);overflow:hidden;"><div style="height:100%;border-radius:999px;background:{{ c.barColor }};width:{{ c.confPct }};"></div></div>
+                          <span style="font-size:11.5px;font-variant-numeric:tabular-nums;color:var(--axis-text-secondary);width:28px;">{{ c.confPct }}</span>
+                        </div>
+                      </td>
+                      <td style="padding:10px 12px;border-bottom:1px solid var(--axis-border-default);"><span style="font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;white-space:nowrap;background:{{ c.gBg }};color:{{ c.gFg }};">{{ c.grade }}</span></td>
+                      <td style="padding:10px 12px;font-size:11.5px;line-height:1.5;color:var(--axis-text-secondary);border-bottom:1px solid var(--axis-border-default);max-width:230px;">{{ c.ev }}</td>
+                      <td style="padding:10px 18px;text-align:right;border-bottom:1px solid var(--axis-border-default);">
+                        <sc-if value="{{ c.needsAction }}" hint-placeholder-val="{{ false }}">
+                          <button onClick="{{ c.onConfirm }}" style="height:26px;padding:0 10px;border:1px solid var(--axis-border-default);border-radius:6px;background:var(--axis-button-secondary-bg-default);color:var(--axis-button-secondary-text-default);font-size:11.5px;font-weight:500;cursor:pointer;font-family:var(--axis-font-sans);white-space:nowrap;" style-hover="background:var(--axis-button-secondary-bg-hover);">{{ c.actionLabel }}</button>
+                        </sc-if>
+                      </td>
+                    </tr>
+                  </sc-for>
+                </tbody>
+              </table></div>
+              <div style="display:flex;align-items:center;gap:12px;padding:12px 18px;border-top:1px solid var(--axis-border-default);background:var(--axis-surface-secondary);">
+                <span style="font-size:12px;color:var(--axis-text-secondary);">{{ confirmHint }}</span>
+                <button onClick="{{ confirmMapping }}" disabled="{{ confirmDisabled }}" style="margin-left:auto;height:34px;padding:0 16px;border:none;border-radius:6px;background:var(--axis-button-bg-default);color:var(--axis-button-text-default);font-size:12.5px;font-weight:500;cursor:pointer;font-family:var(--axis-font-sans);opacity:{{ confirmOpacity }};" style-hover="background:var(--axis-button-bg-hover);">매핑 확정 → TemplateVersion 저장</button>
+              </div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:14px;">
+              <div style="background:var(--axis-card-bg-default);border:1px solid var(--axis-card-border-default);border-radius:8px;box-shadow:var(--axis-shadow-sm);border-left:4px solid var(--axis-color-purple-500);padding:16px;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+                  <div style="width:24px;height:24px;border-radius:999px;background:var(--axis-color-purple-500);color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;">AI</div>
+                  <span style="font-size:13px;font-weight:600;">L2 시맨틱 매핑</span>
+                  <span style="margin-left:auto;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:999px;background:{{ engineBg }};color:{{ engineFg }};font-family:var(--axis-font-mono);">{{ engineLabel }}</span>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;">
+                  <div style="text-align:center;padding:8px 4px;border-radius:6px;background:var(--axis-surface-success);"><div style="font-size:17px;font-weight:700;color:var(--axis-text-success);">{{ cntAuto }}</div><div style="font-size:10.5px;color:var(--axis-text-secondary);">자동 확정</div></div>
+                  <div style="text-align:center;padding:8px 4px;border-radius:6px;background:var(--axis-surface-warning);"><div style="font-size:17px;font-weight:700;color:var(--axis-text-warning);">{{ cntReview }}</div><div style="font-size:10.5px;color:var(--axis-text-secondary);">확인 필요</div></div>
+                  <div style="text-align:center;padding:8px 4px;border-radius:6px;background:var(--axis-surface-secondary);"><div style="font-size:17px;font-weight:700;">{{ cntManual }}</div><div style="font-size:10.5px;color:var(--axis-text-secondary);">수동</div></div>
+                </div>
+                <div style="font-size:11.5px;line-height:1.55;color:var(--axis-text-secondary);">전송 표본은 컬럼당 <b>8개 한정 · 마스킹</b> 처리 (NFR-02). 무의미 헤더는 값 기반으로 매핑됩니다.</div>
+              </div>
+              <div style="background:var(--axis-card-bg-default);border:1px solid var(--axis-card-border-default);border-radius:8px;box-shadow:var(--axis-shadow-sm);border-left:4px solid var(--axis-color-green-500);padding:16px;">
+                <div style="font-size:13px;font-weight:600;margin-bottom:8px;">L3 정합성 교차검증</div>
+                <div style="font-family:var(--axis-font-mono);font-size:11.5px;background:var(--axis-surface-secondary);border-radius:6px;padding:8px 10px;margin-bottom:10px;">지급액 ≈ 보험료 × 항목A</div>
+                <div style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--axis-text-secondary);">
+                  <div style="display:flex;justify-content:space-between;"><span>표본 검증</span><b style="color:var(--axis-text-success);">8/8 통과</b></div>
+                  <div style="display:flex;justify-content:space-between;"><span>% 스케일 감지</span><b>scale=1 (0–1 비율)</b></div>
+                  <div style="display:flex;justify-content:space-between;"><span>금액 필드 임계</span><b>AUTO_TH+0.05 (보수적)</b></div>
+                </div>
+              </div>
+              <div style="background:var(--axis-card-bg-default);border:1px solid var(--axis-card-border-default);border-radius:8px;box-shadow:var(--axis-shadow-sm);padding:16px;">
+                <div style="font-size:13px;font-weight:600;margin-bottom:8px;">L0 헤더 시그니처</div>
+                <div style="font-family:var(--axis-font-mono);font-size:11px;color:var(--axis-text-secondary);word-break:break-all;background:var(--axis-surface-secondary);border-radius:6px;padding:8px 10px;">sig:aa3f9c1e07b4d2…</div>
+                <div style="font-size:11.5px;color:var(--axis-text-tertiary);margin-top:8px;">캐시 미적중 — 확정 시 신규 TemplateVersion 등록</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ================ TEMPLATES ================ -->
+      <sc-if value="{{ show.templates }}" hint-placeholder-val="{{ false }}">
+        <div data-screen-label="매핑 관리" style="display:flex;flex-direction:column;gap:16px;max-width:1100px;">
+          <div style="font-size:12.5px;color:var(--axis-text-secondary);">확정 매핑(TemplateVersion) 버전 이력 — 재업로드 시 L0 헤더 시그니처 캐시로 즉시 매핑되며, 양식 변경 감지 시 개발자 개입 없이 새 버전이 등록됩니다 (FR-03).</div>
+          <sc-for list="{{ tplGroups }}" as="g" hint-placeholder-count="3">
+            <div style="background:var(--axis-card-bg-default);border:1px solid var(--axis-card-border-default);border-radius:8px;box-shadow:var(--axis-shadow-sm);overflow:hidden;">
+              <div style="display:flex;align-items:center;gap:10px;padding:13px 18px;border-bottom:1px solid var(--axis-border-default);">
+                <span style="font-size:13.5px;font-weight:600;">{{ g.insurer }}</span>
+                <span style="font-size:11.5px;color:var(--axis-text-tertiary);">{{ g.note }}</span>
+                <span style="margin-left:auto;font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;background:{{ g.chipBg }};color:{{ g.chipFg }};">{{ g.chip }}</span>
+              </div>
+              <sc-for list="{{ g.versions }}" as="v" hint-placeholder-count="2">
+                <div style="display:flex;align-items:center;gap:14px;padding:11px 18px;border-bottom:1px solid var(--axis-border-default);">
+                  <span style="font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:6px;background:var(--axis-surface-inverse);color:var(--axis-text-inverse);font-family:var(--axis-font-mono);">v{{ v.n }}</span>
+                  <span style="font-size:12.5px;">필드 <b>{{ v.fields }}</b>개</span>
+                  <span style="font-family:var(--axis-font-mono);font-size:11px;color:var(--axis-text-tertiary);">{{ v.sig }}</span>
+                  <span style="font-size:12px;color:var(--axis-text-secondary);">{{ v.from }}</span>
+                  <span style="margin-left:auto;font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;background:{{ v.stBg }};color:{{ v.stFg }};">{{ v.st }}</span>
+                  <span style="font-size:11.5px;color:var(--axis-text-tertiary);font-variant-numeric:tabular-nums;">캐시 적중 {{ v.hits }}회</span>
+                </div>
+              </sc-for>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <!-- ================ RULES ================ -->
+      <sc-if value="{{ show.rules }}" hint-placeholder-val="{{ false }}">
+        <div data-screen-label="시책 룰" style="display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px;align-items:start;max-width:1280px;">
+          <div style="background:var(--axis-card-bg-default);border:1px solid var(--axis-card-border-default);border-radius:8px;box-shadow:var(--axis-shadow-sm);overflow:hidden;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--axis-border-default);">
+              <div style="font-size:13.5px;font-weight:600;">시책 룰 (선언형 JSON · 순수 평가기)</div>
+              <button style="height:30px;padding:0 12px;border:none;border-radius:6px;background:var(--axis-button-bg-default);color:var(--axis-button-text-default);font-size:12px;font-weight:500;cursor:pointer;font-family:var(--axis-font-sans);" style-hover="background:var(--axis-button-bg-hover);">+ 새 룰</button>
+            </div>
+            <div style="display:flex;flex-direction:column;">
+              <div style="padding:14px 18px;border-bottom:1px solid var(--axis-border-default);display:flex;flex-direction:column;gap:8px;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="font-family:var(--axis-font-mono);font-size:11.5px;font-weight:700;color:var(--axis-text-brand);">R-001</span>
+                  <span style="font-size:13px;font-weight:600;">신계약 기본 수수료</span>
+                  <span style="font-size:10.5px;font-weight:600;padding:1px 8px;border-radius:999px;background:var(--axis-badge-info-bg);color:var(--axis-badge-info-text);">stack</span>
+                  <span style="margin-left:auto;font-size:11px;color:var(--axis-text-tertiary);">priority 10</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                  <span style="font-size:11px;padding:2px 8px;border-radius:6px;background:var(--axis-surface-secondary);color:var(--axis-text-secondary);">전 원수사</span>
+                  <span style="font-size:11px;padding:2px 8px;border-radius:6px;background:var(--axis-surface-secondary);color:var(--axis-text-secondary);">전 조직</span>
+                  <span style="font-size:11px;padding:2px 8px;border-radius:6px;background:var(--axis-surface-secondary);color:var(--axis-text-secondary);">회차 1–2</span>
+                  <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;background:var(--axis-surface-info);color:var(--axis-text-info);">지급률 85%</span>
+                </div>
+              </div>
+              <div style="padding:14px 18px;border-bottom:1px solid var(--axis-border-default);display:flex;flex-direction:column;gap:8px;background:var(--axis-surface-info);">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="font-family:var(--axis-font-mono);font-size:11.5px;font-weight:700;color:var(--axis-text-brand);">R-007</span>
+                  <span style="font-size:13px;font-weight:600;">6월 장기보장성 시책</span>
+                  <span style="font-size:10.5px;font-weight:600;padding:1px 8px;border-radius:999px;background:var(--axis-badge-info-bg);color:var(--axis-badge-info-text);">stack</span>
+                  <span style="font-size:10.5px;font-weight:600;padding:1px 8px;border-radius:999px;background:var(--axis-badge-warning-bg);color:var(--axis-badge-warning-text);">시뮬레이션 대상</span>
+                  <span style="margin-left:auto;font-size:11px;color:var(--axis-text-tertiary);">priority 20</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                  <span style="font-size:11px;padding:2px 8px;border-radius:6px;background:var(--axis-surface-secondary);color:var(--axis-text-secondary);">2026-06-01 ~ 06-30</span>
+                  <span style="font-size:11px;padding:2px 8px;border-radius:6px;background:var(--axis-surface-secondary);color:var(--axis-text-secondary);">한빛생명 · 세종생명</span>
+                  <span style="font-size:11px;padding:2px 8px;border-radius:6px;background:var(--axis-surface-secondary);color:var(--axis-text-secondary);">상품 "장기*"</span>
+                  <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;background:var(--axis-surface-info);color:var(--axis-text-info);">지급률 +12%</span>
+                </div>
+              </div>
+              <div style="padding:14px 18px;border-bottom:1px solid var(--axis-border-default);display:flex;flex-direction:column;gap:8px;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="font-family:var(--axis-font-mono);font-size:11.5px;font-weight:700;color:var(--axis-text-brand);">R-012</span>
+                  <span style="font-size:13px;font-weight:600;">운전자보험 특별시책</span>
+                  <span style="font-size:10.5px;font-weight:600;padding:1px 8px;border-radius:999px;background:var(--axis-badge-warning-bg);color:var(--axis-badge-warning-text);">exclusive</span>
+                  <span style="margin-left:auto;font-size:11px;color:var(--axis-text-tertiary);">priority 15</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                  <span style="font-size:11px;padding:2px 8px;border-radius:6px;background:var(--axis-surface-secondary);color:var(--axis-text-secondary);">청담화재</span>
+                  <span style="font-size:11px;padding:2px 8px;border-radius:6px;background:var(--axis-surface-secondary);color:var(--axis-text-secondary);">상품 "*운전자*"</span>
+                  <span style="font-size:11px;padding:2px 8px;border-radius:6px;background:var(--axis-surface-secondary);color:var(--axis-text-secondary);">월 5건 이상</span>
+                  <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;background:var(--axis-surface-info);color:var(--axis-text-info);">고정액 ₩50,000/건</span>
+                </div>
+              </div>
+              <div style="padding:14px 18px;display:flex;flex-direction:column;gap:8px;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="font-family:var(--axis-font-mono);font-size:11.5px;font-weight:700;color:var(--axis-text-brand);">R-015</span>
+                  <span style="font-size:13px;font-weight:600;">가족계약 시책 제외</span>
+                  <span style="font-size:10.5px;font-weight:600;padding:1px 8px;border-radius:999px;background:var(--axis-badge-error-bg);color:var(--axis-badge-error-text);">exclusive</span>
+                  <span style="margin-left:auto;font-size:11px;color:var(--axis-text-tertiary);">priority 1 (최우선)</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                  <span style="font-size:11px;padding:2px 8px;border-radius:6px;background:var(--axis-surface-secondary);color:var(--axis-text-secondary);">family_flag = confirmed</span>
+                  <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;background:var(--axis-surface-error);color:var(--axis-text-error);">시책 지급률 0%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:14px;">
+            <div style="background:var(--axis-card-bg-default);border:1px solid var(--axis-card-border-default);border-radius:8px;box-shadow:var(--axis-shadow-sm);border-left:4px solid var(--axis-color-blue-500);padding:16px 18px;display:flex;flex-direction:column;gap:12px;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:13.5px;font-weight:600;white-space:nowrap;">룰 시뮬레이션</span>
+                <span style="font-size:11px;color:var(--axis-text-tertiary);">실데이터 무영향 · DB 쓰기 0 (FR-15)</span>
+              </div>
+              <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:13px;">
+                <span style="font-family:var(--axis-font-mono);font-size:12px;font-weight:700;color:var(--axis-text-brand);">R-007</span>
+                <span style="white-space:nowrap;">지급률 12% →</span>
+                <input value="{{ proposedRate }}" onChange="{{ onRateChange }}" style="width:56px;height:32px;border:1px solid var(--axis-input-border-default);border-radius:6px;padding:0 8px;font-size:13px;font-family:var(--axis-font-sans);text-align:right;background:var(--axis-input-bg-default);color:var(--axis-input-text-default);">
+                <span>%</span>
+                <button onClick="{{ runSim }}" style="margin-left:auto;flex:none;white-space:nowrap;height:32px;padding:0 14px;border:none;border-radius:6px;background:var(--axis-button-bg-default);color:var(--axis-button-text-default);font-size:12px;font-weight:500;cursor:pointer;font-family:var(--axis-font-sans);" style-hover="background:var(--axis-button-bg-hover);">시뮬레이션 실행</button>
+              </div>
+              <sc-if value="{{ simThinking }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--axis-text-secondary);">
+                  <span>evaluate() 2회 실행 중</span>
+                  <span style="display:inline-flex;gap:3px;"><span style="width:5px;height:5px;border-radius:999px;background:currentColor;animation:axbounce 1s infinite;"></span><span style="width:5px;height:5px;border-radius:999px;background:currentColor;animation:axbounce 1s infinite .15s;"></span><span style="width:5px;height:5px;border-radius:999px;background:currentColor;animation:axbounce 1s infinite .3s;"></span></span>
+                </div>
+              </sc-if>
+              <sc-if value="{{ simResult }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-direction:column;gap:10px;">
+                  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+                    <div style="padding:10px 12px;border-radius:6px;background:var(--axis-surface-secondary);"><div style="font-size:10.5px;color:var(--axis-text-tertiary);">현재 총액</div><div style="font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;">₩1,284.5M</div></div>
+                    <div style="padding:10px 12px;border-radius:6px;background:var(--axis-surface-secondary);"><div style="font-size:10.5px;color:var(--axis-text-tertiary);">제안 총액</div><div style="font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;">{{ simProposed }}</div></div>
+                    <div style="padding:10px 12px;border-radius:6px;background:var(--axis-surface-info);"><div style="font-size:10.5px;color:var(--axis-text-tertiary);">차액</div><div style="font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--axis-text-brand);">{{ simDiff }}</div></div>
+                  </div>
+                  <table style="width:100%;border-collapse:collapse;">
+                    <thead><tr>
+                      <th style="text-align:left;padding:6px 4px;font-size:11px;font-weight:500;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);">조직</th>
+                      <th style="text-align:right;padding:6px 4px;font-size:11px;font-weight:500;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);">현재</th>
+                      <th style="text-align:right;padding:6px 4px;font-size:11px;font-weight:500;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);">제안</th>
+                      <th style="text-align:right;padding:6px 4px;font-size:11px;font-weight:500;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);">diff</th>
+                    </tr></thead>
+                    <tbody>
+                      <sc-for list="{{ simRows }}" as="r" hint-placeholder-count="4">
+                        <tr>
+                          <td style="padding:7px 4px;font-size:12px;border-bottom:1px solid var(--axis-border-default);">{{ r.org }}</td>
+                          <td style="padding:7px 4px;font-size:12px;text-align:right;font-variant-numeric:tabular-nums;border-bottom:1px solid var(--axis-border-default);">{{ r.cur }}</td>
+                          <td style="padding:7px 4px;font-size:12px;text-align:right;font-variant-numeric:tabular-nums;border-bottom:1px solid var(--axis-border-default);">{{ r.prop }}</td>
+                          <td style="padding:7px 4px;font-size:12px;text-align:right;font-variant-numeric:tabular-nums;font-weight:600;color:var(--axis-text-brand);border-bottom:1px solid var(--axis-border-default);">{{ r.diff }}</td>
+                        </tr>
+                      </sc-for>
+                    </tbody>
+                  </table>
+                  <div style="font-size:11.5px;color:var(--axis-text-tertiary);">시뮬레이션 후 원본 run 데이터 불변 — 적용하려면 룰 수정 후 재계산하세요.</div>
+                </div>
+              </sc-if>
+            </div>
+            <div style="background:var(--axis-card-bg-default);border:1px solid var(--axis-card-border-default);border-radius:8px;box-shadow:var(--axis-shadow-sm);padding:16px 18px;">
+              <div style="font-size:13px;font-weight:600;margin-bottom:8px;">평가기 규약</div>
+              <div style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--axis-text-secondary);line-height:1.55;">
+                <div>· priority 오름차순 + 동순위 id 정렬 → 결정적 평가</div>
+                <div>· <b>exclusive</b> 매칭 시 이후 룰 중단, <b>stack</b>은 누적</div>
+                <div>· 동일 입력 재실행 = 동일 출력 (재현성 보장)</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ================ FAMILY ================ -->
+      <sc-if value="{{ show.family }}" hint-placeholder-val="{{ false }}">
+        <div data-screen-label="가족계약 HITL" style="display:flex;flex-direction:column;gap:16px;max-width:1000px;">
+          <div style="display:flex;align-items:center;gap:10px;padding:11px 16px;border-radius:8px;background:var(--axis-surface-info);border:1px solid var(--axis-color-blue-200);">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--axis-icon-brand)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+            <span style="font-size:12.5px;color:var(--axis-text-info);">자동 확정 경로는 존재하지 않습니다 — 감지는 <b>후보 생성</b>까지, 확정·해제는 실무자만 가능하며 이력이 보존됩니다 (FR-14).</span>
+          </div>
+          <div style="background:var(--axis-card-bg-default);border:1px solid var(--axis-card-border-default);border-radius:8px;box-shadow:var(--axis-shadow-sm);overflow:hidden;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--axis-border-default);">
+              <div style="font-size:13.5px;font-weight:600;">감지 후보 — 성명 + 생년월일 매칭</div>
+              <span style="font-size:11.5px;color:var(--axis-text-tertiary);">생년월일 없는 레코드는 오탐 방지를 위해 제외</span>
+            </div>
+            <table style="width:100%;border-collapse:collapse;">
+              <thead><tr>
+                <th style="text-align:left;padding:8px 18px;font-size:11.5px;font-weight:500;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);">설계사</th>
+                <th style="text-align:left;padding:8px 12px;font-size:11.5px;font-weight:500;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);">계약자</th>
+                <th style="text-align:left;padding:8px 12px;font-size:11.5px;font-weight:500;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);">매칭 근거</th>
+                <th style="text-align:left;padding:8px 12px;font-size:11.5px;font-weight:500;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);">상태</th>
+                <th style="text-align:left;padding:8px 12px;font-size:11.5px;font-weight:500;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);">처리자</th>
+                <th style="text-align:right;padding:8px 18px;font-size:11.5px;font-weight:500;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);"></th>
+              </tr></thead>
+              <tbody>
+                <sc-for list="{{ famRows }}" as="fm" hint-placeholder-count="4">
+                  <tr>
+                    <td style="padding:11px 18px;font-size:13px;font-weight:500;border-bottom:1px solid var(--axis-border-default);">{{ fm.agent }}</td>
+                    <td style="padding:11px 12px;font-size:13px;border-bottom:1px solid var(--axis-border-default);">{{ fm.holder }}</td>
+                    <td style="padding:11px 12px;font-size:12px;color:var(--axis-text-secondary);border-bottom:1px solid var(--axis-border-default);font-family:var(--axis-font-mono);">{{ fm.basis }}</td>
+                    <td style="padding:11px 12px;border-bottom:1px solid var(--axis-border-default);"><span style="font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;background:{{ fm.stBg }};color:{{ fm.stFg }};">{{ fm.st }}</span></td>
+                    <td style="padding:11px 12px;font-size:12px;color:var(--axis-text-secondary);border-bottom:1px solid var(--axis-border-default);">{{ fm.by }}</td>
+                    <td style="padding:11px 18px;text-align:right;border-bottom:1px solid var(--axis-border-default);white-space:nowrap;">
+                      <sc-if value="{{ fm.canConfirm }}" hint-placeholder-val="{{ false }}">
+                        <button onClick="{{ fm.onConfirm }}" style="height:27px;padding:0 11px;border:none;border-radius:6px;background:var(--axis-color-green-500);color:#fff;font-size:11.5px;font-weight:500;cursor:pointer;font-family:var(--axis-font-sans);margin-right:6px;" style-hover="background:var(--axis-color-green-600);">확정</button>
+                      </sc-if>
+                      <sc-if value="{{ fm.canRelease }}" hint-placeholder-val="{{ false }}">
+                        <button onClick="{{ fm.onRelease }}" style="height:27px;padding:0 11px;border:1px solid var(--axis-border-default);border-radius:6px;background:var(--axis-button-secondary-bg-default);color:var(--axis-button-secondary-text-default);font-size:11.5px;font-weight:500;cursor:pointer;font-family:var(--axis-font-sans);" style-hover="background:var(--axis-button-secondary-bg-hover);">해제</button>
+                      </sc-if>
+                    </td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+          <div style="font-size:12px;color:var(--axis-text-tertiary);">확정된 가족계약은 R-015에 의해 시책 지급 대상에서 제외됩니다. 해제 시 행은 유지되고 status만 변경됩니다 (이력 보존).</div>
+        </div>
+      </sc-if>
+
+      <!-- ================ RUNS ================ -->
+      <sc-if value="{{ show.runs }}" hint-placeholder-val="{{ false }}">
+        <div data-screen-label="정산 Run" style="display:flex;flex-direction:column;gap:16px;max-width:1100px;">
+          <div style="background:var(--axis-card-bg-default);border:1px solid var(--axis-card-border-default);border-radius:8px;box-shadow:var(--axis-shadow-sm);border-left:4px solid {{ runBorder }};overflow:hidden;">
+            <div style="display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--axis-border-default);">
+              <span style="font-size:16px;font-weight:700;letter-spacing:-0.01em;">2026-06 Run</span>
+              <span style="font-size:11px;font-weight:600;padding:2px 10px;border-radius:999px;background:{{ runStBg }};color:{{ runStFg }};">{{ runStLabel }}</span>
+              <sc-if value="{{ isClosed }}" hint-placeholder-val="{{ false }}">
+                <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--axis-text-tertiary);">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                  API + DB 트리거 이중 잠금
+                </span>
+              </sc-if>
+              <div style="margin-left:auto;display:flex;gap:8px;">
+                <button onClick="{{ recalc }}" disabled="{{ isClosed }}" style="height:32px;padding:0 13px;border:1px solid var(--axis-border-default);border-radius:6px;background:var(--axis-button-secondary-bg-default);color:var(--axis-button-secondary-text-default);font-size:12px;font-weight:500;cursor:pointer;font-family:var(--axis-font-sans);opacity:{{ lockOpacity }};" style-hover="background:var(--axis-button-secondary-bg-hover);">재계산</button>
+                <button onClick="{{ armClose }}" disabled="{{ isClosed }}" style="height:32px;padding:0 13px;border:none;border-radius:6px;background:var(--axis-button-bg-default);color:var(--axis-button-text-default);font-size:12px;font-weight:500;cursor:pointer;font-family:var(--axis-font-sans);opacity:{{ lockOpacity }};" style-hover="background:var(--axis-button-bg-hover);">월 마감</button>
+              </div>
+            </div>
+            <sc-if value="{{ closeArmed }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;align-items:center;gap:12px;padding:12px 20px;background:var(--axis-surface-warning);border-bottom:1px solid var(--axis-color-yellow-200);">
+                <span style="font-size:12.5px;font-weight:500;color:var(--axis-text-warning);">마감하면 스냅샷(run+lines+recon)이 R2에 보관되고 모든 쓰기가 차단됩니다. 되돌릴 수 없습니다.</span>
+                <div style="margin-left:auto;display:flex;gap:8px;">
+                  <button onClick="{{ doClose }}" style="height:29px;padding:0 12px;border:none;border-radius:6px;background:var(--axis-button-destructive-bg-default);color:var(--axis-button-destructive-text-default);font-size:12px;font-weight:500;cursor:pointer;font-family:var(--axis-font-sans);" style-hover="background:var(--axis-button-destructive-bg-hover);">마감 확정</button>
+                  <button onClick="{{ cancelClose }}" style="height:29px;padding:0 12px;border:1px solid var(--axis-border-default);border-radius:6px;background:var(--axis-surface-default);color:var(--axis-text-primary);font-size:12px;font-weight:500;cursor:pointer;font-family:var(--axis-font-sans);">취소</button>
+                </div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ writeRejected }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;align-items:center;gap:10px;padding:11px 20px;background:var(--axis-surface-error);border-bottom:1px solid var(--axis-color-red-200);">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--axis-icon-error)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+                <span style="font-size:12.5px;font-weight:500;color:var(--axis-text-error);">409 Conflict — 마감된 run에는 쓸 수 없습니다. DB 트리거도 UPDATE를 ABORT합니다 (FR-20, 이중 잠금).</span>
+              </div>
+            </sc-if>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0;">
+              <div style="padding:14px 20px;border-right:1px solid var(--axis-border-default);"><div style="font-size:11px;color:var(--axis-text-tertiary);">계산 지급 총액</div><div style="font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:3px;">₩1,284,530,000</div></div>
+              <div style="padding:14px 20px;border-right:1px solid var(--axis-border-default);"><div style="font-size:11px;color:var(--axis-text-tertiary);">settlement_lines</div><div style="font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:3px;">38,411</div></div>
+              <div style="padding:14px 20px;border-right:1px solid var(--axis-border-default);"><div style="font-size:11px;color:var(--axis-text-tertiary);">재계산 재현성</div><div style="font-size:16px;font-weight:700;margin-top:3px;color:var(--axis-text-success);">{{ recalcNote }}</div></div>
+              <div style="padding:14px 20px;"><div style="font-size:11px;color:var(--axis-text-tertiary);">마감 스냅샷</div><div style="font-size:12px;font-weight:500;font-family:var(--axis-font-mono);margin-top:6px;color:var(--axis-text-secondary);">{{ snapshotKey }}</div></div>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;">
+            <div style="background:var(--axis-card-bg-default);border:1px solid var(--axis-card-border-default);border-radius:8px;box-shadow:var(--axis-shadow-sm);overflow:hidden;">
+              <div style="padding:14px 18px;border-bottom:1px solid var(--axis-border-default);font-size:13.5px;font-weight:600;">수동 보정 (adjustments)</div>
+              <div style="padding:14px 18px;display:flex;flex-direction:column;gap:10px;border-bottom:1px solid var(--axis-border-default);">
+                <div style="display:flex;gap:8px;">
+                  <input value="{{ adjTarget }}" onChange="{{ onAdjTarget }}" placeholder="대상 (계약/라인 ID)" style="flex:1;height:32px;border:1px solid var(--axis-input-border-default);border-radius:6px;padding:0 10px;font-size:12.5px;font-family:var(--axis-font-mono);background:var(--axis-input-bg-default);color:var(--axis-input-text-default);">
+                  <input value="{{ adjAmount }}" onChange="{{ onAdjAmount }}" placeholder="금액" style="width:110px;height:32px;border:1px solid var(--axis-input-border-default);border-radius:6px;padding:0 10px;font-size:12.5px;text-align:right;font-family:var(--axis-font-sans);background:var(--axis-input-bg-default);color:var(--axis-input-text-default);">
+                </div>
+                <input value="{{ adjReason }}" onChange="{{ onAdjReason }}" placeholder="보정 사유 (필수)" style="height:32px;border:1px solid {{ adjReasonBorder }};border-radius:6px;padding:0 10px;font-size:12.5px;font-family:var(--axis-font-sans);background:var(--axis-input-bg-default);color:var(--axis-input-text-default);">
+                <sc-if value="{{ adjError }}" hint-placeholder-val="{{ false }}">
+                  <div style="font-size:12px;font-weight:500;color:var(--axis-text-error);">400 — 보정 사유는 필수입니다 (FR-19).</div>
+                </sc-if>
+                <button onClick="{{ addAdj }}" disabled="{{ isClosed }}" style="height:32px;border:none;border-radius:6px;background:var(--axis-button-bg-default);color:var(--axis-button-text-default);font-size:12px;font-weight:500;cursor:pointer;font-family:var(--axis-font-sans);opacity:{{ lockOpacity }};" style-hover="background:var(--axis-button-bg-hover);">보정 등록 — 감사 기록 동반</button>
+              </div>
+              <sc-for list="{{ adjList }}" as="a" hint-placeholder-count="1">
+                <div style="display:flex;align-items:center;gap:10px;padding:11px 18px;border-bottom:1px solid var(--axis-border-default);">
+                  <span style="font-family:var(--axis-font-mono);font-size:11.5px;color:var(--axis-text-brand);font-weight:600;">{{ a.target }}</span>
+                  <span style="font-size:12.5px;color:var(--axis-text-secondary);flex:1;">{{ a.reason }}</span>
+                  <span style="font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums;">{{ a.amount }}</span>
+                  <span style="font-size:10.5px;font-weight:600;padding:1px 7px;border-radius:999px;background:var(--axis-badge-success-bg);color:var(--axis-badge-success-text);">audit ✓</span>
+                </div>
+              </sc-for>
+              <sc-if value="{{ noAdj }}" hint-placeholder-val="{{ true }}">
+                <div style="padding:14px 18px;font-size:12px;color:var(--axis-text-tertiary);">등록된 보정이 없습니다.</div>
+              </sc-if>
+            </div>
+            <div style="background:var(--axis-card-bg-default);border:1px solid var(--axis-card-border-default);border-radius:8px;box-shadow:var(--axis-shadow-sm);overflow:hidden;">
+              <div style="padding:14px 18px;border-bottom:1px solid var(--axis-border-default);font-size:13.5px;font-weight:600;">Run 이력</div>
+              <div style="display:flex;align-items:center;gap:12px;padding:13px 18px;border-bottom:1px solid var(--axis-border-default);">
+                <span style="font-size:13px;font-weight:600;">2026-05</span>
+                <span style="font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;background:var(--axis-badge-default-bg);color:var(--axis-badge-default-text);">closed</span>
+                <span style="font-size:12px;color:var(--axis-text-secondary);">₩1,244,180,000 · 차액 <b style="color:var(--axis-text-success);">₩0</b></span>
+                <span style="margin-left:auto;font-family:var(--axis-font-mono);font-size:10.5px;color:var(--axis-text-tertiary);">snapshots/2026-05.json</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;padding:13px 18px;border-bottom:1px solid var(--axis-border-default);">
+                <span style="font-size:13px;font-weight:600;">2026-04</span>
+                <span style="font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;background:var(--axis-badge-default-bg);color:var(--axis-badge-default-text);">closed</span>
+                <span style="font-size:12px;color:var(--axis-text-secondary);">₩1,198,020,000 · 차액 <b style="color:var(--axis-text-success);">₩0</b></span>
+                <span style="margin-left:auto;font-family:var(--axis-font-mono);font-size:10.5px;color:var(--axis-text-tertiary);">snapshots/2026-04.json</span>
+              </div>
+              <div style="padding:14px 18px;font-size:12px;color:var(--axis-text-tertiary);line-height:1.6;">마감 시 run+lines+recon JSON 스냅샷이 R2에 불변 보관됩니다 (NFR-05). 병행 검증 기준: 이중 정산 차액 0원.</div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ================ RECON ================ -->
+      <sc-if value="{{ show.recon }}" hint-placeholder-val="{{ false }}">
+        <div data-screen-label="대사 · 차액" style="display:flex;flex-direction:column;gap:16px;max-width:1100px;">
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
+            <div style="background:var(--axis-card-bg-default);border:1px solid var(--axis-card-border-default);border-radius:8px;box-shadow:var(--axis-shadow-sm);padding:16px 20px;"><div style="font-size:12px;color:var(--axis-text-tertiary);">원수사 보고 총액</div><div style="font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:4px;">₩1,284,620,000</div></div>
+            <div style="background:var(--axis-card-bg-default);border:1px solid var(--axis-card-border-default);border-radius:8px;box-shadow:var(--axis-shadow-sm);padding:16px 20px;"><div style="font-size:12px;color:var(--axis-text-tertiary);">시스템 계산 총액</div><div style="font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:4px;">₩1,284,530,000</div></div>
+            <div style="background:var(--axis-card-bg-default);border:1px solid var(--axis-card-border-default);border-radius:8px;box-shadow:var(--axis-shadow-sm);border-left:4px solid {{ diffCardBorder }};padding:16px 20px;"><div style="font-size:12px;color:var(--axis-text-tertiary);">차액</div><div style="font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:4px;color:{{ diffKpiColor }};">{{ diffKpi }}</div><div style="font-size:11.5px;color:var(--axis-text-secondary);margin-top:2px;">{{ diffKpiNote }}</div></div>
+          </div>
+          <div style="background:var(--axis-card-bg-default);border:1px solid var(--axis-card-border-default);border-radius:8px;box-shadow:var(--axis-shadow-sm);overflow:hidden;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--axis-border-default);">
+              <div style="font-size:13.5px;font-weight:600;">원수사별 대사 — 2026-06</div>
+              <span style="font-size:11.5px;color:var(--axis-text-tertiary);">차액은 upload_id + row_no 역추적으로 계약 단위까지 특정 (FR-18)</span>
+            </div>
+            <table style="width:100%;border-collapse:collapse;">
+              <thead><tr>
+                <th style="text-align:left;padding:8px 18px;font-size:11.5px;font-weight:500;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);">원수사</th>
+                <th style="text-align:right;padding:8px 12px;font-size:11.5px;font-weight:500;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);">보고액</th>
+                <th style="text-align:right;padding:8px 12px;font-size:11.5px;font-weight:500;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);">계산액</th>
+                <th style="text-align:right;padding:8px 12px;font-size:11.5px;font-weight:500;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);">차액</th>
+                <th style="text-align:left;padding:8px 18px;font-size:11.5px;font-weight:500;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);width:120px;">상태</th>
+              </tr></thead>
+              <tbody>
+                <tr>
+                  <td style="padding:11px 18px;font-size:13px;font-weight:500;border-bottom:1px solid var(--axis-border-default);">한빛생명</td>
+                  <td style="padding:11px 12px;font-size:13px;text-align:right;font-variant-numeric:tabular-nums;border-bottom:1px solid var(--axis-border-default);">412,350,000</td>
+                  <td style="padding:11px 12px;font-size:13px;text-align:right;font-variant-numeric:tabular-nums;border-bottom:1px solid var(--axis-border-default);">412,350,000</td>
+                  <td style="padding:11px 12px;font-size:13px;text-align:right;font-variant-numeric:tabular-nums;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);">0</td>
+                  <td style="padding:11px 18px;border-bottom:1px solid var(--axis-border-default);"><span style="font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;background:var(--axis-badge-success-bg);color:var(--axis-badge-success-text);">일치</span></td>
+                </tr>
+                <tr onClick="{{ toggleRecon }}" style="cursor:pointer;background:{{ reconRowBg }};">
+                  <td style="padding:11px 18px;font-size:13px;font-weight:600;border-bottom:1px solid var(--axis-border-default);">청담화재 <span style="font-size:11px;color:var(--axis-text-brand);font-weight:500;">{{ reconToggleLabel }}</span></td>
+                  <td style="padding:11px 12px;font-size:13px;text-align:right;font-variant-numeric:tabular-nums;border-bottom:1px solid var(--axis-border-default);">298,410,000</td>
+                  <td style="padding:11px 12px;font-size:13px;text-align:right;font-variant-numeric:tabular-nums;border-bottom:1px solid var(--axis-border-default);">298,320,000</td>
+                  <td style="padding:11px 12px;font-size:13px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:{{ chDiffColor }};border-bottom:1px solid var(--axis-border-default);">{{ chDiff }}</td>
+                  <td style="padding:11px 18px;border-bottom:1px solid var(--axis-border-default);"><span style="font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;background:{{ chStBg }};color:{{ chStFg }};">{{ chSt }}</span></td>
+                </tr>
+                <sc-if value="{{ reconOpen }}" hint-placeholder-val="{{ false }}">
+                  <tr>
+                    <td colSpan="{{ five }}" style="padding:0;border-bottom:1px solid var(--axis-border-default);background:var(--axis-surface-secondary);">
+                      <div style="padding:14px 18px 14px 34px;display:flex;flex-direction:column;gap:10px;">
+                        <div style="font-size:12px;font-weight:600;color:var(--axis-text-secondary);">계약 단위 드릴다운 — diff ≠ 0</div>
+                        <div style="background:var(--axis-surface-default);border:1px solid var(--axis-border-default);border-radius:8px;overflow:hidden;">
+                          <div style="display:flex;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid var(--axis-border-default);">
+                            <span style="font-family:var(--axis-font-mono);font-size:12px;font-weight:700;color:var(--axis-text-brand);">CH-2606-0342</span>
+                            <span style="font-size:12.5px;">무배당 청담운전자보험</span>
+                            <span style="font-size:12px;color:var(--axis-text-secondary);">설계사 박지훈 (A0611)</span>
+                            <span style="margin-left:auto;font-family:var(--axis-font-mono);font-size:10.5px;color:var(--axis-text-tertiary);">up_0611c4 · row 3,842</span>
+                          </div>
+                          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;">
+                            <div style="padding:10px 16px;border-right:1px solid var(--axis-border-default);"><div style="font-size:10.5px;color:var(--axis-text-tertiary);">원수사 보고</div><div style="font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:2px;">₩189,000</div></div>
+                            <div style="padding:10px 16px;border-right:1px solid var(--axis-border-default);"><div style="font-size:10.5px;color:var(--axis-text-tertiary);">시스템 계산</div><div style="font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:2px;">₩99,000</div></div>
+                            <div style="padding:10px 16px;"><div style="font-size:10.5px;color:var(--axis-text-tertiary);">차액</div><div style="font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:2px;color:var(--axis-text-error);">+₩90,000</div></div>
+                          </div>
+                          <div style="display:flex;align-items:center;gap:10px;padding:11px 16px;border-top:1px solid var(--axis-border-default);background:var(--axis-surface-warning);">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--axis-icon-warning)" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                            <span style="font-size:12px;color:var(--axis-text-warning);">추정 원인: R-012 고정액 시책의 원수사측 중복 지급 — 보고액이 건당 ₩50,000 × 2회 반영됨</span>
+                            <button onClick="{{ makeAdj }}" style="margin-left:auto;height:28px;padding:0 12px;border:none;border-radius:6px;background:var(--axis-button-bg-default);color:var(--axis-button-text-default);font-size:11.5px;font-weight:500;cursor:pointer;font-family:var(--axis-font-sans);white-space:nowrap;" style-hover="background:var(--axis-button-bg-hover);">보정 생성 →</button>
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                </sc-if>
+                <tr>
+                  <td style="padding:11px 18px;font-size:13px;font-weight:500;border-bottom:1px solid var(--axis-border-default);">세종생명</td>
+                  <td style="padding:11px 12px;font-size:13px;text-align:right;font-variant-numeric:tabular-nums;border-bottom:1px solid var(--axis-border-default);">276,180,000</td>
+                  <td style="padding:11px 12px;font-size:13px;text-align:right;font-variant-numeric:tabular-nums;border-bottom:1px solid var(--axis-border-default);">276,180,000</td>
+                  <td style="padding:11px 12px;font-size:13px;text-align:right;font-variant-numeric:tabular-nums;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);">0</td>
+                  <td style="padding:11px 18px;border-bottom:1px solid var(--axis-border-default);"><span style="font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;background:var(--axis-badge-success-bg);color:var(--axis-badge-success-text);">일치</span></td>
+                </tr>
+                <tr>
+                  <td style="padding:11px 18px;font-size:13px;font-weight:500;border-bottom:1px solid var(--axis-border-default);">가온손해보험</td>
+                  <td style="padding:11px 12px;font-size:13px;text-align:right;font-variant-numeric:tabular-nums;border-bottom:1px solid var(--axis-border-default);">186,240,000</td>
+                  <td style="padding:11px 12px;font-size:13px;text-align:right;font-variant-numeric:tabular-nums;border-bottom:1px solid var(--axis-border-default);">186,240,000</td>
+                  <td style="padding:11px 12px;font-size:13px;text-align:right;font-variant-numeric:tabular-nums;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);">0</td>
+                  <td style="padding:11px 18px;border-bottom:1px solid var(--axis-border-default);"><span style="font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;background:var(--axis-badge-success-bg);color:var(--axis-badge-success-text);">일치</span></td>
+                </tr>
+                <tr>
+                  <td style="padding:11px 18px;font-size:13px;font-weight:500;">누리생명</td>
+                  <td style="padding:11px 12px;font-size:13px;text-align:right;font-variant-numeric:tabular-nums;">111,440,000</td>
+                  <td style="padding:11px 12px;font-size:13px;text-align:right;font-variant-numeric:tabular-nums;">111,440,000</td>
+                  <td style="padding:11px 12px;font-size:13px;text-align:right;font-variant-numeric:tabular-nums;color:var(--axis-text-tertiary);">0</td>
+                  <td style="padding:11px 18px;"><span style="font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;background:var(--axis-badge-success-bg);color:var(--axis-badge-success-text);">일치</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ================ PAYSLIPS ================ -->
+      <sc-if value="{{ show.payslips }}" hint-placeholder-val="{{ false }}">
+        <div data-screen-label="지급 내역서" style="display:grid;grid-template-columns:340px minmax(0,1fr);gap:16px;align-items:start;max-width:1200px;">
+          <div style="background:var(--axis-card-bg-default);border:1px solid var(--axis-card-border-default);border-radius:8px;box-shadow:var(--axis-shadow-sm);overflow:hidden;">
+            <div style="padding:14px 18px;border-bottom:1px solid var(--axis-border-default);font-size:13.5px;font-weight:600;">설계사별 지급액 — 2026-06</div>
+            <sc-for list="{{ agents }}" as="ag" hint-placeholder-count="4">
+              <div onClick="{{ ag.onSelect }}" style="display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--axis-border-default);cursor:pointer;background:{{ ag.bg }};" style-hover="background:var(--axis-surface-secondary);">
+                <div style="width:30px;height:30px;flex:none;border-radius:999px;background:var(--axis-surface-info);color:var(--axis-text-brand);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;">{{ ag.initial }}</div>
+                <div style="min-width:0;">
+                  <div style="font-size:13px;font-weight:600;">{{ ag.name }} <span style="font-family:var(--axis-font-mono);font-size:10.5px;color:var(--axis-text-tertiary);font-weight:400;">{{ ag.code }}</span></div>
+                  <div style="font-size:11.5px;color:var(--axis-text-tertiary);">{{ ag.team }}</div>
+                </div>
+                <div style="margin-left:auto;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;">{{ ag.total }}</div>
+              </div>
+            </sc-for>
+            <div style="padding:12px 18px;display:flex;gap:8px;">
+              <button style="flex:1;height:32px;border:1px solid var(--axis-border-default);border-radius:6px;background:var(--axis-button-secondary-bg-default);color:var(--axis-button-secondary-text-default);font-size:12px;font-weight:500;cursor:pointer;font-family:var(--axis-font-sans);" style-hover="background:var(--axis-button-secondary-bg-hover);">정산 엑셀</button>
+              <button onClick="{{ toggleCsv }}" style="flex:1;height:32px;border:none;border-radius:6px;background:var(--axis-button-bg-default);color:var(--axis-button-text-default);font-size:12px;font-weight:500;cursor:pointer;font-family:var(--axis-font-sans);" style-hover="background:var(--axis-button-bg-hover);">이체 마스터 CSV</button>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:14px;">
+            <div style="background:var(--axis-card-bg-default);border:1px solid var(--axis-card-border-default);border-radius:8px;box-shadow:var(--axis-shadow-sm);overflow:hidden;">
+              <div style="display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--axis-border-default);">
+                <div>
+                  <div style="font-size:15px;font-weight:700;">{{ selName }} 지급 내역서</div>
+                  <div style="font-size:11.5px;color:var(--axis-text-tertiary);margin-top:2px;">{{ selTeam }} · 소속 기준 2026-06-15 (당월 소속, FR-11)</div>
+                </div>
+                <div style="margin-left:auto;text-align:right;">
+                  <div style="font-size:11px;color:var(--axis-text-tertiary);">지급 총액</div>
+                  <div style="font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;">{{ selTotal }}</div>
+                </div>
+              </div>
+              <table style="width:100%;border-collapse:collapse;">
+                <thead><tr>
+                  <th style="text-align:left;padding:8px 20px;font-size:11.5px;font-weight:500;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);">룰별 산출 분해 (breakdownJson)</th>
+                  <th style="text-align:right;padding:8px 12px;font-size:11.5px;font-weight:500;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);">건수</th>
+                  <th style="text-align:right;padding:8px 20px;font-size:11.5px;font-weight:500;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);">금액</th>
+                </tr></thead>
+                <tbody>
+                  <sc-for list="{{ selLines }}" as="ln" hint-placeholder-count="3">
+                    <tr>
+                      <td style="padding:11px 20px;border-bottom:1px solid var(--axis-border-default);"><span style="font-family:var(--axis-font-mono);font-size:11.5px;font-weight:700;color:var(--axis-text-brand);margin-right:8px;">{{ ln.rid }}</span><span style="font-size:13px;">{{ ln.name }}</span></td>
+                      <td style="padding:11px 12px;font-size:13px;text-align:right;font-variant-numeric:tabular-nums;border-bottom:1px solid var(--axis-border-default);">{{ ln.cnt }}</td>
+                      <td style="padding:11px 20px;font-size:13px;text-align:right;font-variant-numeric:tabular-nums;font-weight:600;border-bottom:1px solid var(--axis-border-default);">{{ ln.amt }}</td>
+                    </tr>
+                  </sc-for>
+                </tbody>
+              </table>
+            </div>
+            <sc-if value="{{ showCsv }}" hint-placeholder-val="{{ false }}">
+              <div style="background:var(--axis-surface-inverse);border-radius:8px;padding:16px 18px;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+                  <span style="font-size:12px;font-weight:600;color:var(--axis-text-inverse);font-family:var(--axis-font-mono);">transfer-master_2026-06.csv</span>
+                  <span style="font-size:10.5px;color:var(--axis-color-gray-400);">급여 이체 마스터 · 결정적 생성 (FR-23)</span>
+                </div>
+                <pre style="margin:0;font-family:var(--axis-font-mono);font-size:11.5px;line-height:1.7;color:var(--axis-color-gray-300);overflow-x:auto;">agent_code,agent_name,bank,account,amount
+A0417,김민준,신한,110-***-4417,8420000
+A0523,이서연,국민,404-***-0523,7180000
+A0611,박지훈,하나,278-***-0611,6950000
+A0734,최예린,우리,102-***-0734,5730000</pre>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ================ STATS ================ -->
+      <sc-if value="{{ show.stats }}" hint-placeholder-val="{{ false }}">
+        <div data-screen-label="통계" style="display:flex;flex-direction:column;gap:16px;max-width:1200px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;">
+            <div style="background:var(--axis-card-bg-default);border:1px solid var(--axis-card-border-default);border-radius:8px;box-shadow:var(--axis-shadow-sm);padding:18px 20px;">
+              <div style="font-size:13.5px;font-weight:600;margin-bottom:14px;">조직별 지급액 — 2026-06</div>
+              <div style="display:flex;flex-direction:column;gap:12px;">
+                <div style="display:grid;grid-template-columns:110px 1fr 90px;align-items:center;gap:10px;">
+                  <span style="font-size:12.5px;">강남사업단</span>
+                  <div style="height:20px;border-radius:4px;background:var(--axis-surface-secondary);overflow:hidden;"><div style="height:100%;width:100%;background:var(--axis-color-blue-500);border-radius:4px;"></div></div>
+                  <span style="font-size:12px;text-align:right;font-variant-numeric:tabular-nums;font-weight:600;">₩521.4M</span>
+                </div>
+                <div style="display:grid;grid-template-columns:110px 1fr 90px;align-items:center;gap:10px;">
+                  <span style="font-size:12.5px;">강북사업단</span>
+                  <div style="height:20px;border-radius:4px;background:var(--axis-surface-secondary);overflow:hidden;"><div style="height:100%;width:79%;background:var(--axis-color-blue-400);border-radius:4px;"></div></div>
+                  <span style="font-size:12px;text-align:right;font-variant-numeric:tabular-nums;font-weight:600;">₩412.7M</span>
+                </div>
+                <div style="display:grid;grid-template-columns:110px 1fr 90px;align-items:center;gap:10px;">
+                  <span style="font-size:12.5px;">디지털사업단</span>
+                  <div style="height:20px;border-radius:4px;background:var(--axis-surface-secondary);overflow:hidden;"><div style="height:100%;width:67%;background:var(--axis-color-blue-300);border-radius:4px;"></div></div>
+                  <span style="font-size:12px;text-align:right;font-variant-numeric:tabular-nums;font-weight:600;">₩350.4M</span>
+                </div>
+              </div>
+            </div>
+            <div style="background:var(--axis-card-bg-default);border:1px solid var(--axis-card-border-default);border-radius:8px;box-shadow:var(--axis-shadow-sm);padding:18px 20px;">
+              <div style="font-size:13.5px;font-weight:600;margin-bottom:14px;">원수사별 보고액 — 2026-06</div>
+              <div style="display:flex;flex-direction:column;gap:12px;">
+                <div style="display:grid;grid-template-columns:110px 1fr 90px;align-items:center;gap:10px;"><span style="font-size:12.5px;">한빛생명</span><div style="height:20px;border-radius:4px;background:var(--axis-surface-secondary);overflow:hidden;"><div style="height:100%;width:100%;background:var(--axis-color-gray-700);border-radius:4px;"></div></div><span style="font-size:12px;text-align:right;font-variant-numeric:tabular-nums;font-weight:600;">₩412.4M</span></div>
+                <div style="display:grid;grid-template-columns:110px 1fr 90px;align-items:center;gap:10px;"><span style="font-size:12.5px;">청담화재</span><div style="height:20px;border-radius:4px;background:var(--axis-surface-secondary);overflow:hidden;"><div style="height:100%;width:72%;background:var(--axis-color-gray-600);border-radius:4px;"></div></div><span style="font-size:12px;text-align:right;font-variant-numeric:tabular-nums;font-weight:600;">₩298.4M</span></div>
+                <div style="display:grid;grid-template-columns:110px 1fr 90px;align-items:center;gap:10px;"><span style="font-size:12.5px;">세종생명</span><div style="height:20px;border-radius:4px;background:var(--axis-surface-secondary);overflow:hidden;"><div style="height:100%;width:67%;background:var(--axis-color-gray-500);border-radius:4px;"></div></div><span style="font-size:12px;text-align:right;font-variant-numeric:tabular-nums;font-weight:600;">₩276.2M</span></div>
+                <div style="display:grid;grid-template-columns:110px 1fr 90px;align-items:center;gap:10px;"><span style="font-size:12.5px;">가온손해보험</span><div style="height:20px;border-radius:4px;background:var(--axis-surface-secondary);overflow:hidden;"><div style="height:100%;width:45%;background:var(--axis-color-gray-400);border-radius:4px;"></div></div><span style="font-size:12px;text-align:right;font-variant-numeric:tabular-nums;font-weight:600;">₩186.2M</span></div>
+                <div style="display:grid;grid-template-columns:110px 1fr 90px;align-items:center;gap:10px;"><span style="font-size:12.5px;">누리생명</span><div style="height:20px;border-radius:4px;background:var(--axis-surface-secondary);overflow:hidden;"><div style="height:100%;width:27%;background:var(--axis-color-gray-300);border-radius:4px;"></div></div><span style="font-size:12px;text-align:right;font-variant-numeric:tabular-nums;font-weight:600;">₩111.4M</span></div>
+              </div>
+            </div>
+          </div>
+          <div style="background:var(--axis-card-bg-default);border:1px solid var(--axis-card-border-default);border-radius:8px;box-shadow:var(--axis-shadow-sm);padding:18px 20px;">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px;">
+              <div style="font-size:13.5px;font-weight:600;">월별 지급 총액 추이</div>
+              <span style="font-size:11.5px;color:var(--axis-text-tertiary);">settlement_lines 파생 집계 · 새 저장 없음 (FR-24)</span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:14px;align-items:end;height:150px;">
+              <div style="display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end;"><span style="font-size:11px;font-variant-numeric:tabular-nums;color:var(--axis-text-secondary);">1,142</span><div style="width:100%;max-width:56px;height:62%;background:var(--axis-color-blue-200);border-radius:4px 4px 0 0;"></div><span style="font-size:11px;color:var(--axis-text-tertiary);">01</span></div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end;"><span style="font-size:11px;font-variant-numeric:tabular-nums;color:var(--axis-text-secondary);">1,096</span><div style="width:100%;max-width:56px;height:58%;background:var(--axis-color-blue-200);border-radius:4px 4px 0 0;"></div><span style="font-size:11px;color:var(--axis-text-tertiary);">02</span></div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end;"><span style="font-size:11px;font-variant-numeric:tabular-nums;color:var(--axis-text-secondary);">1,173</span><div style="width:100%;max-width:56px;height:66%;background:var(--axis-color-blue-300);border-radius:4px 4px 0 0;"></div><span style="font-size:11px;color:var(--axis-text-tertiary);">03</span></div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end;"><span style="font-size:11px;font-variant-numeric:tabular-nums;color:var(--axis-text-secondary);">1,198</span><div style="width:100%;max-width:56px;height:70%;background:var(--axis-color-blue-300);border-radius:4px 4px 0 0;"></div><span style="font-size:11px;color:var(--axis-text-tertiary);">04</span></div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end;"><span style="font-size:11px;font-variant-numeric:tabular-nums;color:var(--axis-text-secondary);">1,244</span><div style="width:100%;max-width:56px;height:76%;background:var(--axis-color-blue-400);border-radius:4px 4px 0 0;"></div><span style="font-size:11px;color:var(--axis-text-tertiary);">05</span></div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end;"><span style="font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;">1,285</span><div style="width:100%;max-width:56px;height:82%;background:var(--axis-color-blue-500);border-radius:4px 4px 0 0;"></div><span style="font-size:11px;font-weight:600;">06</span></div>
+            </div>
+            <div style="font-size:11px;color:var(--axis-text-tertiary);margin-top:10px;text-align:right;">단위: 백만원</div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ================ ORG ================ -->
+      <sc-if value="{{ show.org }}" hint-placeholder-val="{{ false }}">
+        <div data-screen-label="조직 · 계정" style="display:grid;grid-template-columns:300px minmax(0,1fr);gap:16px;align-items:start;max-width:1200px;">
+          <div style="background:var(--axis-card-bg-default);border:1px solid var(--axis-card-border-default);border-radius:8px;box-shadow:var(--axis-shadow-sm);overflow:hidden;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--axis-border-default);">
+              <span style="font-size:13.5px;font-weight:600;">조직도</span>
+              <button style="height:26px;padding:0 10px;border:1px solid var(--axis-border-default);border-radius:6px;background:var(--axis-button-secondary-bg-default);color:var(--axis-button-secondary-text-default);font-size:11px;font-weight:500;cursor:pointer;font-family:var(--axis-font-sans);" style-hover="background:var(--axis-button-secondary-bg-hover);">ERP 일괄 등록</button>
+            </div>
+            <div style="padding:12px 18px;display:flex;flex-direction:column;gap:2px;font-size:12.5px;">
+              <div style="display:flex;align-items:center;gap:7px;padding:5px 0;font-weight:600;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="2" width="6" height="6" rx="1"></rect><rect x="2" y="16" width="6" height="6" rx="1"></rect><rect x="16" y="16" width="6" height="6" rx="1"></rect><path d="M12 8v4"></path><path d="M5 16v-2a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2"></path></svg>영업총괄본부 <span style="font-weight:400;color:var(--axis-text-tertiary);">128명</span></div>
+              <div style="padding:5px 0 5px 20px;font-weight:600;color:var(--axis-text-brand);background:var(--axis-surface-info);border-radius:6px;padding-left:20px;">강남사업단 <span style="font-weight:400;color:var(--axis-text-secondary);">54명</span></div>
+              <div style="padding:4px 0 4px 40px;color:var(--axis-text-secondary);">강남 1팀 · 28명 (팀장 한지원)</div>
+              <div style="padding:4px 0 4px 40px;color:var(--axis-text-secondary);">강남 2팀 · 26명 (팀장 오세훈)</div>
+              <div style="padding:5px 0 5px 20px;font-weight:500;">강북사업단 <span style="font-weight:400;color:var(--axis-text-tertiary);">46명</span></div>
+              <div style="padding:4px 0 4px 40px;color:var(--axis-text-secondary);">강북 3팀 · 24명 (팀장 문가영)</div>
+              <div style="padding:4px 0 4px 40px;color:var(--axis-text-secondary);">강북 4팀 · 22명 (팀장 신동엽)</div>
+              <div style="padding:5px 0 5px 20px;font-weight:500;">디지털사업단 <span style="font-weight:400;color:var(--axis-text-tertiary);">28명</span></div>
+              <div style="padding:4px 0 4px 40px;color:var(--axis-text-secondary);">온라인팀 · 28명 (팀장 유진아)</div>
+            </div>
+            <div style="padding:12px 18px;border-top:1px solid var(--axis-border-default);font-size:11.5px;color:var(--axis-text-tertiary);line-height:1.6;">소속 이력은 [validFrom, validTo) 구간으로 보존 — 이전 월 재계산 시 당시 소속 기준 (FR-11).</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:16px;">
+            <div style="background:var(--axis-card-bg-default);border:1px solid var(--axis-card-border-default);border-radius:8px;box-shadow:var(--axis-shadow-sm);overflow:hidden;">
+              <div style="padding:14px 18px;border-bottom:1px solid var(--axis-border-default);font-size:13.5px;font-weight:600;">강남사업단 설계사</div>
+              <div style="overflow-x:auto;"><table style="width:100%;min-width:640px;border-collapse:collapse;">
+                <thead><tr>
+                  <th style="text-align:left;padding:8px 18px;font-size:11.5px;font-weight:500;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);">코드</th>
+                  <th style="text-align:left;padding:8px 12px;font-size:11.5px;font-weight:500;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);">성명</th>
+                  <th style="text-align:left;padding:8px 12px;font-size:11.5px;font-weight:500;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);">소속</th>
+                  <th style="text-align:left;padding:8px 12px;font-size:11.5px;font-weight:500;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);">위촉일</th>
+                  <th style="text-align:left;padding:8px 18px;font-size:11.5px;font-weight:500;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);">소속 이력</th>
+                </tr></thead>
+                <tbody>
+                  <tr><td style="padding:10px 18px;font-family:var(--axis-font-mono);font-size:12px;border-bottom:1px solid var(--axis-border-default);">A0417</td><td style="padding:10px 12px;font-size:13px;font-weight:500;border-bottom:1px solid var(--axis-border-default);">김민준</td><td style="padding:10px 12px;font-size:12.5px;border-bottom:1px solid var(--axis-border-default);">강남 1팀</td><td style="padding:10px 12px;font-size:12.5px;font-variant-numeric:tabular-nums;border-bottom:1px solid var(--axis-border-default);">2023-04-17</td><td style="padding:10px 18px;font-size:11.5px;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);font-family:var(--axis-font-mono);">[2023-04, ∞)</td></tr>
+                  <tr><td style="padding:10px 18px;font-family:var(--axis-font-mono);font-size:12px;border-bottom:1px solid var(--axis-border-default);">A0523</td><td style="padding:10px 12px;font-size:13px;font-weight:500;border-bottom:1px solid var(--axis-border-default);">이서연</td><td style="padding:10px 12px;font-size:12.5px;border-bottom:1px solid var(--axis-border-default);">강남 2팀</td><td style="padding:10px 12px;font-size:12.5px;font-variant-numeric:tabular-nums;border-bottom:1px solid var(--axis-border-default);">2024-05-23</td><td style="padding:10px 18px;font-size:11.5px;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);font-family:var(--axis-font-mono);">[2024-05, ∞)</td></tr>
+                  <tr><td style="padding:10px 18px;font-family:var(--axis-font-mono);font-size:12px;">A0698</td><td style="padding:10px 12px;font-size:13px;font-weight:500;">정다은</td><td style="padding:10px 12px;font-size:12.5px;">강남 1팀 <span style="font-size:10.5px;font-weight:600;padding:1px 7px;border-radius:999px;background:var(--axis-badge-info-bg);color:var(--axis-badge-info-text);">06-01 이동</span></td><td style="padding:10px 12px;font-size:12.5px;font-variant-numeric:tabular-nums;">2024-11-02</td><td style="padding:10px 18px;font-size:11.5px;color:var(--axis-text-tertiary);font-family:var(--axis-font-mono);">[2024-11, 2026-06) 강북3 → [2026-06, ∞)</td></tr>
+                </tbody>
+              </table></div>
+            </div>
+            <div style="background:var(--axis-card-bg-default);border:1px solid var(--axis-card-border-default);border-radius:8px;box-shadow:var(--axis-shadow-sm);overflow:hidden;">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--axis-border-default);">
+                <span style="font-size:13.5px;font-weight:600;">계정 · RBAC</span>
+                <span style="font-size:11.5px;color:var(--axis-text-tertiary);">조직 스코프 = 조상-or-self · 스코프 밖 조회 403 (FR-25)</span>
+              </div>
+              <div style="overflow-x:auto;"><table style="width:100%;min-width:640px;border-collapse:collapse;">
+                <thead><tr>
+                  <th style="text-align:left;padding:8px 18px;font-size:11.5px;font-weight:500;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);">사용자</th>
+                  <th style="text-align:left;padding:8px 12px;font-size:11.5px;font-weight:500;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);">역할</th>
+                  <th style="text-align:left;padding:8px 12px;font-size:11.5px;font-weight:500;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);">조직 스코프</th>
+                  <th style="text-align:left;padding:8px 18px;font-size:11.5px;font-weight:500;color:var(--axis-text-tertiary);border-bottom:1px solid var(--axis-border-default);">접근 제어</th>
+                </tr></thead>
+                <tbody>
+                  <tr>
+                    <td style="padding:10px 18px;font-size:13px;font-weight:500;border-bottom:1px solid var(--axis-border-default);">김관리</td>
+                    <td style="padding:10px 12px;border-bottom:1px solid var(--axis-border-default);"><span style="font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;background:var(--axis-badge-default-bg);color:var(--axis-badge-default-text);">admin</span></td>
+                    <td style="padding:10px 12px;font-size:12.5px;border-bottom:1px solid var(--axis-border-default);">전체</td>
+                    <td style="padding:10px 18px;font-size:11.5px;border-bottom:1px solid var(--axis-border-default);"><span style="font-family:var(--axis-font-mono);background:var(--axis-surface-secondary);padding:1px 7px;border-radius:4px;">IP 허용목록 210.92.*.* (NFR-03)</span></td>
+                  </tr>
+                  <tr>
+                    <td style="padding:10px 18px;font-size:13px;font-weight:500;border-bottom:1px solid var(--axis-border-default);">이수진</td>
+                    <td style="padding:10px 12px;border-bottom:1px solid var(--axis-border-default);"><span style="font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;background:var(--axis-badge-info-bg);color:var(--axis-badge-info-text);">staff</span></td>
+                    <td style="padding:10px 12px;font-size:12.5px;border-bottom:1px solid var(--axis-border-default);">영업총괄본부 (정산 전권)</td>
+                    <td style="padding:10px 18px;font-size:11.5px;color:var(--axis-text-secondary);border-bottom:1px solid var(--axis-border-default);">HMAC 세션 토큰</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:10px 18px;font-size:13px;font-weight:500;">한지원</td>
+                    <td style="padding:10px 12px;"><span style="font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;background:var(--axis-badge-warning-bg);color:var(--axis-badge-warning-text);">manager</span></td>
+                    <td style="padding:10px 12px;font-size:12.5px;">강남 1팀 (하위 포함)</td>
+                    <td style="padding:10px 18px;font-size:11.5px;color:var(--axis-text-secondary);">타 팀 조회 시 <span style="font-family:var(--axis-font-mono);color:var(--axis-text-error);">403</span></td>
+                  </tr>
+                </tbody>
+              </table></div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: &quot;100%&quot;, &quot;height&quot;: &quot;100%&quot;}, &quot;darkMode&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;테마&quot;}, &quot;aiEngine&quot;: {&quot;editor&quot;: &quot;enum&quot;, &quot;default&quot;: &quot;claude-sonnet-5&quot;, &quot;options&quot;: [&quot;claude-sonnet-5&quot;, &quot;local (폴백)&quot;], &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;L2 매핑 엔진&quot;}}">
+class Component extends DCLogic {
+  state = {
+    screen: "dashboard",
+    // upload simulation
+    simPhase: -1, // -1 idle, 0..5 running, 6 done
+    simBusy: false,
+    dupError: false,
+    // mapping
+    colStatus: { premium: "review", rate: "review", commission: "review", installment: "review", memo: "manual" },
+    mappingConfirmed: false,
+    // rules sim
+    proposedRate: "15",
+    simThinking: false,
+    simResult: false,
+    // family
+    fam: [
+      { id: 1, agent: "김민준 (A0417)", holder: "김도현", basis: "성명 norm + 1988-03-12", st: "confirmed", by: "이수진 · 06-08 11:32" },
+      { id: 2, agent: "이서연 (A0523)", holder: "이서준", basis: "성명 norm + 1991-07-04", st: "candidate", by: "—" },
+      { id: 3, agent: "박지훈 (A0611)", holder: "박지현", basis: "성명 norm + 1985-11-21", st: "candidate", by: "—" },
+      { id: 4, agent: "최예린 (A0734)", holder: "최예솔", basis: "성명 norm + 1993-02-17", st: "released", by: "이수진 · 06-05 (해제, 이력 보존)" },
+    ],
+    // runs
+    runStatus: "calculated", // calculated | closed
+    closeArmed: false,
+    writeRejected: false,
+    recalcDone: false,
+    adjTarget: "",
+    adjAmount: "",
+    adjReason: "",
+    adjError: false,
+    adjustments: [],
+    // recon
+    reconOpen: false,
+    adjApplied: false,
+    // payslips
+    selAgent: 0,
+    showCsv: false,
+  };
+
+  nf(n) { return "₩" + n.toLocaleString("ko-KR"); }
+
+  go(s) { this.setState({ screen: s, writeRejected: false, dupError: false }); }
+
+  componentWillUnmount() { clearInterval(this._t); }
+
+  renderVals() {
+    const s = this.state;
+    const dark = this.props.darkMode ?? false;
+    const engine = this.props.aiEngine ?? "claude-sonnet-5";
+    const isFallback = engine !== "claude-sonnet-5";
+
+    const screens = ["dashboard","uploads","mapping","templates","rules","family","runs","recon","payslips","stats","org"];
+    const titles = {
+      dashboard: ["대시보드", "2026-06 정산 사이클 현황"],
+      uploads: ["업로드 파이프라인", "원수사 엑셀 수집 · 검증 · 승인 커밋"],
+      mapping: ["AI 매핑 검토", "L0 캐시 → L1 프로파일 → L2 AI → L3 정합성 → L4 등급"],
+      templates: ["매핑 관리", "TemplateVersion 버전 이력 · 헤더 시그니처 캐시"],
+      rules: ["시책 룰", "선언형 조건·액션 · 순수 평가기 · 시뮬레이션"],
+      family: ["가족계약 감지", "HITL — 후보 자동 생성, 확정은 실무자만"],
+      runs: ["정산 Run", "월 단위 계산 · 보정 · 마감 (이중 잠금)"],
+      recon: ["대사 · 차액 드릴다운", "원수사 보고액 vs 시스템 계산액"],
+      payslips: ["지급 내역서", "설계사별 롤업 · 룰별 분해 · 이체 마스터"],
+      stats: ["통계", "조직 · 원수사 · 기간별 집계"],
+      org: ["조직 · 계정", "조직 트리 · ERP 동기화 · RBAC"],
+    };
+    const nav = {}, nBg = {}, nFg = {};
+    screens.forEach((k) => {
+      nav[k] = () => this.go(k);
+      const active = s.screen === k;
+      nBg[k] = active ? "var(--axis-surface-info)" : "transparent";
+      nFg[k] = active ? "var(--axis-text-brand)" : "var(--axis-text-secondary)";
+    });
+    const show = {};
+    screens.forEach((k) => { show[k] = s.screen === k; });
+
+    // ---- upload simulation ----
+    const phaseDefs = [
+      { label: "SHA-256 해시 검증", meta: "중복 반려" },
+      { label: "R2 불변 보관", meta: "uploads/nuri_202606" },
+      { label: "Queue 발행", meta: "202 즉시 반환" },
+      { label: "XLSX 파싱 · 헤더 감지", meta: "SheetJS" },
+      { label: "L1 데이터 프로파일링", meta: "타입/널률/유니크" },
+      { label: "L2 AI 시맨틱 매핑", meta: "L0 캐시 적중 v2" },
+    ];
+    const ic = (kind) => {
+      if (kind === "done") return React.createElement("svg", { width: 14, height: 14, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2.5, strokeLinecap: "round" }, React.createElement("path", { d: "M5 13l4 4L19 7" }));
+      if (kind === "run") return React.createElement("svg", { width: 14, height: 14, viewBox: "0 0 24 24", fill: "none", style: { animation: "axspin 1s linear infinite" } }, React.createElement("circle", { cx: 12, cy: 12, r: 10, stroke: "currentColor", strokeWidth: 4, opacity: 0.25 }), React.createElement("path", { d: "M4 12a8 8 0 018-8", stroke: "currentColor", strokeWidth: 4, strokeLinecap: "round" }));
+      return React.createElement("svg", { width: 14, height: 14, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2 }, React.createElement("circle", { cx: 12, cy: 12, r: 9 }));
+    };
+    const jobPhases = phaseDefs.map((p, i) => {
+      const done = s.simPhase > i || s.simPhase >= 6;
+      const running = s.simPhase === i;
+      return {
+        label: p.label, meta: done ? p.meta : running ? "진행 중…" : "",
+        icon: ic(done ? "done" : running ? "run" : "idle"),
+        color: done ? "var(--axis-color-green-500)" : running ? "var(--axis-color-blue-500)" : "var(--axis-color-gray-300)",
+        textColor: done || running ? "var(--axis-text-primary)" : "var(--axis-text-tertiary)",
+      };
+    });
+    const simDone = s.simPhase >= 6;
+    const jobPct = s.simPhase < 0 ? "0%" : Math.min(100, Math.round(((s.simPhase) / 6) * 100)) + "%";
+
+    const startUpload = () => {
+      if (s.simBusy || simDone) return;
+      this.setState({ simPhase: 0, simBusy: true, dupError: false });
+      clearInterval(this._t);
+      this._t = setInterval(() => {
+        this.setState((st) => {
+          const next = st.simPhase + 1;
+          if (next >= 6) { clearInterval(this._t); return { simPhase: 6, simBusy: false }; }
+          return { simPhase: next };
+        });
+      }, 650);
+    };
+
+    // ---- uploads data ----
+    const chip = (kind) => ({
+      done: { bg: "var(--axis-badge-success-bg)", fg: "var(--axis-badge-success-text)" },
+      review: { bg: "var(--axis-badge-warning-bg)", fg: "var(--axis-badge-warning-text)" },
+      parsing: { bg: "var(--axis-badge-info-bg)", fg: "var(--axis-badge-info-text)" },
+      none: { bg: "var(--axis-bg-muted)", fg: "var(--axis-color-gray-500)" },
+    }[kind]);
+    const nuriDone = simDone;
+    const files = [
+      { file: "한빛생명_수수료_202606.xlsx", insurer: "한빛생명", rows: "12,480", ok: "12,480", err: "0", mappingNote: "L0 캐시 적중 (v3)", st: "done", status: "커밋 완료" },
+      { file: "청담화재_시책_202606.xls", insurer: "청담화재", rows: "8,912", ok: "8,900", err: "12", mappingNote: "L0 캐시 적중 (v5)", st: "done", status: "커밋 완료" },
+      { file: "세종생명_수수료_202606.xlsx", insurer: "세종생명", rows: "9,204", ok: "9,179", err: "25", mappingNote: s.mappingConfirmed ? "확정 v1 · 승인 대기" : "AI 매핑 — 검토 필요", st: "review", status: s.mappingConfirmed ? "승인 대기" : "매핑 검토" },
+      { file: "가온손보_202606.xlsx", insurer: "가온손해보험", rows: "7,530", ok: "7,530", err: "0", mappingNote: "L0 캐시 적중 (v2)", st: "done", status: "커밋 완료" },
+      nuriDone
+        ? { file: "누리생명_수수료_202606.xlsx", insurer: "누리생명", rows: "4,192", ok: "4,192", err: "0", mappingNote: "L0 캐시 적중 (v2)", st: "review", status: "승인 대기" }
+        : s.simBusy
+        ? { file: "누리생명_수수료_202606.xlsx", insurer: "누리생명", rows: "—", ok: "—", err: "—", mappingNote: "파싱 진행 중", st: "parsing", status: "파싱 중" }
+        : { file: "—", insurer: "누리생명", rows: "—", ok: "—", err: "—", mappingNote: "", st: "none", status: "미수신" },
+    ];
+    const uploadFiles = files.map((f) => ({ ...f, errColor: f.err !== "0" && f.err !== "—" ? "var(--axis-text-error)" : "var(--axis-text-tertiary)", stBg: chip(f.st).bg, stFg: chip(f.st).fg }));
+    const uploadRows = uploadFiles.map((f) => ({ insurer: f.insurer, rows: f.rows, err: f.err, errColor: f.errColor, status: f.status, stBg: f.stBg, stFg: f.stFg }));
+
+    // ---- mapping cols ----
+    const gradeMeta = (g) => ({
+      auto: { label: isFallback ? "확인 필요 (강등)" : "자동 확정", bg: isFallback ? "var(--axis-badge-warning-bg)" : "var(--axis-badge-success-bg)", fg: isFallback ? "var(--axis-badge-warning-text)" : "var(--axis-badge-success-text)" },
+      review: { label: "확인 필요", bg: "var(--axis-badge-warning-bg)", fg: "var(--axis-badge-warning-text)" },
+      manual: { label: "수동", bg: "var(--axis-bg-muted)", fg: "var(--axis-color-gray-600)" },
+      confirmed: { label: "확정됨", bg: "var(--axis-badge-info-bg)", fg: "var(--axis-badge-info-text)" },
+      excluded: { label: "제외됨", bg: "var(--axis-bg-muted)", fg: "var(--axis-color-gray-500)" },
+    }[g]);
+    const colDefs = [
+      { key: "contract", src: "증권번호", sample: "8302-****-22 · 8302-****-01", tgt: "contract_no", tgtKo: "계약번호", conf: 99, base: "auto", ev: "헤더 사전 일치 · 유니크 100%" },
+      { key: "insured", src: "피보험자", sample: "김*준 · 이*연 (마스킹)", tgt: "insured_name", tgtKo: "피보험자명", conf: 98, base: "auto", ev: "헤더 유사도 0.96 · 한글 성명 패턴" },
+      { key: "product", src: "상품명칭", sample: "무배당 든든종신보험 외", tgt: "product_name", tgtKo: "상품명", conf: 99, base: "auto", ev: "헤더 사전 일치" },
+      { key: "date", src: "계약일", sample: "260315 · 260402", tgt: "contract_date", tgtKo: "계약일자", conf: 95, base: "auto", ev: "yymmdd 겹침 → 날짜 우선 (L1 타입 추론)" },
+      { key: "premium", src: "납입보험료", sample: "128,000 · 245,500", tgt: "premium", tgtKo: "보험료", conf: 93, base: "review", ev: "금액 필드 보수적 임계 (AUTO_TH+0.05) 미달" },
+      { key: "rate", src: "항목A", sample: "0.85 · 0.12 · 0.97", tgt: "commission_rate", tgtKo: "수수료율", conf: 87, base: "review", ev: "L3 산식 발굴: 지급액 ≈ 보험료 × 항목A (8/8, scale=1)" },
+      { key: "commission", src: "지급액", sample: "108,800 · 29,460", tgt: "commission", tgtKo: "지급수수료", conf: 91, base: "review", ev: "L3 정합성 통과 · 금액 보수적 임계" },
+      { key: "agent", src: "모집인번호", sample: "A0417 · A0523", tgt: "agent_code", tgtKo: "설계사코드", conf: 96, base: "auto", ev: "agents 코드 체계 일치 94%" },
+      { key: "installment", src: "회차", sample: "1 · 2 · 13", tgt: "installment_no", tgtKo: "납입회차", conf: 83, base: "review", ev: "정수 분포 1–36 · 헤더 약일치" },
+      { key: "memo", src: "비고", sample: '"" · "이체변경"', tgt: "—", tgtKo: "미매핑", conf: 31, base: "manual", ev: "온톨로지 후보 없음 · 널률 91%" },
+    ];
+    const mapCols = colDefs.map((c) => {
+      const st = s.colStatus[c.key] || c.base;
+      const g = gradeMeta(st === "auto" ? "auto" : st);
+      const needsAction = (st === "review" || st === "manual") && !s.mappingConfirmed;
+      return {
+        src: c.src, sample: c.sample, tgt: c.tgt, tgtKo: c.tgtKo,
+        confPct: c.conf + "%",
+        barColor: c.conf >= 95 ? "var(--axis-color-green-500)" : c.conf >= 80 ? "var(--axis-color-yellow-500)" : "var(--axis-color-red-400)",
+        grade: g.label, gBg: g.bg, gFg: g.fg, ev: c.ev,
+        rowBg: st === "review" ? "var(--axis-surface-warning)" : "transparent",
+        needsAction,
+        actionLabel: st === "manual" ? "제외 확정" : "확정",
+        onConfirm: () => this.setState((prev) => ({ colStatus: { ...prev.colStatus, [c.key]: st === "manual" ? "excluded" : "confirmed" } })),
+      };
+    });
+    const reviewLeftN = colDefs.filter((c) => { const st = s.colStatus[c.key] || c.base; return st === "review" || st === "manual"; }).length;
+    const cntAuto = colDefs.filter((c) => (s.colStatus[c.key] || c.base) === "auto").length;
+    const cntConfirmed = colDefs.filter((c) => ["confirmed", "excluded"].includes(s.colStatus[c.key] || c.base)).length;
+
+    // ---- rules sim ----
+    const runSim = () => {
+      this.setState({ simThinking: true, simResult: false });
+      setTimeout(() => this.setState({ simThinking: false, simResult: true }), 900);
+    };
+    const rate = parseFloat(s.proposedRate) || 12;
+    const factor = (rate - 12) / 12;
+    const base = [ { org: "강남사업단", cur: 14.2 }, { org: "강북사업단", cur: 11.6 }, { org: "디지털사업단", cur: 7.9 } ];
+    const simRows = base.map((b) => {
+      const prop = b.cur * (1 + factor);
+      return { org: b.org, cur: "₩" + b.cur.toFixed(1) + "M", prop: "₩" + prop.toFixed(1) + "M", diff: (prop - b.cur >= 0 ? "+" : "") + "₩" + (prop - b.cur).toFixed(2) + "M" };
+    });
+    const totalDiff = base.reduce((a, b) => a + b.cur * factor, 0);
+    const simProposed = "₩" + (1284.53 + totalDiff).toFixed(1) + "M";
+    const simDiff = (totalDiff >= 0 ? "+" : "") + "₩" + (totalDiff * 1e6).toLocaleString("ko-KR", { maximumFractionDigits: 0 });
+
+    // ---- family ----
+    const famChip = (st) => ({
+      candidate: { l: "후보", bg: "var(--axis-badge-warning-bg)", fg: "var(--axis-badge-warning-text)" },
+      confirmed: { l: "확정 (실무자)", bg: "var(--axis-badge-success-bg)", fg: "var(--axis-badge-success-text)" },
+      released: { l: "해제됨", bg: "var(--axis-bg-muted)", fg: "var(--axis-color-gray-500)" },
+    }[st]);
+    const famRows = s.fam.map((f) => {
+      const c = famChip(f.st);
+      return {
+        agent: f.agent, holder: f.holder, basis: f.basis, st: c.l, stBg: c.bg, stFg: c.fg, by: f.by,
+        canConfirm: f.st === "candidate",
+        canRelease: f.st === "confirmed",
+        onConfirm: () => this.setState((p) => ({ fam: p.fam.map((x) => x.id === f.id ? { ...x, st: "confirmed", by: "이수진 · 방금 (confirmedBy 필수)" } : x) })),
+        onRelease: () => this.setState((p) => ({ fam: p.fam.map((x) => x.id === f.id ? { ...x, st: "released", by: "이수진 · 방금 (해제, 이력 보존)" } : x) })),
+      };
+    });
+
+    // ---- runs ----
+    const isClosed = s.runStatus === "closed";
+    const addAdj = () => {
+      if (isClosed) { this.setState({ writeRejected: true }); return; }
+      if (!s.adjReason.trim()) { this.setState({ adjError: true }); return; }
+      this.setState((p) => ({
+        adjustments: [...p.adjustments, { target: p.adjTarget || "CH-2606-0342", amount: p.adjAmount || "-₩90,000", reason: p.adjReason }],
+        adjTarget: "", adjAmount: "", adjReason: "", adjError: false, adjApplied: true,
+      }));
+    };
+    const adjApplied = s.adjApplied;
+    const diffZero = adjApplied;
+
+    // ---- payslips ----
+    const agentDefs = [
+      { code: "A0417", name: "김민준", team: "강남사업단 · 강남 1팀", total: "₩8,420,000", lines: [
+        { rid: "R-001", name: "신계약 기본 수수료 (85%)", cnt: "42", amt: "₩6,890,000" },
+        { rid: "R-007", name: "6월 장기보장성 시책 (+12%)", cnt: "18", amt: "₩1,240,000" },
+        { rid: "R-012", name: "운전자보험 특별시책 (₩50,000/건)", cnt: "6", amt: "₩290,000" } ] },
+      { code: "A0523", name: "이서연", team: "강남사업단 · 강남 2팀", total: "₩7,180,000", lines: [
+        { rid: "R-001", name: "신계약 기본 수수료 (85%)", cnt: "38", amt: "₩6,110,000" },
+        { rid: "R-007", name: "6월 장기보장성 시책 (+12%)", cnt: "15", amt: "₩1,070,000" } ] },
+      { code: "A0611", name: "박지훈", team: "강북사업단 · 강북 3팀", total: "₩6,950,000", lines: [
+        { rid: "R-001", name: "신계약 기본 수수료 (85%)", cnt: "35", amt: "₩5,780,000" },
+        { rid: "R-007", name: "6월 장기보장성 시책 (+12%)", cnt: "11", amt: "₩820,000" },
+        { rid: "R-012", name: "운전자보험 특별시책 (₩50,000/건)", cnt: "7", amt: "₩350,000" } ] },
+      { code: "A0734", name: "최예린", team: "디지털사업단 · 온라인팀", total: "₩5,730,000", lines: [
+        { rid: "R-001", name: "신계약 기본 수수료 (85%)", cnt: "31", amt: "₩5,140,000" },
+        { rid: "R-007", name: "6월 장기보장성 시책 (+12%)", cnt: "9", amt: "₩590,000" } ] },
+    ];
+    const agents = agentDefs.map((a, i) => ({
+      ...a, initial: a.name.slice(0, 1),
+      bg: s.selAgent === i ? "var(--axis-surface-info)" : "transparent",
+      onSelect: () => this.setState({ selAgent: i }),
+    }));
+    const sel = agentDefs[s.selAgent] || agentDefs[0];
+
+    return {
+      rootClass: dark ? "dark" : "",
+      nav, nBg, nFg, show,
+      title: titles[s.screen][0], subtitle: titles[s.screen][1],
+      engineLabel: isFallback ? "engine=local (폴백)" : "claude-sonnet-5",
+      engineBg: isFallback ? "var(--axis-badge-warning-bg)" : "var(--axis-color-purple-100)",
+      engineFg: isFallback ? "var(--axis-badge-warning-text)" : "var(--axis-color-purple-700)",
+      isFallback,
+      reviewLeft: s.mappingConfirmed ? "✓" : String(reviewLeftN),
+      reconBadge: diffZero ? "0" : "1",
+      // dashboard
+      uploadRows,
+      diffKpi: diffZero ? "₩0" : "₩90,000",
+      diffKpiColor: diffZero ? "var(--axis-text-success)" : "var(--axis-text-error)",
+      diffKpiNote: diffZero ? "보정 반영 — 병행 검증 기준 충족" : "1계약 원인 특정 (청담화재)",
+      diffCardBorder: diffZero ? "var(--axis-color-green-500)" : "var(--axis-color-red-500)",
+      // uploads
+      startUpload, simBusy: s.simBusy, simDone,
+      uploadBtnLabel: simDone ? "업로드 완료 — 누리생명 4,192행" : s.simBusy ? "업로드 중…" : "샘플 업로드 시뮬레이션 (누리생명)",
+      tryDup: () => this.setState({ dupError: true }),
+      dupError: s.dupError,
+      uploadFiles,
+      jobPhases, jobPct,
+      jobName: s.simPhase < 0 ? "대기 중 — 파일을 업로드하세요" : "job_nuri_202606",
+      jobStatus: s.simPhase < 0 ? "idle" : simDone ? "완료" : "진행 중",
+      jobStBg: simDone ? "var(--axis-badge-success-bg)" : s.simPhase >= 0 ? "var(--axis-badge-info-bg)" : "var(--axis-bg-muted)",
+      jobStFg: simDone ? "var(--axis-badge-success-text)" : s.simPhase >= 0 ? "var(--axis-badge-info-text)" : "var(--axis-color-gray-500)",
+      jobBorder: simDone ? "var(--axis-color-green-500)" : s.simPhase >= 0 ? "var(--axis-color-blue-500)" : "var(--axis-color-gray-300)",
+      // mapping
+      mapCols, mappingConfirmed: s.mappingConfirmed,
+      cntAuto: String(cntAuto), cntReview: String(reviewLeftN + (cntConfirmed ? 0 : 0)), cntManual: String(colDefs.filter((c) => (s.colStatus[c.key] || c.base) === "manual").length),
+      confirmDisabled: reviewLeftN > 0 || s.mappingConfirmed,
+      confirmOpacity: reviewLeftN > 0 || s.mappingConfirmed ? "0.45" : "1",
+      confirmHint: s.mappingConfirmed ? "확정 완료 — 헤더 시그니처 캐시 등록됨" : reviewLeftN > 0 ? `확인 필요 ${reviewLeftN}건을 먼저 처리하세요 — 자동 확정 외 필드는 실무자 확인 필수` : "모든 필드 처리 완료 — 확정할 수 있습니다",
+      confirmMapping: () => { if (reviewLeftN === 0 && !s.mappingConfirmed) this.setState({ mappingConfirmed: true }); },
+      // templates
+      tplGroups: [
+        {
+          insurer: "세종생명", note: "표준 수수료 양식", chip: s.mappingConfirmed ? "신규 확정" : "확정 대기", chipBg: s.mappingConfirmed ? "var(--axis-badge-success-bg)" : "var(--axis-badge-warning-bg)", chipFg: s.mappingConfirmed ? "var(--axis-badge-success-text)" : "var(--axis-badge-warning-text)",
+          versions: s.mappingConfirmed ? [{ n: "1", fields: "9", sig: "sig:aa3f9c1e07b4…", from: "2026-07-08 확정 · 이수진", st: "활성", stBg: "var(--axis-badge-success-bg)", stFg: "var(--axis-badge-success-text)", hits: "0" }] : [],
+        },
+        {
+          insurer: "한빛생명", note: "수수료 + 시책 통합 양식", chip: "안정", chipBg: "var(--axis-badge-success-bg)", chipFg: "var(--axis-badge-success-text)",
+          versions: [
+            { n: "3", fields: "14", sig: "sig:7c21e88fa93d…", from: "2026-04-02 확정", st: "활성", stBg: "var(--axis-badge-success-bg)", stFg: "var(--axis-badge-success-text)", hits: "3" },
+            { n: "2", fields: "13", sig: "sig:d94a01b7c2e5…", from: "2025-11-15 확정", st: "만료", stBg: "var(--axis-bg-muted)", stFg: "var(--axis-color-gray-500)", hits: "5" },
+            { n: "1", fields: "12", sig: "sig:31f6b0d9aa07…", from: "2025-07-01 확정", st: "만료", stBg: "var(--axis-bg-muted)", stFg: "var(--axis-color-gray-500)", hits: "4" },
+          ],
+        },
+        {
+          insurer: "청담화재", note: "양식 변경 잦음 — v5까지 자동 승계", chip: "v5 활성", chipBg: "var(--axis-badge-info-bg)", chipFg: "var(--axis-badge-info-text)",
+          versions: [
+            { n: "5", fields: "11", sig: "sig:e07d4c92b1f8…", from: "2026-05-20 확정 (양식 변경 감지)", st: "활성", stBg: "var(--axis-badge-success-bg)", stFg: "var(--axis-badge-success-text)", hits: "2" },
+            { n: "4", fields: "11", sig: "sig:9b3fa650cd21…", from: "2026-02-11 확정", st: "만료", stBg: "var(--axis-bg-muted)", stFg: "var(--axis-color-gray-500)", hits: "3" },
+          ],
+        },
+      ],
+      // rules
+      proposedRate: s.proposedRate,
+      onRateChange: (e) => this.setState({ proposedRate: e.target.value }),
+      runSim, simThinking: s.simThinking, simResult: s.simResult,
+      simRows, simProposed, simDiff,
+      // family
+      famRows,
+      // runs
+      isClosed,
+      runBorder: isClosed ? "var(--axis-color-gray-500)" : "var(--axis-color-blue-500)",
+      runStLabel: isClosed ? "closed" : "calculated",
+      runStBg: isClosed ? "var(--axis-badge-default-bg)" : "var(--axis-badge-info-bg)",
+      runStFg: isClosed ? "var(--axis-badge-default-text)" : "var(--axis-badge-info-text)",
+      lockOpacity: isClosed ? "0.45" : "1",
+      recalc: () => { if (isClosed) { this.setState({ writeRejected: true }); return; } this.setState({ recalcDone: true, writeRejected: false }); },
+      recalcNote: s.recalcDone ? "동일 출력 ✓" : "검증 대기",
+      armClose: () => { if (isClosed) { this.setState({ writeRejected: true }); return; } this.setState({ closeArmed: true, writeRejected: false }); },
+      cancelClose: () => this.setState({ closeArmed: false }),
+      doClose: () => this.setState({ runStatus: "closed", closeArmed: false }),
+      closeArmed: s.closeArmed, writeRejected: s.writeRejected,
+      snapshotKey: isClosed ? "snapshots/2026-06.json ✓" : "— (마감 시 생성)",
+      adjTarget: s.adjTarget, adjAmount: s.adjAmount, adjReason: s.adjReason, adjError: s.adjError,
+      adjReasonBorder: s.adjError ? "var(--axis-input-border-error)" : "var(--axis-input-border-default)",
+      onAdjTarget: (e) => this.setState({ adjTarget: e.target.value }),
+      onAdjAmount: (e) => this.setState({ adjAmount: e.target.value }),
+      onAdjReason: (e) => this.setState({ adjReason: e.target.value, adjError: false }),
+      addAdj,
+      adjList: s.adjustments,
+      noAdj: s.adjustments.length === 0,
+      // recon
+      reconOpen: s.reconOpen,
+      toggleRecon: () => this.setState((p) => ({ reconOpen: !p.reconOpen })),
+      reconToggleLabel: s.reconOpen ? "▲ 드릴다운 닫기" : "▼ 계약 단위 드릴다운",
+      reconRowBg: diffZero ? "transparent" : "var(--axis-surface-error)",
+      chDiff: diffZero ? "0 (보정)" : "+90,000",
+      chDiffColor: diffZero ? "var(--axis-text-success)" : "var(--axis-text-error)",
+      chSt: diffZero ? "보정 완료" : "차액",
+      chStBg: diffZero ? "var(--axis-badge-success-bg)" : "var(--axis-badge-error-bg)",
+      chStFg: diffZero ? "var(--axis-badge-success-text)" : "var(--axis-badge-error-text)",
+      makeAdj: () => this.setState({ screen: "runs", adjTarget: "CH-2606-0342", adjAmount: "-₩90,000", adjReason: "" }),
+      five: 5,
+      // payslips
+      agents,
+      selName: sel.name, selTeam: sel.team, selTotal: sel.total, selLines: sel.lines,
+      toggleCsv: () => this.setState((p) => ({ showCsv: !p.showCsv })),
+      showCsv: s.showCsv,
+    };
+  }
+}
+</script>
+</body>
+</html>
