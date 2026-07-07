@@ -61,6 +61,25 @@ describe("F-013 정산 계산 배치", () => {
     expect(c2.totalAmount).toBe(c1.totalAmount);
   });
 
+  it("병행 검증: 저장 라인 vs 재계산 차액 0, 라인 변조 시 원인 계약 검출 (F-022 REQ-031)", async () => {
+    const { id } = (await (await post("/api/runs", { settlementMonth: "2026-06" })).json()) as { id: string };
+    await post(`/api/runs/${id}/calculate`);
+
+    const v1 = (await getJson(`/api/runs/${id}/parallel-verify`)) as { verified: boolean; totalDiff: number; diffs: unknown[] };
+    expect(v1.verified).toBe(true);    // §2 차액 0원
+    expect(v1.totalDiff).toBe(0);
+    expect(v1.diffs).toHaveLength(0);
+
+    // 저장된 라인 하나를 변조
+    const lines = await getDb(env).select().from(settlementLines).where(eq(settlementLines.runId, id)).all();
+    const tampered = lines[0]!;
+    await getDb(env).update(settlementLines).set({ amountEnc: await enc("999999") }).where(eq(settlementLines.id, tampered.id));
+
+    const v2 = (await getJson(`/api/runs/${id}/parallel-verify`)) as { verified: boolean; diffs: { commissionRecordId: string }[] };
+    expect(v2.verified).toBe(false);
+    expect(v2.diffs.some((d) => d.commissionRecordId === tampered.commissionRecordId)).toBe(true);
+  });
+
   it("월당 run 1개 (중복 -> 409)", async () => {
     await post("/api/runs", { settlementMonth: "2026-06" });
     expect((await post("/api/runs", { settlementMonth: "2026-06" })).status).toBe(409);

@@ -4,7 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { settlementRuns, settlementLines, commissionRecords, familyFlags, reconciliations, adjustments } from "@ga-settle/schema";
 import { evaluate, type CommissionInput } from "@ga-settle/rules";
 import type { Env } from "../types";
-import { getDb, encField, decNum, writeAudit } from "../db";
+import { getDb, encField, decNum, writeAudit, type Db } from "../db";
 import { resolveAssignment } from "./org";
 import { loadRules } from "./rules";
 
@@ -28,18 +28,13 @@ runsRoutes.post("/api/runs", async (c) => {
  * 가족여부 family_flags confirmed) -> 시책 룰 evaluate -> settlement_lines(룰별 산출 분해).
  * 재현성(FR): 기존 라인 삭제 후 재생성 -> 동일 입력 = 동일 출력. draft/calculated에서만(마감 후 금지).
  */
-runsRoutes.post("/api/runs/:id/calculate", async (c) => {
-  const db = getDb(c.env);
-  const run = await db.select().from(settlementRuns).where(eq(settlementRuns.id, c.req.param("id"))).get();
-  if (!run) return c.json({ error: "없는 run이에요" }, 404);
-  if (run.status === "closed") return c.json({ error: "마감된 run은 재계산 불가", status: run.status }, 409);
-
+// 정산 계산 코어: 당월 commission_records -> CommissionInput(당월 소속/가족/복호화 premium) ->
+// evaluate. calculate(쓰기)와 parallel-verify(비교)가 공유 -> 병행 검증이 동일 로직을 재실행.
+async function computeSettlement(db: Db, secret: string, run: { settlementMonth: string }) {
   const crs = await db.select().from(commissionRecords).where(eq(commissionRecords.settlementMonth, run.settlementMonth)).all();
   const confirmedFam = new Set(
     (await db.select({ contractNo: familyFlags.contractNo }).from(familyFlags).where(eq(familyFlags.status, "confirmed")).all()).map((f) => f.contractNo),
   );
-
-  const key = c.env.FIELD_ENCRYPTION_KEY;
   const meta = new Map<string, { agentId: string; orgUnitId: string }>();
   const inputs: CommissionInput[] = [];
   for (const cr of crs) {
@@ -49,13 +44,21 @@ runsRoutes.post("/api/runs/:id/calculate", async (c) => {
     inputs.push({
       recordId: cr.id, insurerId: cr.insurerId, productName: cr.productName ?? "", orgUnitId,
       agentId: cr.agentId, contractDate: cr.contractDate ?? `${run.settlementMonth}-01`,
-      premium: await decNum(cr.premiumEnc, key), isFamilyContract: confirmedFam.has(cr.contractNo),
+      premium: await decNum(cr.premiumEnc, secret), isFamilyContract: confirmedFam.has(cr.contractNo),
     });
     meta.set(cr.id, { agentId: cr.agentId, orgUnitId });
   }
+  return { lines: evaluate(inputs, await loadRules(db)), meta }; // 순수·결정적
+}
 
-  const rules = await loadRules(db);
-  const lines = evaluate(inputs, rules); // 순수·결정적
+runsRoutes.post("/api/runs/:id/calculate", async (c) => {
+  const db = getDb(c.env);
+  const run = await db.select().from(settlementRuns).where(eq(settlementRuns.id, c.req.param("id"))).get();
+  if (!run) return c.json({ error: "없는 run이에요" }, 404);
+  if (run.status === "closed") return c.json({ error: "마감된 run은 재계산 불가", status: run.status }, 409);
+
+  const key = c.env.FIELD_ENCRYPTION_KEY;
+  const { lines, meta } = await computeSettlement(db, key, run);
   const now = new Date().toISOString();
   const rows = await Promise.all(lines.map(async (l) => {
     const m = meta.get(l.recordId)!;
@@ -129,6 +132,37 @@ runsRoutes.get("/api/runs/:id/reconciliation", async (c) => {
   }
 
   return c.json({ runId: run.id, insurers: summary, diffContracts });
+});
+
+/**
+ * 병행 검증 (F-022 REQ-031, §2 차액 0원): 저장된 settlement_lines vs 독립 재계산을
+ * 계약(commissionRecordId, ruleId) 단위로 비교. evaluate가 순수·결정적이라 정상은 차액 0.
+ * 라인 변조/드리프트 시 원인 계약을 diff로 특정(무결성 검증).
+ */
+runsRoutes.get("/api/runs/:id/parallel-verify", async (c) => {
+  const db = getDb(c.env);
+  const run = await db.select().from(settlementRuns).where(eq(settlementRuns.id, c.req.param("id"))).get();
+  if (!run) return c.json({ error: "없는 run이에요" }, 404);
+
+  const key = c.env.FIELD_ENCRYPTION_KEY;
+  // 독립 재계산 (동일 로직)
+  const { lines: expected } = await computeSettlement(db, key, run);
+  const expMap = new Map<string, number>();
+  for (const l of expected) { const k = `${l.recordId}|${l.ruleId}`; expMap.set(k, (expMap.get(k) ?? 0) + l.amount); }
+
+  // 저장된 원장
+  const stored = await db.select().from(settlementLines).where(eq(settlementLines.runId, run.id)).all();
+  const storedMap = new Map<string, number>();
+  for (const s of stored) { const k = `${s.commissionRecordId}|${s.ruleId}`; storedMap.set(k, (storedMap.get(k) ?? 0) + (await decNum(s.amountEnc, key))); }
+
+  const diffs: { commissionRecordId: string; ruleId: string; expected: number; stored: number; diff: number }[] = [];
+  for (const k of new Set([...expMap.keys(), ...storedMap.keys()])) {
+    const exp = expMap.get(k) ?? 0;
+    const sto = storedMap.get(k) ?? 0;
+    if (exp !== sto) diffs.push({ commissionRecordId: k.split("|")[0]!, ruleId: k.split("|")[1]!, expected: exp, stored: sto, diff: sto - exp });
+  }
+  const totalDiff = diffs.reduce((s, d) => s + Math.abs(d.diff), 0);
+  return c.json({ runId: run.id, verified: diffs.length === 0, totalDiff, diffs });
 });
 
 // 수동 보정 (F-015 REQ-024): reason 필수(불변식4), 이중 승인(옵션 approvedBy),
