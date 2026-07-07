@@ -49,7 +49,7 @@ pnpm -F api d1:migrate:local           # 로컬 D1에 마이그레이션 적용 
 - POST /api/rules · GET /api/rules · DELETE /api/rules/:id - 시책 룰 CRUD(선언형 조건+액션) (F-010)
 - POST /api/rules/simulate - 룰 변경 지급액 diff 미리보기(실데이터 무영향) (F-012)
 - POST /api/family/detect · /:id/confirm · /:id/release · GET /api/family - 가족계약 감지 HITL (F-011)
-- POST /api/runs - 정산 실행 (F-013, 미구현 501)
+- POST /api/runs · POST /api/runs/:id/calculate · GET /api/runs/:id - 월 정산 run + 룰 계산(재현성) (F-013)
 - GET /api/runs/:id/reconciliation - 대사 (F-014, 미구현 501)
 - POST /api/runs/:id/close - 마감 이중 잠금 (F-016, 미구현 501)
 

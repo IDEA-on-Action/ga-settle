@@ -122,9 +122,10 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 ### F-013 · 정산 계산 배치
 - **REQ-022**: 월 단위 run, 상태 draft→calculated, Queue 배치+재시도, 룰별 산출 분해 저장 (FR-16)
 - **Acceptance**:
-  - [ ] 동일 입력 재실행 시 동일 출력 (재현성 테스트)
-- **Status**: TODO
+  - [x] 동일 입력 재실행 시 동일 출력 (재현성 테스트: 재계산 후 (recordId,ruleId,amount,org) 튜플 동일)
+- **Status**: DONE
 - **Sprint**: S3
+- **Notes**: POST /api/runs(월 draft, uq_run_month 409). POST /api/runs/:id/calculate: 당월 commission_records → CommissionInput(당월 소속 resolveAssignment ${month}-15, 가족 family_flags confirmed, premium=premiumEnc 파싱) → loadRules → evaluate(순수) → settlement_lines(룰별 분해 breakdownJson). 멱등: 기존 라인 삭제 후 재생성 → 재현성. 마감 run 재계산 금지. GET /api/runs/:id 요약. 대량 Queue 배치는 후속(현재 동기 계산). *Enc 평문(F-020 전).
 
 ### F-014 · 대사 + 차액 드릴다운
 - **REQ-023**: 원수사 지급총액 vs 계산총액 자동 비교, 차액을 계약 단위까지 추적 (FR-17, FR-18)
