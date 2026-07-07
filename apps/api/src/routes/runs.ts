@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { settlementRuns, settlementLines, commissionRecords, familyFlags, reconciliations, adjustments } from "@ga-settle/schema";
 import { evaluate, type CommissionInput } from "@ga-settle/rules";
 import type { Env } from "../types";
@@ -162,5 +162,31 @@ runsRoutes.get("/api/runs/:id/adjustments", async (c) => {
   return c.json(rows);
 });
 
-// F-016 마감 (후속)
-runsRoutes.post("/api/runs/:id/close", async (c) => c.json({ todo: "F-016 마감 이중 잠금" }, 501));
+/**
+ * 월 마감 (F-016 REQ-025): calculated -> closed. 마감 스냅샷 R2 불변 보관(NFR-05).
+ * 이중 잠금: API가 closed run 쓰기를 거부하고, DB 트리거(F-002)가 마감 run/종속 테이블
+ * INSERT/UPDATE/DELETE를 RAISE(ABORT)로 차단(우회 불가).
+ */
+runsRoutes.post("/api/runs/:id/close", async (c) => {
+  const parsed = z.object({ closedBy: z.string().min(1) }).safeParse(await c.req.json().catch(() => ({})));
+  const closedBy = parsed.success ? parsed.data.closedBy : "system";
+  const db = getDb(c.env);
+  const run = await db.select().from(settlementRuns).where(eq(settlementRuns.id, c.req.param("id"))).get();
+  if (!run) return c.json({ error: "없는 run이에요" }, 404);
+  if (run.status === "closed") return c.json({ error: "이미 마감된 run이에요", status: "closed" }, 409);
+  if (run.status !== "calculated") return c.json({ error: "계산 완료(calculated) run만 마감해요", status: run.status }, 409);
+
+  const now = new Date().toISOString();
+  const lines = await db.select().from(settlementLines).where(eq(settlementLines.runId, run.id)).all();
+  const recon = await db.select().from(reconciliations).where(eq(reconciliations.runId, run.id)).all();
+  const snapshotR2Key = `snapshots/${run.settlementMonth}/${run.id}.json`;
+  await c.env.UPLOADS.put(snapshotR2Key, JSON.stringify({ run, lines, reconciliations: recon, closedAt: now, closedBy }));
+
+  // 낙관적 락: calculated -> closed 전환 선점(동시 마감 중 진 쪽 409). 이후 트리거가 재쓰기 차단.
+  const claim = await db.update(settlementRuns).set({ status: "closed", closedAt: now, closedBy, snapshotR2Key })
+    .where(and(eq(settlementRuns.id, run.id), eq(settlementRuns.status, "calculated")));
+  if (claim.meta.changes === 0) return c.json({ error: "이미 마감됐거나 상태가 바뀌었어요" }, 409);
+
+  await writeAudit(db, { actor: closedBy, action: "run.close", entity: "settlement_runs", entityId: run.id, summary: { month: run.settlementMonth, lines: lines.length, snapshotR2Key } });
+  return c.json({ runId: run.id, status: "closed", closedAt: now, snapshotR2Key, lines: lines.length });
+});
