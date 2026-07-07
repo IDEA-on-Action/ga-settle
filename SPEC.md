@@ -284,6 +284,16 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 - **Sprint**: S7
 - **Notes**: POST /api/auth/change-password(본인, currentPassword 확인 + ctEq, newPassword 8자+, 기존과 동일 거부, audit) + POST /api/users/:id/reset-password(admin only, 분실 대응, audit). 계정 생성(min 4)보다 강한 8자+ 정책. 한계: HMAC 토큰은 서버측 폐기 없음 - 변경 후 기존 토큰은 exp(8h)까지 유효(토큰 버전/블록리스트는 후속). api 62 PASS.
 
+### F-026 · 원수사 마스터 CRUD + 고객 데모 랜딩
+- **REQ-035**: 원수사(insurers)를 API로 등록/조회/수정/삭제할 수 있다 (업로드 선행조건)
+- **REQ-036**: 루트(/)에서 고객에게 보여줄 수 있는 데모 페이지를 제공한다
+- **Acceptance**:
+  - [x] POST/GET/PATCH/DELETE /api/insurers, 참조 있는 원수사 삭제는 409
+  - [x] GET / 이 데모 랜딩 페이지(HTML)를 반환
+- **Status**: DONE
+- **Sprint**: S7
+- **Notes**: routes/insurers.ts CRUD(생성 시 커스텀 id 허용/중복 409, 삭제는 uploads/commission_records/template_versions 참조 시 409 - 역추적 보호, 전 변경 audit). 데모: src/demo.ts 자체완결 HTML을 워커 루트에서 서빙 - 파이프라인(업로드→AI매핑→검증→원장→정산/대사→마감) 인터랙티브 재현 + 라이브 /health 배지. 공개 페이지라 자격증명 미포함(클라이언트 시뮬레이션). 정식 SPA는 [[B-006]]. api 67 PASS. E2E에서 발견한 "원수사 생성 API 부재" gap 해소.
+
 ## §3. Backlog (F-item 승격 대기)
 
 | ID | 한 줄 | 승격 기준 충족? | 우선 |

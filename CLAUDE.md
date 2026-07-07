@@ -34,7 +34,9 @@ pnpm -F api d1:migrate:local           # 로컬 D1에 마이그레이션 적용 
 
 ## API 엔드포인트 (구현 시 여기 갱신)
 
+- GET / - 고객 데모 랜딩/인터랙티브 페이지 (정식 SPA는 B-006)
 - GET /health - 헬스체크
+- POST /api/insurers · GET /api/insurers · GET/PATCH/DELETE /api/insurers/:id - 원수사 마스터 CRUD(삭제는 참조 있으면 409) (F-026)
 - POST /api/uploads - 엑셀 업로드(멀티파트). SHA-256 멱등(중복 409), R2 불변 보관, Queue 발행, 202+{uploadId,jobId} (F-003)
 - GET /api/jobs/:id - 파싱 진행률 폴링 (F-003)
 - GET /api/uploads/:id - 업로드 상태 조회 (F-003)
