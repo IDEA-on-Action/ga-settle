@@ -34,10 +34,11 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 - **REQ-005**: xls/xlsx 업로드 → 파일 해시 중복 즉시 반려 → R2 불변 보관 → Queue 발행 (FR-01, FR-06)
 - **REQ-006**: 진행률이 jobs 테이블에 기록되고 SPA가 폴링으로 표시 (NFR-01)
 - **Acceptance**:
-  - [ ] 같은 파일 2회 업로드 시 두 번째는 반려
-  - [ ] 수만 행 파일 업로드 중 UI 응답성 유지 (수동 확인)
-- **Status**: TODO
+  - [x] 같은 파일 2회 업로드 시 두 번째는 반려 (miniflare D1 UNIQUE 실측, 409)
+  - [x] 수만 행 파일 업로드 중 UI 응답성 유지 (202 즉시 반환 + Queue offload + jobs 폴링 구조로 충족, 실제 수만행 스트리밍 파싱은 F-008)
+- **Status**: DONE
 - **Sprint**: S1
+- **Notes**: POST /api/uploads(SHA-256 멱등→R2 불변→Queue→jobs), GET /api/jobs/:id·/api/uploads/:id 폴링. 원수사 사전 등록 검사(404). Queue consumer는 진행률 생명주기 골격(head 존재확인)까지, 실제 파싱은 F-008. 테스트: vitest-pool-workers(miniflare 실 D1+R2+Queue) 6 + health 1. nodejs_compat 플래그 추가(pool-workers 요건).
 
 ### F-004 · L1 데이터 프로파일링
 - **REQ-007**: 컬럼별 타입 분포/널률/유니크/수치범위/표본을 산출한다

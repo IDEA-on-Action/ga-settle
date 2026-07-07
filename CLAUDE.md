@@ -34,7 +34,15 @@ pnpm -F api d1:migrate:local           # 로컬 D1에 마이그레이션 적용 
 
 ## API 엔드포인트 (구현 시 여기 갱신)
 
-- GET /health — 헬스체크
+- GET /health - 헬스체크
+- POST /api/uploads - 엑셀 업로드(멀티파트). SHA-256 멱등(중복 409), R2 불변 보관, Queue 발행, 202+{uploadId,jobId} (F-003)
+- GET /api/jobs/:id - 파싱 진행률 폴링 (F-003)
+- GET /api/uploads/:id - 업로드 상태 조회 (F-003)
+- GET /api/uploads/:id/mapping - L0~L4 매핑 결과 (F-005, 미구현 501)
+- POST /api/uploads/:id/mapping/confirm - TemplateVersion 저장 (F-007, 미구현 501)
+- POST /api/runs - 정산 실행 (F-013, 미구현 501)
+- GET /api/runs/:id/reconciliation - 대사 (F-014, 미구현 501)
+- POST /api/runs/:id/close - 마감 이중 잠금 (F-016, 미구현 501)
 
 ## 도메인 요지
 
