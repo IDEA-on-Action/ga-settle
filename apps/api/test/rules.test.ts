@@ -43,4 +43,23 @@ describe("F-010 시책 룰 CRUD + 평가 통합", () => {
   it("검증 실패 -> 400", async () => {
     expect((await post("/api/rules", { name: "x", priority: 1, overlapPolicy: "bad", condition: {}, action: {} })).status).toBe(400);
   });
+
+  it("시뮬레이션: 현재 vs 제안 룰 diff, 실데이터 불변 (F-012 REQ-021)", async () => {
+    await post("/api/rules", ruleBody); // 현재 룰(rate 0.12)
+    const before = ((await getJson("/api/rules")) as unknown[]).length;
+    const res = await post("/api/rules/simulate", {
+      records: [rec({ premium: 100000 })],
+      proposedRules: [{
+        id: "P1", name: "제안", priority: 10, overlapPolicy: "stack",
+        condition: { period: { from: "2026-06-01", to: "2026-06-30" }, insurerIds: ["ins1"], productPatterns: ["종신"] },
+        action: { kind: "rate", rate: 0.2 },
+      }],
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { totalCurrent: number; totalProposed: number; totalDiff: number };
+    expect(body.totalCurrent).toBe(12000);  // 현재 0.12
+    expect(body.totalProposed).toBe(20000); // 제안 0.20
+    expect(body.totalDiff).toBe(8000);
+    expect(((await getJson("/api/rules")) as unknown[]).length).toBe(before); // DB 무변(시뮬은 쓰기 없음)
+  });
 });

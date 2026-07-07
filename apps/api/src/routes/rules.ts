@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { and, eq } from "drizzle-orm";
 import { incentiveRules } from "@ga-settle/schema";
-import type { IncentiveRule } from "@ga-settle/rules";
+import { evaluate, type IncentiveRule, type CommissionInput } from "@ga-settle/rules";
 import type { Env } from "../types";
 import { getDb, type Db } from "../db";
 
@@ -21,22 +21,24 @@ export async function loadRules(db: Db): Promise<IncentiveRule[]> {
   return rows.map(toRule);
 }
 
+const conditionSchema = z.object({
+  period: z.object({ from: z.string(), to: z.string() }),
+  insurerIds: z.array(z.string()).optional(),
+  productPatterns: z.array(z.string()).optional(),
+  orgUnitIds: z.array(z.string()).optional(),
+  performanceBand: z.object({ minPremium: z.number().optional(), maxPremium: z.number().optional() }).optional(),
+  excludeFamilyContracts: z.boolean().optional(),
+});
+const actionSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("rate"), rate: z.number() }),
+  z.object({ kind: z.literal("fixed"), amount: z.number() }),
+]);
 const ruleInput = z.object({
   name: z.string().min(1),
   priority: z.number().int(),
   overlapPolicy: z.enum(["exclusive", "stack"]),
-  condition: z.object({
-    period: z.object({ from: z.string(), to: z.string() }),
-    insurerIds: z.array(z.string()).optional(),
-    productPatterns: z.array(z.string()).optional(),
-    orgUnitIds: z.array(z.string()).optional(),
-    performanceBand: z.object({ minPremium: z.number().optional(), maxPremium: z.number().optional() }).optional(),
-    excludeFamilyContracts: z.boolean().optional(),
-  }),
-  action: z.discriminatedUnion("kind", [
-    z.object({ kind: z.literal("rate"), rate: z.number() }),
-    z.object({ kind: z.literal("fixed"), amount: z.number() }),
-  ]),
+  condition: conditionSchema,
+  action: actionSchema,
 });
 
 rulesRoutes.post("/api/rules", async (c) => {
@@ -54,6 +56,41 @@ rulesRoutes.post("/api/rules", async (c) => {
 });
 
 rulesRoutes.get("/api/rules", async (c) => c.json(await loadRules(getDb(c.env))));
+
+// 룰 시뮬레이션 (F-012 REQ-021): 현재 룰 vs 제안 룰로 evaluate 실행해 지급액 diff 미리보기.
+// evaluate는 순수함수라 DB에 아무것도 쓰지 않는다 -> 실데이터 무영향(FR-15).
+const simSchema = z.object({
+  records: z.array(z.object({
+    recordId: z.string(), insurerId: z.string(), productName: z.string(), orgUnitId: z.string(),
+    agentId: z.string(), contractDate: z.string(), premium: z.number(), isFamilyContract: z.boolean(),
+  })).min(1),
+  proposedRules: z.array(z.object({
+    id: z.string(), name: z.string(), priority: z.number().int(),
+    overlapPolicy: z.enum(["exclusive", "stack"]), condition: conditionSchema, action: actionSchema,
+  })),
+});
+
+rulesRoutes.post("/api/rules/simulate", async (c) => {
+  const b = simSchema.safeParse(await c.req.json().catch(() => null));
+  if (!b.success) return c.json({ error: "시뮬레이션 입력 검증 실패", detail: b.error.flatten() }, 400);
+  const records = b.data.records as CommissionInput[];
+  const current = await loadRules(getDb(c.env));
+
+  const totalBy = (rules: IncentiveRule[]) => {
+    const per: Record<string, number> = {};
+    for (const l of evaluate(records, rules)) per[l.recordId] = (per[l.recordId] ?? 0) + l.amount;
+    return per;
+  };
+  const cur = totalBy(current);
+  const prop = totalBy(b.data.proposedRules as IncentiveRule[]);
+  const byRecord = records.map((r) => ({
+    recordId: r.recordId, current: cur[r.recordId] ?? 0, proposed: prop[r.recordId] ?? 0,
+    diff: (prop[r.recordId] ?? 0) - (cur[r.recordId] ?? 0),
+  }));
+  const totalCurrent = byRecord.reduce((s, r) => s + r.current, 0);
+  const totalProposed = byRecord.reduce((s, r) => s + r.proposed, 0);
+  return c.json({ totalCurrent, totalProposed, totalDiff: totalProposed - totalCurrent, byRecord });
+});
 
 rulesRoutes.delete("/api/rules/:id", async (c) => {
   const db = getDb(c.env);
