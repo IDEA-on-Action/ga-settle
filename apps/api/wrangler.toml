@@ -1,0 +1,26 @@
+name = "ga-settle-api"
+main = "src/index.ts"
+compatibility_date = "2026-06-01"
+
+# F-001에서 리소스 생성 후 TODO id 기입
+[[d1_databases]]
+binding = "DB"
+database_name = "ga-settle-db"
+database_id = "TODO"
+
+[[r2_buckets]]
+binding = "UPLOADS"
+bucket_name = "ga-settle-uploads"
+
+[[queues.producers]]
+binding = "PARSE_QUEUE"
+queue = "ga-settle-parse"
+
+[[queues.consumers]]
+queue = "ga-settle-parse"
+max_retries = 3
+
+[vars]
+ENV = "dev"
+# 시크릿은 .dev.vars / wrangler secret put:
+#   ANTHROPIC_API_KEY, FIELD_ENCRYPTION_KEY, SESSION_SECRET, ADMIN_IP_ALLOWLIST

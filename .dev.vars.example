@@ -1,0 +1,5 @@
+# apps/api용 로컬 시크릿 - .dev.vars로 복사 후 채우기 (커밋 금지)
+ANTHROPIC_API_KEY=sk-ant-...
+FIELD_ENCRYPTION_KEY=32바이트-hex
+SESSION_SECRET=랜덤-문자열
+ADMIN_IP_ALLOWLIST=127.0.0.1

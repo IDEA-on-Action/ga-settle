@@ -1,0 +1,13 @@
+{
+  "name": "@ga-settle/rules",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "test": "echo 'rules: F-010에서 case table 테스트 추가'"
+  },
+  "devDependencies": { "typescript": "^5.6.0" }
+}
