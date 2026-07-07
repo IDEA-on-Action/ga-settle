@@ -7,7 +7,7 @@ import { describe, it, expect } from "vitest";
 import {
   ONTOLOGY, norm, parseDate, parseNumber, maskSample, detectHeaderRow,
   profileColumns, inferType, localMap, feeFormulaCheck, runConsistency, applyEvidence,
-  type Grid,
+  type Grid, type Cell, type CandidateMap,
 } from "../src/index";
 
 function sampleGrid(): Grid {
@@ -97,6 +97,42 @@ describe("L1 REQ-007 산출물 (F-004)", () => {
     expect(inferType({ numericRate: 1, dateRate: 1 })).toBe("date");  // yymmdd 겹침 -> 날짜
     expect(inferType({ numericRate: 1, dateRate: 0 })).toBe("number");
     expect(inferType({ numericRate: 0.3, dateRate: 0.2 })).toBe("text");
+  });
+});
+
+describe("L3 정합성 + L4 등급 (F-006)", () => {
+  it("REQ-011: 0-1 비율(비%)은 scale=1로 정합성 검증", () => {
+    const rows: Cell[][] = [];
+    for (let i = 1; i <= 30; i++) {
+      const prem = 100000 + i * 1000;
+      const rate = [0.15, 0.2, 0.25, 0.3][i % 4]!; // 0-1 비율
+      rows.push([prem, rate, Math.round(prem * rate)]);
+    }
+    const r = feeFormulaCheck(0, 1, 2, rows);
+    expect(r.scale).toBe(1); // % 아님
+    expect(r.passRate).toBeGreaterThanOrEqual(0.99);
+  });
+
+  it("REQ-012: 신뢰도 3등급 분기 (auto/review/manual)", () => {
+    const cands: CandidateMap = {
+      계약자명: { ci: 0, confidence: 0.95, reason: "", source: "local" },
+      상품명: { ci: 1, confidence: 0.6, reason: "", source: "local" },
+      계약일: { ci: 2, confidence: 0.3, reason: "", source: "local" },
+    };
+    applyEvidence(cands, [], "local");
+    expect(cands["계약자명"]!.grade).toBe("auto");
+    expect(cands["상품명"]!.grade).toBe("review");
+    expect(cands["계약일"]!.grade).toBe("manual");
+  });
+
+  it("REQ-012: 금액 필드는 정합성 pass 증거 없으면 자동확정 안 됨 (보수적 임계)", () => {
+    const cands: CandidateMap = {
+      설계사명: { ci: 0, confidence: 0.9, reason: "", source: "local" },   // 비금액 0.9 -> auto
+      지급수수료: { ci: 1, confidence: 0.9, reason: "", source: "local" },  // 금액, 증거 없음 -> 상향 임계로 review
+    };
+    applyEvidence(cands, [], "local");
+    expect(cands["설계사명"]!.grade).toBe("auto");
+    expect(cands["지급수수료"]!.grade).not.toBe("auto");
   });
 });
 

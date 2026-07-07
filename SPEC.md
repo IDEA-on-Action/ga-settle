@@ -63,9 +63,10 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 - **REQ-011**: 지급수수료 ≈ 보험료 x 수수료율 표본 검증, % 스케일 자동 감지
 - **REQ-012**: 신뢰도 보정 후 자동 확정/확인 필요/수동 3등급, 금액 필드는 보수적 임계값
 - **Acceptance**:
-  - [ ] 오염 데이터(율 컬럼 텍스트 혼입) 시 자동 확정 금지 테스트 PASS
-- **Status**: TODO
+  - [x] 오염 데이터(율 컬럼 텍스트 혼입) 시 자동 확정 금지 테스트 PASS
+- **Status**: DONE
 - **Sprint**: S1
+- **Notes**: 코어(feeFormulaCheck %스케일 자동감지 / runConsistency 정합성+산식발굴 / applyEvidence 3등급+금액 보수적 임계 AUTO_TH+0.05)는 이식분, F-005 resolveMapping에 결선. F-006에서 REQ-011(0-1 비율 scale=1)·REQ-012(3등급 분기·금액 보수성) 명시 테스트 보강. mapping 19 PASS.
 
 ### F-007 · 매핑 관리 화면 + TemplateVersion
 - **REQ-013**: 매핑 확정 시 TemplateVersion 저장(버전 이력), 헤더 시그니처 캐시로 재업로드 즉시 매핑 (FR-03)
