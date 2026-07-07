@@ -19,6 +19,8 @@ beforeEach(async () => {
     await db.insert(commissionRecords).values({
       id: `cr${i}`, uploadId: "up1", rowNo: i, settlementMonth: "2026-06", insurerId: "ins1",
       contractNo: `C${i}`, agentId: "ag1", productName: "종신보험", contractDate: "2026-06-10", premiumEnc: "100000",
+      // 원수사 보고액: C1/C2는 계산액(10000)과 일치, C3만 9000으로 의도적 차액
+      commissionEnc: i === 3 ? "9000" : "10000",
     });
   }
   // 6월 시책: 보험료 x 10%
@@ -56,5 +58,21 @@ describe("F-013 정산 계산 배치", () => {
   it("월당 run 1개 (중복 -> 409)", async () => {
     await post("/api/runs", { settlementMonth: "2026-06" });
     expect((await post("/api/runs", { settlementMonth: "2026-06" })).status).toBe(409);
+  });
+
+  it("대사: 원수사 보고액 vs 계산액, 의도적 차액 계약 특정 (F-014 REQ-023)", async () => {
+    const { id } = (await (await post("/api/runs", { settlementMonth: "2026-06" })).json()) as { id: string };
+    await post(`/api/runs/${id}/calculate`); // 계산액 각 10000
+
+    const recon = (await (await SELF.fetch(`https://x/api/runs/${id}/reconciliation`)).json()) as {
+      insurers: { insurerId: string; insurerTotal: number; calculatedTotal: number; diff: number; status: string }[];
+      diffContracts: { contractNo: string; diff: number }[];
+    };
+    // 원수사 총액 29000(10000+10000+9000) vs 계산 30000 -> diff -1000
+    expect(recon.insurers).toHaveLength(1);
+    expect(recon.insurers[0]).toMatchObject({ insurerTotal: 29000, calculatedTotal: 30000, diff: -1000, status: "diff" });
+    // 드릴다운: C3만 원인 계약
+    expect(recon.diffContracts).toHaveLength(1);
+    expect(recon.diffContracts[0]).toMatchObject({ contractNo: "C3", diff: -1000 });
   });
 });

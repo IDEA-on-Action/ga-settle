@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
-import { settlementRuns, settlementLines, commissionRecords, familyFlags } from "@ga-settle/schema";
+import { settlementRuns, settlementLines, commissionRecords, familyFlags, reconciliations } from "@ga-settle/schema";
 import { evaluate, type CommissionInput } from "@ga-settle/rules";
 import type { Env } from "../types";
 import { getDb, encField } from "../db";
@@ -81,6 +81,53 @@ runsRoutes.get("/api/runs/:id", async (c) => {
   return c.json({ ...run, lineCount: lines.length, totalAmount });
 });
 
-// F-014 대사 / F-016 마감 (후속)
-runsRoutes.get("/api/runs/:id/reconciliation", async (c) => c.json({ todo: "F-014 대사" }, 501));
+/**
+ * 대사 (F-014 REQ-023): 원수사 보고액(commission_records.commissionEnc) vs 계산액
+ * (settlement_lines 합)을 원수사별로 비교하고, 차액을 계약(commissionRecordId) 단위까지 추적.
+ * 역추적 불변식 덕에 diff 계약을 원본 행까지 특정 가능(FR-17,18). reconciliations 갱신.
+ */
+runsRoutes.get("/api/runs/:id/reconciliation", async (c) => {
+  const db = getDb(c.env);
+  const run = await db.select().from(settlementRuns).where(eq(settlementRuns.id, c.req.param("id"))).get();
+  if (!run) return c.json({ error: "없는 run이에요" }, 404);
+
+  const crs = await db.select().from(commissionRecords).where(eq(commissionRecords.settlementMonth, run.settlementMonth)).all();
+  const lines = await db.select().from(settlementLines).where(eq(settlementLines.runId, run.id)).all();
+  const calcByRecord = new Map<string, number>();
+  for (const l of lines) calcByRecord.set(l.commissionRecordId, (calcByRecord.get(l.commissionRecordId) ?? 0) + (Number(l.amountEnc ?? 0) || 0));
+
+  // 계약(record) 단위 diff
+  const contracts = crs.map((cr) => {
+    const insurerAmount = Number(cr.commissionEnc ?? 0) || 0;
+    const calculatedAmount = calcByRecord.get(cr.id) ?? 0;
+    return { commissionRecordId: cr.id, contractNo: cr.contractNo, insurerId: cr.insurerId, insurerAmount, calculatedAmount, diff: insurerAmount - calculatedAmount };
+  });
+  const diffContracts = contracts.filter((x) => x.diff !== 0);
+
+  // 원수사별 집계 + reconciliations 갱신(멱등)
+  const byInsurer = new Map<string, { insurer: number; calc: number }>();
+  for (const x of contracts) {
+    const agg = byInsurer.get(x.insurerId) ?? { insurer: 0, calc: 0 };
+    agg.insurer += x.insurerAmount; agg.calc += x.calculatedAmount;
+    byInsurer.set(x.insurerId, agg);
+  }
+  const now = new Date().toISOString();
+  await db.delete(reconciliations).where(eq(reconciliations.runId, run.id));
+  const summary = [...byInsurer.entries()].map(([insurerId, agg]) => ({
+    insurerId, insurerTotal: agg.insurer, calculatedTotal: agg.calc, diff: agg.insurer - agg.calc,
+    status: agg.insurer - agg.calc === 0 ? "matched" : "diff",
+  }));
+  if (summary.length) {
+    const rows = summary.map((s) => ({
+      id: crypto.randomUUID(), runId: run.id, insurerId: s.insurerId,
+      insurerTotalEnc: encField(s.insurerTotal)!, calculatedTotalEnc: encField(s.calculatedTotal)!,
+      diffEnc: encField(s.diff)!, status: s.status, createdAt: now,
+    }));
+    await db.batch([db.insert(reconciliations).values(rows[0]!), ...rows.slice(1).map((r) => db.insert(reconciliations).values(r))]);
+  }
+
+  return c.json({ runId: run.id, insurers: summary, diffContracts });
+});
+
+// F-016 마감 (후속)
 runsRoutes.post("/api/runs/:id/close", async (c) => c.json({ todo: "F-016 마감 이중 잠금" }, 501));
