@@ -1,10 +1,10 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
-import { settlementRuns, settlementLines, commissionRecords, familyFlags, reconciliations } from "@ga-settle/schema";
+import { settlementRuns, settlementLines, commissionRecords, familyFlags, reconciliations, adjustments } from "@ga-settle/schema";
 import { evaluate, type CommissionInput } from "@ga-settle/rules";
 import type { Env } from "../types";
-import { getDb, encField } from "../db";
+import { getDb, encField, writeAudit } from "../db";
 import { resolveAssignment } from "./org";
 import { loadRules } from "./rules";
 
@@ -127,6 +127,39 @@ runsRoutes.get("/api/runs/:id/reconciliation", async (c) => {
   }
 
   return c.json({ runId: run.id, insurers: summary, diffContracts });
+});
+
+// 수동 보정 (F-015 REQ-024): reason 필수(불변식4), 이중 승인(옵션 approvedBy),
+// 모든 보정 쓰기는 audit_logs 동반(append-only). 마감 run은 보정 불가.
+runsRoutes.post("/api/runs/:id/adjustments", async (c) => {
+  const b = z.object({
+    targetType: z.string().min(1), targetId: z.string().min(1),
+    amount: z.number(), reason: z.string().min(1), approvedBy: z.string().optional(),
+  }).safeParse(await c.req.json().catch(() => null));
+  if (!b.success) return c.json({ error: "보정 검증 실패 (targetType/targetId/amount/reason 필수)" }, 400);
+
+  const db = getDb(c.env);
+  const run = await db.select().from(settlementRuns).where(eq(settlementRuns.id, c.req.param("id"))).get();
+  if (!run) return c.json({ error: "없는 run이에요" }, 404);
+  if (run.status === "closed") return c.json({ error: "마감된 run은 보정 불가" }, 409);
+
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  await db.insert(adjustments).values({
+    id, runId: run.id, targetType: b.data.targetType, targetId: b.data.targetId,
+    amountEnc: encField(b.data.amount)!, reason: b.data.reason, createdBy: "system",
+    approvedBy: b.data.approvedBy ?? null, createdAt: now,
+  });
+  await writeAudit(db, {
+    actor: b.data.approvedBy ?? "system", action: "adjustment.create", entity: "adjustments", entityId: id,
+    summary: { runId: run.id, targetType: b.data.targetType, targetId: b.data.targetId, amount: b.data.amount, reason: b.data.reason },
+  });
+  return c.json({ id, runId: run.id, reason: b.data.reason, approvedBy: b.data.approvedBy ?? null }, 201);
+});
+
+runsRoutes.get("/api/runs/:id/adjustments", async (c) => {
+  const rows = await getDb(c.env).select().from(adjustments).where(eq(adjustments.runId, c.req.param("id"))).all();
+  return c.json(rows);
 });
 
 // F-016 마감 (후속)

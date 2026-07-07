@@ -1,8 +1,10 @@
 import { env, SELF } from "cloudflare:test";
 import { describe, it, expect, beforeEach } from "vitest";
 import { eq } from "drizzle-orm";
-import { insurers, orgUnits, agents, agentAssignments, uploads, commissionRecords, settlementLines } from "@ga-settle/schema";
+import { insurers, orgUnits, agents, agentAssignments, uploads, commissionRecords, settlementLines, auditLogs } from "@ga-settle/schema";
 import { getDb } from "../src/db";
+
+const getJson = async (path: string) => (await SELF.fetch(`https://x${path}`)).json();
 
 const post = (path: string, body: unknown = {}) =>
   SELF.fetch(`https://x${path}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
@@ -74,5 +76,23 @@ describe("F-013 정산 계산 배치", () => {
     // 드릴다운: C3만 원인 계약
     expect(recon.diffContracts).toHaveLength(1);
     expect(recon.diffContracts[0]).toMatchObject({ contractNo: "C3", diff: -1000 });
+  });
+
+  it("보정: reason 필수 + adjustments/audit_logs 동반 (F-015 REQ-024)", async () => {
+    const { id } = (await (await post("/api/runs", { settlementMonth: "2026-06" })).json()) as { id: string };
+    // reason 없이 -> 400 (도메인 불변식4)
+    expect((await post(`/api/runs/${id}/adjustments`, { targetType: "line", targetId: "cr1", amount: 5000 })).status).toBe(400);
+    // 정상(이중 승인 approvedBy 포함)
+    const res = await post(`/api/runs/${id}/adjustments`, { targetType: "line", targetId: "cr1", amount: 5000, reason: "과소지급 보정", approvedBy: "manager1" });
+    expect(res.status).toBe(201);
+    const { id: adjId } = (await res.json()) as { id: string };
+
+    const list = (await getJson(`/api/runs/${id}/adjustments`)) as { reason: string; approvedBy: string }[];
+    expect(list).toHaveLength(1);
+    expect(list[0]).toMatchObject({ reason: "과소지급 보정", approvedBy: "manager1" });
+
+    // 감사 로그 동반
+    const audits = await getDb(env).select().from(auditLogs).all();
+    expect(audits.some((a) => a.action === "adjustment.create" && a.entityId === adjId)).toBe(true);
   });
 });

@@ -137,8 +137,11 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 
 ### F-015 · 수동 보정 + 감사 로그
 - **REQ-024**: 보정 사유 필수, 이중 승인(옵션 플래그), 전 쓰기 감사 기록 (FR-19, NFR-04)
-- **Status**: TODO
+- **Acceptance**:
+  - [x] reason 없는 보정 거부(400) + 보정 쓰기가 audit_logs 동반 테스트
+- **Status**: DONE
 - **Sprint**: S3
+- **Notes**: POST /api/runs/:id/adjustments { targetType, targetId, amount, reason(필수 400), approvedBy?(이중승인) } → adjustments insert + writeAudit(audit_logs). GET /api/runs/:id/adjustments. db.ts writeAudit() 재사용 헬퍼(actor/action/entity/entityId/summaryJson). audit_logs append-only(F-002 트리거)로 사후 변조 차단. 마감 run 보정 불가.
 
 ### F-016 · 월 마감 (이중 잠금 + 스냅샷)
 - **REQ-025**: closed 상태에서 API+DB 트리거 이중 쓰기 차단, 마감 스냅샷 R2 보관 (FR-20, NFR-05)
