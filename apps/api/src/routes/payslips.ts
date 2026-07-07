@@ -5,7 +5,17 @@ import type { Env } from "../types";
 import { getDb, encField } from "../db";
 
 // 지급 내역서 + 출력물 (F-018 FR-21~23): settlement_lines를 설계사별로 롤업.
+// SECURITY(F-017 auth 롤아웃): payslips/transfer-master는 급여·이체 데이터라 민감.
+//   현재 프로젝트 전반 미인증(신뢰 네트워크 전제). 전면 인증 롤아웃은 B-005(backlog) 우선순위.
 export const payslipsRoutes = new Hono<{ Bindings: Env }>();
+
+// CSV 필드 안전화: 수식 인젝션 방지(위험 선두문자 ' 프리픽스) + CSV 이스케이프.
+export function csvField(v: string | number): string {
+  let s = String(v);
+  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
+  if (/[",\n\r]/.test(s)) s = `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
 
 // 내역서 생성: settlement_lines를 설계사별 집계 -> payslips (멱등 재생성).
 payslipsRoutes.post("/api/runs/:id/payslips", async (c) => {
@@ -53,6 +63,7 @@ payslipsRoutes.get("/api/runs/:id/payslips/:agentId", async (c) => {
 // 급여 이체 마스터 파일 (CSV): agentId, orgUnitId, amount
 payslipsRoutes.get("/api/runs/:id/transfer-master", async (c) => {
   const rows = await getDb(c.env).select().from(payslips).where(eq(payslips.runId, c.req.param("id"))).all();
-  const csv = ["agentId,orgUnitId,amount", ...rows.map((r) => `${r.agentId},${r.orgUnitId},${Number(r.totalEnc ?? 0) || 0}`)].join("\n");
+  const csv = ["agentId,orgUnitId,amount", ...rows.map((r) =>
+    [csvField(r.agentId), csvField(r.orgUnitId), csvField(Number(r.totalEnc ?? 0) || 0)].join(","))].join("\n");
   return c.text(csv, 200, { "content-type": "text/csv; charset=utf-8" });
 });

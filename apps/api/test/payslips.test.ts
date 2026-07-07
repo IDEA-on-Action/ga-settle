@@ -2,6 +2,7 @@ import { env, SELF } from "cloudflare:test";
 import { describe, it, expect, beforeEach } from "vitest";
 import { insurers, orgUnits, agents, agentAssignments, uploads, commissionRecords } from "@ga-settle/schema";
 import { getDb } from "../src/db";
+import { csvField } from "../src/routes/payslips";
 
 const post = (path: string, body: unknown = {}) =>
   SELF.fetch(`https://x${path}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
@@ -61,5 +62,19 @@ describe("F-018 지급 내역서 + 출력물", () => {
     expect(csv.split("\n")[0]).toBe("agentId,orgUnitId,amount");
     expect(csv).toContain("ag1,team1,20000");
     expect(csv).toContain("ag2,team2,20000");
+  });
+});
+
+describe("CSV 인젝션 방지 (F-018)", () => {
+  it("수식 선두문자(= + - @)는 ' 프리픽스", () => {
+    expect(csvField("=SUM(A1)")).toBe("'=SUM(A1)");
+    expect(csvField("+1")).toBe("'+1");
+    expect(csvField("@cmd")).toBe("'@cmd");
+    expect(csvField("normal")).toBe("normal");
+    expect(csvField(20000)).toBe("20000");
+  });
+  it("쉼표/따옴표는 CSV 이스케이프", () => {
+    expect(csvField("a,b")).toBe('"a,b"');
+    expect(csvField('a"b')).toBe('"a""b"');
   });
 });
