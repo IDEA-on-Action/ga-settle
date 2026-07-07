@@ -1,19 +1,23 @@
-import { useQuery } from "@tanstack/react-query";
-import { MappingAdmin } from "./MappingAdmin";
-
-const API = import.meta.env.VITE_API_BASE ?? "http://localhost:8787";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { AuthProvider } from "@/lib/auth";
+import { ProtectedLayout } from "@/components/layout/ProtectedLayout";
+import Login from "@/screens/Login";
+import { routes } from "@/routes";
 
 export function App() {
-  const health = useQuery({
-    queryKey: ["health"],
-    queryFn: () => fetch(`${API}/health`).then((r) => r.json()),
-  });
   return (
-    <main style={{ fontFamily: "sans-serif", padding: 24 }}>
-      <h1>ga-settle</h1>
-      <p>API: {health.isLoading ? "확인 중..." : JSON.stringify(health.data)}</p>
-      {/* 화면 구현 순서 (SPEC.md): 업로드/매핑(F-003~008) -> 룰(F-010~012) -> 대사/마감(F-013~016) -> 권한(F-017) -> 출력(F-018~019) */}
-      <MappingAdmin />
-    </main>
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route element={<ProtectedLayout />}>
+            {routes.map(({ path, Component }) => (
+              <Route key={path} path={path} element={<Component />} />
+            ))}
+          </Route>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }

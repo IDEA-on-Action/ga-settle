@@ -1,0 +1,441 @@
+/* ==========================================================================
+   AXIS 디자인 토큰 이식 (F-025)
+   출처: docs/specs/GA-Settle repository/assets/colors_and_type.css
+   Pretendard(UI) + D2Coding(코드) - jsdelivr CDN 웹폰트, 번들 폰트 파일 없음.
+   CSS 스펙상 @import는 @charset/@layer 다음, 다른 규칙보다 앞에 와야 하므로
+   "tailwindcss" import보다 먼저 선언한다.
+   ========================================================================== */
+
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css");
+@import url("https://cdn.jsdelivr.net/gh/wan2land/d2coding/d2coding-ligature-subset.css");
+@import "tailwindcss";
+
+:root {
+  /* ---------- PRIMITIVE COLORS ---------- */
+  --axis-color-white: #ffffff;
+  --axis-color-black: #000000;
+
+  --axis-color-gray-50: #f9fafb;
+  --axis-color-gray-100: #f3f4f6;
+  --axis-color-gray-200: #e5e7eb;
+  --axis-color-gray-300: #d1d5db;
+  --axis-color-gray-400: #9ca3af;
+  --axis-color-gray-500: #6b7280;
+  --axis-color-gray-600: #4b5563;
+  --axis-color-gray-700: #374151;
+  --axis-color-gray-800: #1f2937;
+  --axis-color-gray-900: #111827;
+  --axis-color-gray-950: #030712;
+
+  --axis-color-blue-50: #eff6ff;
+  --axis-color-blue-100: #dbeafe;
+  --axis-color-blue-200: #bfdbfe;
+  --axis-color-blue-300: #93c5fd;
+  --axis-color-blue-400: #60a5fa;
+  --axis-color-blue-500: #3b82f6;
+  --axis-color-blue-600: #2563eb;
+  --axis-color-blue-700: #1d4ed8;
+  --axis-color-blue-800: #1e40af;
+  --axis-color-blue-900: #1e3a8a;
+  --axis-color-blue-950: #172554;
+
+  --axis-color-green-50: #f0fdf4;
+  --axis-color-green-100: #dcfce7;
+  --axis-color-green-200: #bbf7d0;
+  --axis-color-green-300: #86efac;
+  --axis-color-green-400: #4ade80;
+  --axis-color-green-500: #22c55e;
+  --axis-color-green-600: #16a34a;
+  --axis-color-green-700: #15803d;
+  --axis-color-green-800: #166534;
+  --axis-color-green-900: #14532d;
+  --axis-color-green-950: #052e16;
+
+  --axis-color-red-50: #fef2f2;
+  --axis-color-red-100: #fee2e2;
+  --axis-color-red-200: #fecaca;
+  --axis-color-red-300: #fca5a5;
+  --axis-color-red-400: #f87171;
+  --axis-color-red-500: #ef4444;
+  --axis-color-red-600: #dc2626;
+  --axis-color-red-700: #b91c1c;
+  --axis-color-red-800: #991b1b;
+  --axis-color-red-900: #7f1d1d;
+  --axis-color-red-950: #450a0a;
+
+  --axis-color-yellow-50: #fefce8;
+  --axis-color-yellow-100: #fef9c3;
+  --axis-color-yellow-200: #fef08a;
+  --axis-color-yellow-300: #fde047;
+  --axis-color-yellow-400: #facc15;
+  --axis-color-yellow-500: #eab308;
+  --axis-color-yellow-600: #ca8a04;
+  --axis-color-yellow-700: #a16207;
+  --axis-color-yellow-800: #854d0e;
+  --axis-color-yellow-900: #713f12;
+  --axis-color-yellow-950: #422006;
+
+  --axis-color-orange-50: #fff7ed;
+  --axis-color-orange-100: #ffedd5;
+  --axis-color-orange-200: #fed7aa;
+  --axis-color-orange-300: #fdba74;
+  --axis-color-orange-400: #fb923c;
+  --axis-color-orange-500: #f97316;
+  --axis-color-orange-600: #ea580c;
+  --axis-color-orange-700: #c2410c;
+  --axis-color-orange-800: #9a3412;
+  --axis-color-orange-900: #7c2d12;
+
+  --axis-color-purple-50: #faf5ff;
+  --axis-color-purple-100: #f3e8ff;
+  --axis-color-purple-200: #e9d5ff;
+  --axis-color-purple-300: #d8b4fe;
+  --axis-color-purple-400: #c084fc;
+  --axis-color-purple-500: #a855f7;
+  --axis-color-purple-600: #9333ea;
+  --axis-color-purple-700: #7c3aed;
+  --axis-color-purple-800: #6b21a8;
+  --axis-color-purple-900: #581c87;
+
+  /* ---------- SEMANTIC - LIGHT (기본) ---------- */
+  --axis-surface-default: var(--axis-color-white);
+  --axis-surface-secondary: var(--axis-color-gray-100);
+  --axis-surface-tertiary: var(--axis-color-gray-200);
+  --axis-surface-inverse: var(--axis-color-gray-900);
+  --axis-surface-brand: var(--axis-color-blue-500);
+  --axis-surface-success: var(--axis-color-green-50);
+  --axis-surface-warning: var(--axis-color-yellow-50);
+  --axis-surface-error: var(--axis-color-red-50);
+  --axis-surface-info: var(--axis-color-blue-50);
+
+  --axis-text-primary: var(--axis-color-gray-900);
+  --axis-text-secondary: var(--axis-color-gray-600);
+  --axis-text-tertiary: var(--axis-color-gray-500);
+  --axis-text-inverse: var(--axis-color-white);
+  --axis-text-brand: var(--axis-color-blue-600);
+  --axis-text-success: var(--axis-color-green-700);
+  --axis-text-warning: var(--axis-color-yellow-700);
+  --axis-text-error: var(--axis-color-red-700);
+  --axis-text-info: var(--axis-color-blue-700);
+
+  --axis-border-default: var(--axis-color-gray-200);
+  --axis-border-secondary: var(--axis-color-gray-300);
+  --axis-border-focus: var(--axis-color-blue-500);
+  --axis-border-error: var(--axis-color-red-500);
+  --axis-border-success: var(--axis-color-green-500);
+
+  --axis-icon-default: var(--axis-color-gray-600);
+  --axis-icon-secondary: var(--axis-color-gray-400);
+  --axis-icon-inverse: var(--axis-color-white);
+  --axis-icon-brand: var(--axis-color-blue-500);
+  --axis-icon-success: var(--axis-color-green-500);
+  --axis-icon-warning: var(--axis-color-yellow-500);
+  --axis-icon-error: var(--axis-color-red-500);
+
+  /* ---------- 컴포넌트 토큰 ---------- */
+  --axis-button-bg-default: var(--axis-color-gray-900);
+  --axis-button-bg-hover: var(--axis-color-gray-800);
+  --axis-button-bg-active: var(--axis-color-gray-700);
+  --axis-button-text-default: var(--axis-color-white);
+  --axis-button-border-focus: var(--axis-color-blue-500);
+  --axis-button-secondary-bg-default: var(--axis-color-gray-100);
+  --axis-button-secondary-bg-hover: var(--axis-color-gray-200);
+  --axis-button-secondary-bg-active: var(--axis-color-gray-300);
+  --axis-button-secondary-text-default: var(--axis-color-gray-900);
+  --axis-button-ghost-bg-default: transparent;
+  --axis-button-ghost-bg-hover: var(--axis-color-gray-100);
+  --axis-button-ghost-bg-active: var(--axis-color-gray-200);
+  --axis-button-ghost-text-default: var(--axis-color-gray-900);
+  --axis-button-destructive-bg-default: var(--axis-color-red-500);
+  --axis-button-destructive-bg-hover: var(--axis-color-red-600);
+  --axis-button-destructive-bg-active: var(--axis-color-red-700);
+  --axis-button-destructive-text-default: var(--axis-color-white);
+
+  --axis-card-bg-default: var(--axis-color-white);
+  --axis-card-border-default: var(--axis-color-gray-200);
+
+  --axis-input-bg-default: var(--axis-color-white);
+  --axis-input-text-default: var(--axis-color-gray-900);
+  --axis-input-text-placeholder: var(--axis-color-gray-400);
+  --axis-input-border-default: var(--axis-color-gray-300);
+  --axis-input-border-hover: var(--axis-color-gray-400);
+  --axis-input-border-focus: var(--axis-color-blue-500);
+  --axis-input-border-error: var(--axis-color-red-500);
+  --axis-input-bg-disabled: var(--axis-color-gray-100);
+
+  --axis-badge-default-bg: var(--axis-color-gray-900);
+  --axis-badge-default-text: var(--axis-color-white);
+  --axis-badge-success-bg: var(--axis-color-green-100);
+  --axis-badge-success-text: var(--axis-color-green-700);
+  --axis-badge-warning-bg: var(--axis-color-yellow-100);
+  --axis-badge-warning-text: var(--axis-color-yellow-700);
+  --axis-badge-error-bg: var(--axis-color-red-100);
+  --axis-badge-error-text: var(--axis-color-red-700);
+  --axis-badge-info-bg: var(--axis-color-blue-100);
+  --axis-badge-info-text: var(--axis-color-blue-700);
+  --axis-bg-muted: var(--axis-color-gray-100);
+
+  /* ---------- RADIUS ---------- */
+  --axis-radius-none: 0;
+  --axis-radius-sm: 0.125rem;
+  --axis-radius-default: 0.25rem;
+  --axis-radius-md: 0.375rem;
+  --axis-radius-lg: 0.5rem;
+  --axis-radius-xl: 0.75rem;
+  --axis-radius-2xl: 1rem;
+  --axis-radius-3xl: 1.5rem;
+  --axis-radius-full: 9999px;
+
+  /* ---------- ELEVATION ---------- */
+  --axis-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --axis-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --axis-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --axis-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --axis-shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --axis-shadow-ring-focus: 0 0 0 2px var(--axis-surface-default), 0 0 0 4px var(--axis-border-focus);
+
+  /* ---------- 타이포그래피 ---------- */
+  --axis-font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui,
+    "Apple SD Gothic Neo", "Noto Sans KR", sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  --axis-font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --axis-font-mono: "D2Coding", "D2Coding ligature", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    monospace;
+  --axis-font-code: var(--axis-font-mono);
+
+  --axis-text-xs: 0.75rem;
+  --axis-text-sm: 0.875rem;
+  --axis-text-base: 1rem;
+  --axis-text-lg: 1.125rem;
+  --axis-text-xl: 1.25rem;
+  --axis-text-2xl: 1.5rem;
+  --axis-text-3xl: 1.875rem;
+  --axis-text-4xl: 2.25rem;
+  --axis-text-5xl: 3rem;
+  --axis-text-6xl: 3.75rem;
+
+  --axis-weight-thin: 100;
+  --axis-weight-extralight: 200;
+  --axis-weight-light: 300;
+  --axis-weight-normal: 400;
+  --axis-weight-medium: 500;
+  --axis-weight-semibold: 600;
+  --axis-weight-bold: 700;
+  --axis-weight-extrabold: 800;
+  --axis-weight-black: 900;
+
+  --axis-lh-none: 1;
+  --axis-lh-tight: 1.25;
+  --axis-lh-snug: 1.375;
+  --axis-lh-normal: 1.5;
+  --axis-lh-relaxed: 1.625;
+  --axis-lh-loose: 2;
+
+  /* ---------- SPACING ---------- */
+  --axis-space-0: 0;
+  --axis-space-0-5: 0.125rem;
+  --axis-space-1: 0.25rem;
+  --axis-space-1-5: 0.375rem;
+  --axis-space-2: 0.5rem;
+  --axis-space-2-5: 0.625rem;
+  --axis-space-3: 0.75rem;
+  --axis-space-4: 1rem;
+  --axis-space-5: 1.25rem;
+  --axis-space-6: 1.5rem;
+  --axis-space-8: 2rem;
+  --axis-space-10: 2.5rem;
+  --axis-space-12: 3rem;
+  --axis-space-16: 4rem;
+  --axis-space-20: 5rem;
+  --axis-space-24: 6rem;
+
+  /* ---------- shadcn HSL 레이어 (컴포넌트 호환) ---------- */
+  --background: 0 0% 100%;
+  --foreground: 240 10% 3.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 240 10% 3.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 240 10% 3.9%;
+  --primary: 240 5.9% 10%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 240 4.8% 95.9%;
+  --secondary-foreground: 240 5.9% 10%;
+  --muted: 240 4.8% 95.9%;
+  --muted-foreground: 240 3.8% 46.1%;
+  --accent: 240 4.8% 95.9%;
+  --accent-foreground: 240 5.9% 10%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 240 5.9% 90%;
+  --input: 240 5.9% 90%;
+  --ring: 240 5.9% 10%;
+  --radius: 0.5rem;
+}
+
+/* ---------- 다크 모드 ---------- */
+.dark,
+[data-theme="dark"] {
+  --axis-surface-default: var(--axis-color-gray-950);
+  --axis-surface-secondary: var(--axis-color-gray-900);
+  --axis-surface-tertiary: var(--axis-color-gray-800);
+  --axis-surface-inverse: var(--axis-color-gray-100);
+  --axis-surface-brand: var(--axis-color-blue-600);
+  --axis-surface-success: var(--axis-color-green-950);
+  --axis-surface-warning: var(--axis-color-yellow-950);
+  --axis-surface-error: var(--axis-color-red-950);
+  --axis-surface-info: var(--axis-color-blue-950);
+
+  --axis-text-primary: var(--axis-color-gray-100);
+  --axis-text-secondary: var(--axis-color-gray-400);
+  --axis-text-tertiary: var(--axis-color-gray-500);
+  --axis-text-inverse: var(--axis-color-gray-900);
+  --axis-text-brand: var(--axis-color-blue-400);
+  --axis-text-success: var(--axis-color-green-400);
+  --axis-text-warning: var(--axis-color-yellow-400);
+  --axis-text-error: var(--axis-color-red-400);
+  --axis-text-info: var(--axis-color-blue-400);
+
+  --axis-border-default: var(--axis-color-gray-800);
+  --axis-border-secondary: var(--axis-color-gray-700);
+  --axis-border-focus: var(--axis-color-blue-400);
+
+  --axis-icon-default: var(--axis-color-gray-400);
+  --axis-icon-secondary: var(--axis-color-gray-500);
+  --axis-icon-brand: var(--axis-color-blue-400);
+
+  --axis-card-bg-default: var(--axis-color-gray-950);
+  --axis-card-border-default: var(--axis-color-gray-800);
+
+  --axis-input-bg-default: var(--axis-color-gray-900);
+  --axis-input-text-default: var(--axis-color-gray-100);
+  --axis-input-border-default: var(--axis-color-gray-700);
+  --axis-input-border-hover: var(--axis-color-gray-600);
+  --axis-bg-muted: var(--axis-color-gray-800);
+
+  --axis-button-bg-default: var(--axis-color-gray-100);
+  --axis-button-bg-hover: var(--axis-color-gray-200);
+  --axis-button-text-default: var(--axis-color-gray-900);
+  --axis-button-secondary-bg-default: var(--axis-color-gray-800);
+  --axis-button-secondary-bg-hover: var(--axis-color-gray-700);
+  --axis-button-secondary-text-default: var(--axis-color-gray-100);
+  --axis-button-ghost-bg-hover: var(--axis-color-gray-800);
+  --axis-button-ghost-text-default: var(--axis-color-gray-100);
+
+  --background: 240 10% 3.9%;
+  --foreground: 0 0% 98%;
+  --card: 240 10% 3.9%;
+  --card-foreground: 0 0% 98%;
+  --popover: 240 10% 3.9%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 0 0% 98%;
+  --primary-foreground: 240 5.9% 10%;
+  --secondary: 240 3.7% 15.9%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 240 3.7% 15.9%;
+  --muted-foreground: 240 5% 64.9%;
+  --accent: 240 3.7% 15.9%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 240 3.7% 15.9%;
+  --input: 240 3.7% 15.9%;
+  --ring: 240 4.9% 83.9%;
+}
+
+/* ==========================================================================
+   Tailwind 4 @theme - shadcn 표준 토큰을 axis HSL 레이어에 매핑
+   ========================================================================== */
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
+  --font-sans: var(--axis-font-sans);
+  --font-mono: var(--axis-font-mono);
+
+  /* Axis 시맨틱 토큰을 Tailwind 유틸리티로 직접 노출 (예: bg-axis-surface-secondary) */
+  --color-axis-surface-default: var(--axis-surface-default);
+  --color-axis-surface-secondary: var(--axis-surface-secondary);
+  --color-axis-surface-tertiary: var(--axis-surface-tertiary);
+  --color-axis-surface-inverse: var(--axis-surface-inverse);
+  --color-axis-surface-brand: var(--axis-surface-brand);
+  --color-axis-surface-success: var(--axis-surface-success);
+  --color-axis-surface-warning: var(--axis-surface-warning);
+  --color-axis-surface-error: var(--axis-surface-error);
+  --color-axis-surface-info: var(--axis-surface-info);
+
+  --color-axis-text-primary: var(--axis-text-primary);
+  --color-axis-text-secondary: var(--axis-text-secondary);
+  --color-axis-text-tertiary: var(--axis-text-tertiary);
+  --color-axis-text-inverse: var(--axis-text-inverse);
+  --color-axis-text-brand: var(--axis-text-brand);
+  --color-axis-text-success: var(--axis-text-success);
+  --color-axis-text-warning: var(--axis-text-warning);
+  --color-axis-text-error: var(--axis-text-error);
+  --color-axis-text-info: var(--axis-text-info);
+
+  --color-axis-border-default: var(--axis-border-default);
+  --color-axis-border-secondary: var(--axis-border-secondary);
+  --color-axis-border-focus: var(--axis-border-focus);
+  --color-axis-border-error: var(--axis-border-error);
+  --color-axis-border-success: var(--axis-border-success);
+
+  --color-axis-badge-success-bg: var(--axis-badge-success-bg);
+  --color-axis-badge-success-text: var(--axis-badge-success-text);
+  --color-axis-badge-warning-bg: var(--axis-badge-warning-bg);
+  --color-axis-badge-warning-text: var(--axis-badge-warning-text);
+  --color-axis-badge-error-bg: var(--axis-badge-error-bg);
+  --color-axis-badge-error-text: var(--axis-badge-error-text);
+  --color-axis-badge-info-bg: var(--axis-badge-info-bg);
+  --color-axis-badge-info-text: var(--axis-badge-info-text);
+}
+
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    font-family: var(--axis-font-sans);
+    background: var(--axis-surface-secondary);
+    color: var(--axis-text-primary);
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--axis-color-gray-300);
+  border-radius: 6px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
