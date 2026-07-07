@@ -1,15 +1,9 @@
 import { eq } from "drizzle-orm";
 import { jobs, uploads } from "@ga-settle/schema";
 import { getDb } from "./db";
-import type { Env } from "./index";
+import type { Env, ParseJob } from "./types";
 
-export type ParseJob = {
-  kind: "parse-upload";
-  uploadId: string;
-  jobId: string;
-  r2Key: string;
-  insurerId: string;
-};
+export type { ParseJob }; // 기존 import 경로(./queue) 호환용 재노출
 
 /**
  * Queue Consumer (F-003 진행률 골격 / F-008 실제 파싱)
