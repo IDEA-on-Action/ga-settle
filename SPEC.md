@@ -154,9 +154,10 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 ### F-017 · RBAC + 계정/공지
 - **REQ-026**: 직책별 조직 스코프 권한, 세션 인증, 관리자 IP 허용목록 (FR-25~26, NFR-03)
 - **Acceptance**:
-  - [ ] 팀장이 타 팀 데이터 조회 시 403 테스트
-- **Status**: TODO
+  - [x] 팀장이 타 팀 데이터 조회 시 403 테스트 (manager team1 → team2 조회 403, 하위 sub1 200)
+- **Status**: DONE
 - **Sprint**: S4
+- **Notes**: src/auth.ts(HMAC 세션토큰 signToken/verifyToken, salted SHA-256 passwordHash[TODO F-020 PBKDF2], inScope 조직 트리 조상-or-self 스코프, adminIpAllowed NFR-03). routes/auth.ts: POST /api/users(관리자 IP 게이트), POST /api/auth/login(토큰 발급+감사), GET /api/orgs/:orgUnitId/agents(인증+스코프 보호, 스코프 밖 403). **최소 침습**: 전역 미들웨어 대신 보호 라우트 per-route 인증(기존 라우트는 F-017 이전 SECURITY 주석대로 유지). 나머지 라우트 인증 적용은 후속. 테스트 4(RBAC 403·admin·로그인실패·변조토큰).
 
 ### F-018 · 지급 내역서 + 출력물
 - **REQ-027**: 팀장용 설계사별 내역서, 정산 엑셀, 급여 이체 마스터 파일 (FR-21~23)
