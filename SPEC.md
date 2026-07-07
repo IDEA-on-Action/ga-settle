@@ -201,8 +201,12 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 
 ### F-023 · 운영 배포 + 매뉴얼 + 인수인계
 - **REQ-032**: prod 배포, 사용/운영 매뉴얼, 검수 대응 자료 (NFR-07)
-- **Status**: TODO
+- **Acceptance**:
+  - [x] 배포 런북/운영 매뉴얼/인수인계 문서 + deploy dry-run 번들 검증
+  - [ ] 실 prod 배포(wrangler deploy + D1 remote + 시크릿) - **비가역이라 사용자 실행 대기**
+- **Status**: DONE (문서/dry-run) · prod 배포는 사용자 실행
 - **Sprint**: S7
+- **Notes**: docs/DEPLOY.md(배포 런북+체크리스트, 비가역 단계 사람 실행 명시), docs/OPERATIONS.md(월 정산 운영 절차), docs/HANDOVER.md(아키텍처·불변식·backlog·검수 대응). `wrangler deploy --dry-run` 번들 성공(264KB gzip, Queue/D1/R2 바인딩 정상). 실 prod 배포/시크릿/원격 마이그레이션은 비가역이라 개발 워크플로 규칙상 사용자 실행(런북 제공). 이로써 F-001~F-023 파이프라인 완료.
 
 ## §3. Backlog (F-item 승격 대기)
 
