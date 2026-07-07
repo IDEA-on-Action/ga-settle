@@ -10,4 +10,9 @@ describe("골든 변환 성공률", () => {
     expect(overallRate).toBeGreaterThanOrEqual(0.99);
     for (const r of results) expect(r.total).toBeGreaterThan(0);
   });
+
+  it("원장 스냅샷 회귀: 기대 매핑 필드 + 통과 행 수 (NFR-06)", () => {
+    const { results } = runGolden();
+    for (const r of results) expect(r.regressed, `${r.name} 회귀 (fields=${r.fields.join(",")}, ok=${r.ok})`).toBe(false);
+  });
 });
