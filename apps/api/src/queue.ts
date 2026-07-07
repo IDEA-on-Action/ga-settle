@@ -36,7 +36,9 @@ export async function queueConsumer(batch: MessageBatch<ParseJob>, env: Env): Pr
       await db.update(uploads).set({ status: "review" }).where(eq(uploads.id, uploadId));
       msg.ack();
     } catch (e) {
-      await db.update(jobs).set({ status: "failed", message: String(e), updatedAt: now() }).where(eq(jobs.id, jobId));
+      // 원시 에러는 서버 로그로만 (jobs.message는 무인증 GET으로 노출되므로 일반 메시지)
+      console.error(`parse job 실패 job=${jobId} upload=${uploadId}`, e);
+      await db.update(jobs).set({ status: "failed", message: "파싱 실패", updatedAt: now() }).where(eq(jobs.id, jobId));
       msg.retry(); // max_retries 3 이후 DLQ
     }
   }

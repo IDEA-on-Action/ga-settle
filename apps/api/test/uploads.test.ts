@@ -35,6 +35,16 @@ describe("POST /api/uploads (F-003)", () => {
     expect(job?.refId).toBe(body.uploadId);
   });
 
+  it("x-user-id 헤더는 신뢰하지 않음 (createdBy=system), auth-bypass 방지", async () => {
+    const res = await SELF.fetch("https://x/api/uploads", {
+      method: "POST", headers: { "x-user-id": "attacker" }, body: form(new Uint8Array([5, 5, 5])),
+    });
+    expect(res.status).toBe(202);
+    const { uploadId } = (await res.json()) as { uploadId: string };
+    const up = await getDb(env).select().from(uploads).where(eq(uploads.id, uploadId)).get();
+    expect(up?.createdBy).toBe("system");
+  });
+
   it("같은 파일 2회 -> 두 번째 409 반려 (멱등, UNIQUE 제약 실측)", async () => {
     const bytes = new Uint8Array([9, 9, 9, 9]);
     const r1 = await post(form(bytes));

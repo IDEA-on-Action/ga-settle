@@ -16,6 +16,8 @@ export type Env = {
   ENV: string;
 };
 
+const MAX_UPLOAD_BYTES = 50 * 1024 * 1024; // 50MB (수만 행 엑셀 여유분, 메모리 보호)
+
 export const app = new Hono<{ Bindings: Env }>();
 
 // --- 미들웨어 (F-017에서 확장: 세션 인증, RBAC 스코프, 감사 로그) ---
@@ -47,7 +49,12 @@ app.post("/api/uploads", async (c) => {
   const ext = name.endsWith(".xlsx") ? "xlsx" : name.endsWith(".xls") ? "xls" : null;
   if (!ext) return c.json({ error: "xls/xlsx 파일만 허용해요" }, 415);
 
+  // 업로드 크기 상한(메모리 보호). Content-Length 선차단 + 실바이트 재확인.
+  const declared = Number(c.req.header("content-length") ?? 0);
+  if (declared > MAX_UPLOAD_BYTES) return c.json({ error: "파일이 너무 커요 (최대 50MB)" }, 413);
+
   const bytes = await file.arrayBuffer();
+  if (bytes.byteLength > MAX_UPLOAD_BYTES) return c.json({ error: "파일이 너무 커요 (최대 50MB)" }, 413);
   const fileHash = await sha256Hex(bytes);
   const db = getDb(c.env);
 
@@ -61,7 +68,9 @@ app.post("/api/uploads", async (c) => {
 
   const uploadId = crypto.randomUUID();
   const jobId = crypto.randomUUID();
-  const createdBy = c.req.header("x-user-id") ?? "system"; // F-017 인증 전 임시
+  // F-017 세션 인증 도입 전까지 클라이언트 제공 신원(x-user-id)은 신뢰하지 않음(스푸핑 방지).
+  // TODO(F-017): 세션에서 인증된 사용자로 대체.
+  const createdBy = "system";
   const r2Key = `uploads/${meta.data.settlementMonth}/${uploadId}.${ext}`;
   const now = new Date().toISOString();
 
@@ -92,6 +101,8 @@ app.post("/api/uploads", async (c) => {
 });
 
 // 진행률 폴링 (F-003 REQ-006, SPA)
+// SECURITY(F-017): 현재 무인증 + 소유권 검사 없음(id로 조회). F-017에서 세션 인증 +
+//   RBAC 조직 스코프로 IDOR 차단. 그 전까지는 신뢰 네트워크(관리자 IP 허용목록) 전제.
 app.get("/api/jobs/:id", async (c) => {
   const job = await getDb(c.env).select().from(jobs).where(eq(jobs.id, c.req.param("id"))).get();
   return job ? c.json(job) : c.json({ error: "없는 작업이에요" }, 404);
