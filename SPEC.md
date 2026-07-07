@@ -185,8 +185,11 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 
 ### F-021 · 골든 회귀 + E2E
 - **REQ-030**: 원수사별 골든 표본 → 기대 원장 스냅샷 회귀, Playwright 핵심 5흐름 (NFR-06)
-- **Status**: TODO
+- **Acceptance**:
+  - [x] 골든 원장 스냅샷 회귀(기대 필드/행) + 핵심 흐름 API E2E 관통
+- **Status**: DONE
 - **Sprint**: S6
+- **Notes**: packages/golden 회귀 확장 - GoldenSample.expected(기대 매핑필드+staged행), runGolden이 regressed 판정(매핑/룰/검증 로직 드리프트 감지). apps/api/test/e2e.test.ts: 업로드→파싱(ingestParsed)→매핑확정→승인원장→정산계산→대사→내역서→마감 7단계를 실제 엔드포인트로 관통 실측. **브라우저 Playwright E2E는 apps/web SPA 화면 필요 → B-006 backlog**(파이프라인이 API-first로 진행, UI 미구축). 로직 관통은 API E2E로 커버.
 
 ### F-022 · 병행 검증 (차액 0원 리포트)
 - **REQ-031**: 한 달치 실데이터 이중 정산 비교, 차이 발생 시 계약 단위 원인 리포트 (§2 성공 기준)
@@ -207,6 +210,7 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 | B-003 | 시책 룰 자연어 → JSON 초안 생성 | — | mid |
 | B-004 | 원수사 API 직접 연동 | - | low |
 | B-005 | 전 엔드포인트 인증 롤아웃 (F-017 auth를 모든 라우트에 적용, payslips/runs 등) | 다수 파일·사용자 관찰가능 | high |
+| B-006 | SPA 화면 구축 + Playwright 브라우저 E2E 5흐름 (업로드/매핑/대사/마감/내역서 UI) | 사용자 관찰가능·다수 파일 | mid |
 
 > 승격 기준 (`.claude/rules/task-promotion.md`): D1 migration / 3+ 파일 / 사용자 관찰가능 / Sprint 필요 — 1개 충족 시 F-item으로
 

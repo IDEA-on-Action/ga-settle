@@ -7,7 +7,8 @@ import {
   detectHeaderRow, profileColumns, localMap, runConsistency, columnMapOf, validateRows, type Grid,
 } from "@ga-settle/mapping";
 
-export type GoldenSample = { name: string; grid: Grid };
+// expected = 기대 원장 스냅샷(회귀 기준): 매핑되어야 할 온톨로지 필드 + 통과(staged) 행 수.
+export type GoldenSample = { name: string; grid: Grid; expected: { fields: string[]; staged: number } };
 
 // 원수사별 서로 다른 양식(동의어 변형)을 흉내낸 합성 표본. 전부 유효 행.
 function build(headers: string[], title: string, n = 12): Grid {
@@ -20,12 +21,13 @@ function build(headers: string[], title: string, n = 12): Grid {
   return g;
 }
 
+const EXPECTED_FIELDS = ["계약번호", "계약일", "설계사명", "보험료", "수수료율", "지급수수료"];
 export const GOLDEN_SAMPLES: GoldenSample[] = [
-  { name: "A생명(표준)", grid: build(["증권번호", "계약일자", "모집인", "납입보험료", "지급률", "수수료"], "A생명 2026-06 명세서") },
-  { name: "B화재(동의어)", grid: build(["계약no", "청약일", "fc명", "월보험료", "지급율", "커미션"], "B화재 6월 지급내역") },
+  { name: "A생명(표준)", grid: build(["증권번호", "계약일자", "모집인", "납입보험료", "지급률", "수수료"], "A생명 2026-06 명세서"), expected: { fields: EXPECTED_FIELDS, staged: 12 } },
+  { name: "B화재(동의어)", grid: build(["계약no", "청약일", "fc명", "월보험료", "지급율", "커미션"], "B화재 6월 지급내역"), expected: { fields: EXPECTED_FIELDS, staged: 12 } },
 ];
 
-export type GoldenResult = { name: string; total: number; ok: number; rate: number };
+export type GoldenResult = { name: string; total: number; ok: number; rate: number; fields: string[]; regressed: boolean };
 
 // 각 표본을 L1 프로파일링 -> 규칙 매핑 -> L3 산식 발굴 -> 행 검증까지 돌려 변환 성공률 산출.
 export function runGolden(samples: GoldenSample[] = GOLDEN_SAMPLES): { results: GoldenResult[]; overallRate: number } {
@@ -34,8 +36,13 @@ export function runGolden(samples: GoldenSample[] = GOLDEN_SAMPLES): { results: 
     const { profiles, rows } = profileColumns(s.grid, hIdx);
     const cands = localMap(profiles);
     runConsistency(cands, profiles, rows); // 산식 발굴로 지급수수료 등 보강
-    const { staged } = validateRows(rows, columnMapOf(cands));
-    return { name: s.name, total: rows.length, ok: staged.length, rate: rows.length ? staged.length / rows.length : 0 };
+    const columnMap = columnMapOf(cands);
+    const { staged } = validateRows(rows, columnMap);
+    const fields = Object.keys(columnMap).sort();
+    // 기대 원장 스냅샷 회귀: 매핑 필드 집합 + 통과 행 수가 기대치와 다르면 regressed
+    const expectedFields = [...s.expected.fields].sort();
+    const regressed = staged.length !== s.expected.staged || JSON.stringify(fields.filter((f) => expectedFields.includes(f))) !== JSON.stringify(expectedFields);
+    return { name: s.name, total: rows.length, ok: staged.length, rate: rows.length ? staged.length / rows.length : 0, fields, regressed };
   });
   const total = results.reduce((a, r) => a + r.total, 0);
   const ok = results.reduce((a, r) => a + r.ok, 0);
