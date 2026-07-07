@@ -98,3 +98,42 @@ describe("F-024 인증 롤아웃 + F-017 RBAC", () => {
     expect((await post("/api/users/whoever/reset-password", { newPassword: "resetpw12345" }, viewer)).status).toBe(403);
   });
 });
+
+describe("F-027 이메일 OTP (@atasset.co.kr)", () => {
+  it("@atasset.co.kr 계정: 비밀번호 로그인 차단 -> 403", async () => {
+    const admin = await bootstrapAdmin();
+    await post("/api/users", { email: "kim@atasset.co.kr", name: "김", role: "staff", password: "pw1234" }, admin);
+    expect((await post("/api/auth/login", { email: "kim@atasset.co.kr", password: "pw1234" })).status).toBe(403);
+  });
+
+  it("OTP 요청->검증: 코드로 로그인 + 토큰 발급 + 재사용 방지", async () => {
+    const admin = await bootstrapAdmin();
+    await post("/api/users", { email: "lee@atasset.co.kr", name: "이", role: "manager", password: "pw1234" }, admin);
+    const req = await post("/api/auth/otp/request", { email: "lee@atasset.co.kr" });
+    expect(req.status).toBe(200);
+    const devCode = ((await req.json()) as { devCode: string }).devCode;
+    expect(devCode).toMatch(/^\d{6}$/);
+    // 틀린 코드 -> 401
+    const wrong = devCode === "111111" ? "222222" : "111111";
+    expect((await post("/api/auth/otp/verify", { email: "lee@atasset.co.kr", code: wrong })).status).toBe(401);
+    // 맞는 코드 -> 200 + token, 보호 엔드포인트 접근
+    const v = await post("/api/auth/otp/verify", { email: "lee@atasset.co.kr", code: devCode });
+    expect(v.status).toBe(200);
+    const token = ((await v.json()) as { token: string }).token;
+    expect((await get("/api/org/tree", token)).status).toBe(200);
+    // 소비된 코드 재사용 -> 401
+    expect((await post("/api/auth/otp/verify", { email: "lee@atasset.co.kr", code: devCode })).status).toBe(401);
+  });
+
+  it("도메인 밖 이메일 OTP 요청 -> 400", async () => {
+    await bootstrapAdmin();
+    expect((await post("/api/auth/otp/request", { email: "someone@gmail.com" })).status).toBe(400);
+  });
+
+  it("없는 계정 OTP 요청 -> 200(열거 방지) + 코드 미발급", async () => {
+    await bootstrapAdmin();
+    const r = await post("/api/auth/otp/request", { email: "ghost@atasset.co.kr" });
+    expect(r.status).toBe(200);
+    expect(((await r.json()) as { devCode?: string }).devCode).toBeUndefined();
+  });
+});

@@ -26,9 +26,10 @@ app.get("/health", (c) => c.json({ ok: true, env: c.env.ENV }));
 
 // --- 인증 미들웨어 (F-024 인증 롤아웃): /api/* 전역 게이트 ---
 // 공개: 로그인, 계정 생성(POST /api/users는 부트스트랩/admin 자체 게이트). 그 외 유효 토큰 필수.
+const PUBLIC_API = new Set(["/api/auth/login", "/api/auth/otp/request", "/api/auth/otp/verify"]);
 app.use("/api/*", async (c, next) => {
   const path = new URL(c.req.url).pathname;
-  if (path === "/api/auth/login" || (path === "/api/users" && c.req.method === "POST")) return next();
+  if (PUBLIC_API.has(path) || (path === "/api/users" && c.req.method === "POST")) return next();
   const user = await authUser(c.req.raw, getDb(c.env), c.env.SESSION_SECRET);
   if (!user) return c.json({ error: "인증이 필요해요" }, 401);
   await next();

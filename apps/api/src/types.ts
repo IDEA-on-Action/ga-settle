@@ -16,4 +16,8 @@ export type Env = {
   SESSION_SECRET: string;
   ADMIN_IP_ALLOWLIST: string;
   ENV: string;
+  // 이메일 OTP (F-027). 미설정 시 도메인 기본값 사용, 이메일 미발송(dev).
+  RESEND_API_KEY?: string;      // 이메일 발송 API 키 (secret)
+  OTP_EMAIL_DOMAIN?: string;    // OTP 전용 도메인 (기본 atasset.co.kr)
+  OTP_FROM_EMAIL?: string;      // 발신 주소
 };

@@ -294,6 +294,14 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 - **Sprint**: S7
 - **Notes**: routes/insurers.ts CRUD(생성 시 커스텀 id 허용/중복 409, 삭제는 uploads/commission_records/template_versions 참조 시 409 - 역추적 보호, 전 변경 audit). 데모: src/demo.ts 자체완결 HTML을 워커 루트에서 서빙 - 파이프라인(업로드→AI매핑→검증→원장→정산/대사→마감) 인터랙티브 재현 + 라이브 /health 배지. 공개 페이지라 자격증명 미포함(클라이언트 시뮬레이션). 정식 SPA는 [[B-006]]. api 67 PASS. E2E에서 발견한 "원수사 생성 API 부재" gap 해소.
 
+### F-027 · 이메일 OTP 로그인 (@atasset.co.kr 전용)
+- **REQ-037**: 지정 도메인(@atasset.co.kr) 계정은 비밀번호 대신 이메일 일회용 코드(OTP)로만 로그인한다
+- **Acceptance**:
+  - [x] @atasset.co.kr 비밀번호 로그인 403 차단, OTP 요청->검증으로 토큰 발급, 코드 재사용 방지
+- **Status**: DONE (앱 로직) · prod 메일 발송은 RESEND_API_KEY 설정 필요
+- **Sprint**: S7
+- **Notes**: otp_codes 테이블(0002 마이그레이션, 코드 해시+5분 만료+5회 시도제한+consumedAt). POST /api/auth/otp/request(도메인 검증, 계정 존재 시만 발송, 열거 방지 200) + /verify(ctEq, 소비 마킹, 토큰). login은 도메인 계정 403. 이메일: src/email.ts Resend API(RESEND_API_KEY 미설정 시 미발송). devCode는 비-prod 응답에만 노출(테스트). 도메인/발신주소는 OTP_EMAIL_DOMAIN/OTP_FROM_EMAIL vars. **prod 실발송 요건**: RESEND_API_KEY secret + Resend에서 발신 도메인 검증. admin(sinclairseo@gmail.com)은 @gmail이라 비번 로그인 유지. api 71 PASS.
+
 ## §3. Backlog (F-item 승격 대기)
 
 | ID | 한 줄 | 승격 기준 충족? | 우선 |
