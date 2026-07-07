@@ -19,7 +19,7 @@ export const templateVersions = sqliteTable("template_versions", {
   columnMapJson: text("column_map_json").notNull(),    // { 마스터필드: 원본헤더 }
   validFrom: text("valid_from").notNull(),
   validTo: text("valid_to"),
-}, (t) => [index("idx_tv_sig").on(t.headerSignature)]);
+}, (t) => ({ idxTvSig: index("idx_tv_sig").on(t.headerSignature) }));
 
 export const uploads = sqliteTable("uploads", {
   id: text("id").primaryKey(),
@@ -34,7 +34,7 @@ export const uploads = sqliteTable("uploads", {
   errorCount: integer("error_count"),
   createdBy: text("created_by").notNull(),
   createdAt: text("created_at").notNull(),
-}, (t) => [uniqueIndex("uq_uploads_hash").on(t.fileHash)]);
+}, (t) => ({ uqUploadsHash: uniqueIndex("uq_uploads_hash").on(t.fileHash) }));
 
 export const uploadErrors = sqliteTable("upload_errors", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -60,7 +60,7 @@ export const commissionRecords = sqliteTable("commission_records", {
   premiumEnc: text("premium_enc"),        // 암호화 필드 (F-020)
   commissionEnc: text("commission_enc"),  // 암호화 필드 (F-020)
   clawbackEnc: text("clawback_enc"),
-}, (t) => [index("idx_cr_month").on(t.settlementMonth, t.insurerId)]);
+}, (t) => ({ idxCrMonth: index("idx_cr_month").on(t.settlementMonth, t.insurerId) }));
 
 export const settlementRuns = sqliteTable("settlement_runs", {
   id: text("id").primaryKey(),
@@ -69,7 +69,7 @@ export const settlementRuns = sqliteTable("settlement_runs", {
   snapshotR2Key: text("snapshot_r2_key"),
   closedAt: text("closed_at"),
   closedBy: text("closed_by"),
-}, (t) => [uniqueIndex("uq_run_month").on(t.settlementMonth)]);
+}, (t) => ({ uqRunMonth: uniqueIndex("uq_run_month").on(t.settlementMonth) }));
 
 export const adjustments = sqliteTable("adjustments", {
   id: text("id").primaryKey(),

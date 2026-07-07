@@ -2,11 +2,11 @@ name = "ga-settle-api"
 main = "src/index.ts"
 compatibility_date = "2026-06-01"
 
-# F-001에서 리소스 생성 후 TODO id 기입
+# 리소스 생성 완료 (2026-07-07, account: 생각과 행동)
 [[d1_databases]]
 binding = "DB"
 database_name = "ga-settle-db"
-database_id = "TODO"
+database_id = "6f2e9c25-466e-42ee-b810-2587fd3101eb"
 
 [[r2_buckets]]
 binding = "UPLOADS"

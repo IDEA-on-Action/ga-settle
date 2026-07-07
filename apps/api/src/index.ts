@@ -12,7 +12,7 @@ export type Env = {
   ENV: string;
 };
 
-const app = new Hono<{ Bindings: Env }>();
+export const app = new Hono<{ Bindings: Env }>();
 
 // --- 미들웨어 (F-017에서 확장: 세션 인증, RBAC 스코프, 감사 로그) ---
 app.use("*", async (c, next) => {
@@ -41,4 +41,4 @@ app.post("/api/runs/:id/close", async (c) => c.json({ todo: "F-016 마감 이중
 export default {
   fetch: app.fetch,
   queue: queueConsumer,
-} satisfies ExportedHandler<Env>;
+} satisfies ExportedHandler<Env, ParseJob>;
