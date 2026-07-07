@@ -161,8 +161,11 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 
 ### F-018 · 지급 내역서 + 출력물
 - **REQ-027**: 팀장용 설계사별 내역서, 정산 엑셀, 급여 이체 마스터 파일 (FR-21~23)
-- **Status**: TODO
+- **Acceptance**:
+  - [x] 설계사별 롤업 payslip + 내역서(라인 상세) + 이체 마스터 CSV 테스트
+- **Status**: DONE
 - **Sprint**: S5
+- **Notes**: routes/payslips.ts: POST /api/runs/:id/payslips(settlement_lines 설계사별 집계→payslips 멱등), GET /payslips(설계사별 총액), GET /payslips/:agentId(팀장용 내역서=총액+라인 룰별 분해), GET /transfer-master(급여 이체 CSV). xlsx 대신 CSV로 결정적 생성(workerd SheetJS 지연 회피). 테스트 3(2 설계사 그룹핑). *Enc 평문(F-020 전).
 
 ### F-019 · 통계/집계
 - **REQ-028**: 조직/원수사/기간별 집계 (FR-24)
