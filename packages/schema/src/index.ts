@@ -213,3 +213,15 @@ export const jobs = sqliteTable("jobs", {
   message: text("message"),
   updatedAt: text("updated_at").notNull(),
 });
+
+// 이메일 OTP (F-027): 지정 도메인(@atasset.co.kr) 사용자의 일회용 코드 로그인.
+// 코드는 해시 저장, 5분 만료, 5회 시도 제한. 검증 후 consumedAt 마킹.
+export const otpCodes = sqliteTable("otp_codes", {
+  id: text("id").primaryKey(),
+  email: text("email").notNull(),
+  codeHash: text("code_hash").notNull(),
+  expiresAt: text("expires_at").notNull(),
+  consumedAt: text("consumed_at"),
+  attempts: integer("attempts").notNull().default(0),
+  createdAt: text("created_at").notNull(),
+}, (t) => ({ idxOtpEmail: index("idx_otp_email").on(t.email) }));

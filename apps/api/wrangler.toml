@@ -23,8 +23,10 @@ max_retries = 3
 
 [vars]
 ENV = "dev"
+OTP_EMAIL_DOMAIN = "atasset.co.kr"        # 이 도메인 계정은 OTP 전용(비번 차단) (F-027)
+OTP_FROM_EMAIL = "no-reply@atasset.co.kr" # OTP 메일 발신 주소
 # 시크릿은 .dev.vars / wrangler secret put:
-#   ANTHROPIC_API_KEY, FIELD_ENCRYPTION_KEY, SESSION_SECRET, ADMIN_IP_ALLOWLIST
+#   ANTHROPIC_API_KEY, FIELD_ENCRYPTION_KEY, SESSION_SECRET, ADMIN_IP_ALLOWLIST, RESEND_API_KEY(OTP 메일)
 
 # ─────────────────────────────────────────────────────────────
 # 프로덕션 환경 (배포: wrangler deploy --env production)
@@ -39,6 +41,8 @@ routes = [
 
 [env.production.vars]
 ENV = "production"
+OTP_EMAIL_DOMAIN = "atasset.co.kr"
+OTP_FROM_EMAIL = "no-reply@atasset.co.kr"
 
 [[env.production.d1_databases]]
 binding = "DB"
