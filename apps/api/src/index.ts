@@ -4,6 +4,7 @@ import { queueConsumer } from "./queue";
 import { uploadsRoutes } from "./routes/uploads";
 import { mappingRoutes } from "./routes/mapping";
 import { runsRoutes } from "./routes/runs";
+import { orgRoutes } from "./routes/org";
 
 export type { Env };
 
@@ -21,6 +22,7 @@ app.get("/health", (c) => c.json({ ok: true, env: c.env.ENV }));
 app.route("/", uploadsRoutes); // F-003 업로드/진행률
 app.route("/", mappingRoutes); // F-005/F-007 매핑
 app.route("/", runsRoutes);    // F-013~F-016 정산/대사/마감
+app.route("/", orgRoutes);     // F-009 조직/설계사/소속 이력
 
 export default {
   fetch: app.fetch,
