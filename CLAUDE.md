@@ -19,7 +19,8 @@ pnpm dev          # web + api 동시 (turbo)
 pnpm test         # vitest 전체
 pnpm build        # 전체 빌드
 pnpm -F api dev   # wrangler dev 단독
-pnpm -F api d1:migrate:local
+pnpm -F @ga-settle/schema db:generate  # 스키마 변경 후 D1 마이그레이션 SQL 생성 (drizzle-kit)
+pnpm -F api d1:migrate:local           # 로컬 D1에 마이그레이션 적용 (트리거는 0001 수동 유지)
 ```
 
 ## 불변 원칙 (아키텍처 문서 §4-§7 요약)

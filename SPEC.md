@@ -24,10 +24,11 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 - **REQ-003**: 아키텍처 §4의 18개 엔티티가 Drizzle 스키마로 정의되어야 한다
 - **REQ-004**: commission_records는 upload_id+row_no 역추적 컬럼을 필수로 가진다 (FR-08)
 - **Acceptance**:
-  - [ ] `wrangler d1 migrations apply` PASS
-  - [ ] 스키마 단위 테스트 (insert/select 왕복)
-- **Status**: TODO
+  - [x] `wrangler d1 migrations apply` PASS (0000 테이블 35 + 0001 트리거 17 commands, --local)
+  - [x] 스키마 단위 테스트 (insert/select 왕복, better-sqlite3 인메모리 4 tests PASS)
+- **Status**: DONE
 - **Sprint**: S0
+- **Notes**: 18 엔티티(insurers/template_versions/uploads/upload_errors/commission_records/org_units/agents/agent_assignments/incentive_rules/family_flags/settlement_runs/settlement_lines/reconciliations/adjustments/payslips/users/audit_logs/jobs). roles는 users.role 컬럼 통합. 마이그레이션 생성: drizzle-kit(devDep 추가, 스택 결정). 마감 잠금·audit append-only는 스키마로 표현 불가 → migrations/0001_triggers.sql 수동 유지(16 트리거). 왕복 테스트는 better-sqlite3(devDep, D1과 동일 SQLite 엔진).
 
 ### F-003 · 업로드 파이프라인 (R2 + Queue 멱등)
 - **REQ-005**: xls/xlsx 업로드 → 파일 해시 중복 즉시 반려 → R2 불변 보관 → Queue 발행 (FR-01, FR-06)
