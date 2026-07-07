@@ -47,4 +47,14 @@ describe("F-017 RBAC + 세션 인증", () => {
     await post("/api/org/units", { id: "team1", name: "1팀", kind: "team" });
     expect((await get("/api/orgs/team1/agents", "bogus.token")).status).toBe(401);
   });
+
+  it("계정 생성: 부트스트랩 후엔 admin 인증 필수 (missing-auth 방지)", async () => {
+    // 첫 계정 = 부트스트랩(IP 게이트)
+    expect((await post("/api/users", { email: "admin@x.com", name: "관리자", role: "admin", password: "pw1234" })).status).toBe(201);
+    const adminToken = await login("admin@x.com", "pw1234");
+    // 2번째 계정: 토큰 없이 -> 403
+    expect((await post("/api/users", { email: "b@x.com", name: "b", role: "viewer", password: "pw1234" })).status).toBe(403);
+    // admin 토큰 -> 201
+    expect((await post("/api/users", { email: "b@x.com", name: "b", role: "viewer", password: "pw1234" }, adminToken)).status).toBe(201);
+  });
 });

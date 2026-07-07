@@ -7,30 +7,50 @@ import type { Db } from "./db";
 
 const te = new TextEncoder();
 const hex = (buf: ArrayBuffer) => [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+const TOKEN_TTL_SEC = 8 * 3600; // 세션 만료 8시간
 
-// SESSION_SECRET 미설정(test/CI) 시 빈 키로 HMAC importKey가 크래시하므로 dev 폴백.
-// 프로덕션은 wrangler secret로 SESSION_SECRET 설정되어 폴백 미발동.
-const secretOf = (s: string) => (s && s.length > 0 ? s : "ga-settle-dev-secret");
+// 상수시간 문자열 비교 (타이밍 공격 방지).
+export function ctEq(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let r = 0;
+  for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return r === 0;
+}
 
+// 시크릿 미설정이면 fail-closed (하드코딩 폴백 금지 - 위조 방지). 테스트/prod 모두 시크릿 주입.
+function requireSecret(secret: string): string {
+  if (!secret || secret.length === 0) throw new Error("SESSION_SECRET 미설정");
+  return secret;
+}
+
+// TODO(F-020/보안 하드닝): 패스워드 해시를 PBKDF2/argon2로. 현재 salted SHA-256.
 export async function hashPassword(pw: string, secret: string): Promise<string> {
-  return hex(await crypto.subtle.digest("SHA-256", te.encode(`${secretOf(secret)}:${pw}`)));
+  return hex(await crypto.subtle.digest("SHA-256", te.encode(`${requireSecret(secret)}:${pw}`)));
 }
 
 async function hmac(secret: string, data: string): Promise<string> {
-  const key = await crypto.subtle.importKey("raw", te.encode(secretOf(secret)), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const key = await crypto.subtle.importKey("raw", te.encode(requireSecret(secret)), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
   return hex(await crypto.subtle.sign("HMAC", key, te.encode(data)));
 }
 
 export async function signToken(userId: string, secret: string): Promise<string> {
-  const payload = btoa(userId);
+  const exp = Math.floor(Date.now() / 1000) + TOKEN_TTL_SEC;
+  const payload = btoa(`${userId}:${exp}`);
   return `${payload}.${await hmac(secret, payload)}`;
 }
 
 export async function verifyToken(token: string, secret: string): Promise<string | null> {
   const [payload, sig] = token.split(".");
   if (!payload || !sig) return null;
-  if (sig !== (await hmac(secret, payload))) return null;
-  try { return atob(payload); } catch { return null; }
+  let expectedSig: string;
+  try { expectedSig = await hmac(secret, payload); } catch { return null; }
+  if (!ctEq(sig, expectedSig)) return null;
+  let decoded: string;
+  try { decoded = atob(payload); } catch { return null; }
+  const [userId, expStr] = decoded.split(":");
+  if (!userId || !expStr) return null;
+  if (Number(expStr) < Math.floor(Date.now() / 1000)) return null; // 만료
+  return userId;
 }
 
 export type AuthUser = typeof users.$inferSelect;
