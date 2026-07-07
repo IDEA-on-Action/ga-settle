@@ -1,6 +1,8 @@
 import { Hono } from "hono";
 import type { Env, ParseJob } from "./types";
 import { queueConsumer } from "./queue";
+import { getDb } from "./db";
+import { authUser } from "./auth";
 import { uploadsRoutes } from "./routes/uploads";
 import { mappingRoutes } from "./routes/mapping";
 import { runsRoutes } from "./routes/runs";
@@ -15,13 +17,17 @@ export type { Env };
 
 export const app = new Hono<{ Bindings: Env }>();
 
-// --- 미들웨어 (F-017에서 확장: 세션 인증, RBAC 스코프, 감사 로그) ---
-app.use("*", async (c, next) => {
-  await next();
-  // TODO(F-015/F-017): 쓰기 요청 감사 로그 기록
-});
-
 app.get("/health", (c) => c.json({ ok: true, env: c.env.ENV }));
+
+// --- 인증 미들웨어 (F-024 인증 롤아웃): /api/* 전역 게이트 ---
+// 공개: 로그인, 계정 생성(POST /api/users는 부트스트랩/admin 자체 게이트). 그 외 유효 토큰 필수.
+app.use("/api/*", async (c, next) => {
+  const path = new URL(c.req.url).pathname;
+  if (path === "/api/auth/login" || (path === "/api/users" && c.req.method === "POST")) return next();
+  const user = await authUser(c.req.raw, getDb(c.env), c.env.SESSION_SECRET);
+  if (!user) return c.json({ error: "인증이 필요해요" }, 401);
+  await next();
+});
 
 // 라우트 모듈 마운트 (병렬 Sprint가 각자 파일만 만지도록 분리 - P0)
 app.route("/", uploadsRoutes); // F-003 업로드/진행률

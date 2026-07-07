@@ -2,11 +2,9 @@ import { env, SELF } from "cloudflare:test";
 import { describe, it, expect, beforeEach } from "vitest";
 import { insurers, orgUnits, agents, agentAssignments, uploads, commissionRecords } from "@ga-settle/schema";
 import { getDb } from "../src/db";
-import { enc } from "./helpers";
+import { enc, apost as post, agetJson as getJson, aget } from "./helpers";
 
-const post = (path: string, body: unknown = {}) =>
-  SELF.fetch(`https://x${path}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
-const getJson = async (path: string) => (await SELF.fetch(`https://x${path}`)).json();
+
 const now = "2026-07-07";
 
 beforeEach(async () => {
@@ -48,6 +46,6 @@ describe("F-019 통계/집계", () => {
   });
 
   it("month 누락 -> 400", async () => {
-    expect((await SELF.fetch("https://x/api/stats/by-org")).status).toBe(400);
+    expect((await aget("/api/stats/by-org")).status).toBe(400);
   });
 });

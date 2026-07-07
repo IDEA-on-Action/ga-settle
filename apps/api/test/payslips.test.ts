@@ -3,11 +3,9 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { insurers, orgUnits, agents, agentAssignments, uploads, commissionRecords } from "@ga-settle/schema";
 import { getDb } from "../src/db";
 import { csvField } from "../src/routes/payslips";
-import { enc } from "./helpers";
+import { enc, apost as post, agetJson as getJson, aget } from "./helpers";
 
-const post = (path: string, body: unknown = {}) =>
-  SELF.fetch(`https://x${path}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
-const getJson = async (path: string) => (await SELF.fetch(`https://x${path}`)).json();
+
 const now = "2026-07-07";
 
 beforeEach(async () => {
@@ -57,7 +55,7 @@ describe("F-018 지급 내역서 + 출력물", () => {
   it("급여 이체 마스터 CSV", async () => {
     const id = await calcRun();
     await post(`/api/runs/${id}/payslips`);
-    const res = await SELF.fetch(`https://x/api/runs/${id}/transfer-master`);
+    const res = await aget(`/api/runs/${id}/transfer-master`);
     expect(res.headers.get("content-type")).toContain("text/csv");
     const csv = await res.text();
     expect(csv.split("\n")[0]).toBe("agentId,orgUnitId,amount");

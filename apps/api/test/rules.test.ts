@@ -4,9 +4,7 @@ import { evaluate, type CommissionInput } from "@ga-settle/rules";
 import { loadRules } from "../src/routes/rules";
 import { getDb } from "../src/db";
 
-const post = (path: string, body: unknown) =>
-  SELF.fetch(`https://x${path}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
-const getJson = async (path: string) => (await SELF.fetch(`https://x${path}`)).json();
+import { apost as post, agetJson as getJson, aget } from "./helpers";
 
 const ruleBody = {
   name: "6월 종신 시책", priority: 10, overlapPolicy: "stack",
@@ -35,9 +33,9 @@ describe("F-010 시책 룰 CRUD + 평가 통합", () => {
 
   it("DELETE -> 비활성, 재조회 목록에서 제외", async () => {
     const { id } = (await (await post("/api/rules", ruleBody)).json()) as { id: string };
-    expect((await SELF.fetch(`https://x/api/rules/${id}`, { method: "DELETE" })).status).toBe(200);
+    expect((await aget(`/api/rules/${id}`, { method: "DELETE" })).status).toBe(200);
     expect((await getJson("/api/rules") as unknown[]).length).toBe(0);
-    expect((await SELF.fetch(`https://x/api/rules/${id}`, { method: "DELETE" })).status).toBe(404);
+    expect((await aget(`/api/rules/${id}`, { method: "DELETE" })).status).toBe(404);
   });
 
   it("검증 실패 -> 400", async () => {

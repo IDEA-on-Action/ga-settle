@@ -4,9 +4,7 @@ import { agents } from "@ga-settle/schema";
 import { getDb } from "../src/db";
 import { findFamilyCandidates } from "../src/family";
 
-const post = (path: string, body: unknown) =>
-  SELF.fetch(`https://x${path}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
-const getJson = async (path: string) => (await SELF.fetch(`https://x${path}`)).json();
+import { apost as post, agetJson as getJson, aget } from "./helpers";
 const seedAgent = (id: string, name: string, birth: string) =>
   getDb(env).insert(agents).values({ id, code: id, name, birthDateEnc: birth, status: "active", createdAt: "2026-07-07" });
 

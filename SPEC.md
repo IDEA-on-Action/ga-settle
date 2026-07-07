@@ -208,6 +208,14 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 - **Sprint**: S7
 - **Notes**: docs/DEPLOY.md(배포 런북+체크리스트, 비가역 단계 사람 실행 명시), docs/OPERATIONS.md(월 정산 운영 절차), docs/HANDOVER.md(아키텍처·불변식·backlog·검수 대응). `wrangler deploy --dry-run` 번들 성공(264KB gzip, Queue/D1/R2 바인딩 정상). 실 prod 배포/시크릿/원격 마이그레이션은 비가역이라 개발 워크플로 규칙상 사용자 실행(런북 제공). 이로써 F-001~F-023 파이프라인 완료.
 
+### F-024 · 전 엔드포인트 인증 롤아웃 (B-005 승격)
+- **REQ-033**: /api/* 전 엔드포인트가 세션 인증을 요구한다 (공개: /health, 로그인, 계정 부트스트랩)
+- **Acceptance**:
+  - [x] 무인증으로 보호 엔드포인트 접근 시 401, 유효 토큰 시 통과
+- **Status**: DONE
+- **Sprint**: S7
+- **Notes**: index.ts `/api/*` 전역 인증 미들웨어(authUser Bearer 검증, 실패 401). 공개 예외: /health, POST /api/auth/login, POST /api/users(부트스트랩/admin 자체 게이트). 라우트별 개별 인증 대신 한 곳 게이트(최소 침습). 테스트: 공용 authed 헬퍼(apost/aget/agetJson, admin 시드+토큰)로 전 테스트 인증 통과, auth.test는 부트스트랩→로그인 흐름 재작성. api 58 PASS. 세분화 RBAC 스코프(엔드포인트별 role/조직)는 후속(현재 인증 게이트 + org-scope 엔드포인트만).
+
 ## §3. Backlog (F-item 승격 대기)
 
 | ID | 한 줄 | 승격 기준 충족? | 우선 |
@@ -216,7 +224,7 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 | B-002 | 대사 차액 원인 LLM 자연어 설명 | — | mid |
 | B-003 | 시책 룰 자연어 → JSON 초안 생성 | — | mid |
 | B-004 | 원수사 API 직접 연동 | - | low |
-| B-005 | 전 엔드포인트 인증 롤아웃 (F-017 auth를 모든 라우트에 적용, payslips/runs 등) | 다수 파일·사용자 관찰가능 | high |
+| ~~B-005~~ | ~~전 엔드포인트 인증 롤아웃~~ -> F-024로 승격·완료 | 완료 | - |
 | B-006 | SPA 화면 구축 + Playwright 브라우저 E2E 5흐름 (업로드/매핑/대사/마감/내역서 UI) | 사용자 관찰가능·다수 파일 | mid |
 
 > 승격 기준 (`.claude/rules/task-promotion.md`): D1 migration / 3+ 파일 / 사용자 관찰가능 / Sprint 필요 — 1개 충족 시 F-item으로

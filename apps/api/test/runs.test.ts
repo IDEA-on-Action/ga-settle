@@ -3,12 +3,11 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { eq } from "drizzle-orm";
 import { insurers, orgUnits, agents, agentAssignments, uploads, commissionRecords, settlementLines, settlementRuns, auditLogs } from "@ga-settle/schema";
 import { getDb, decNum } from "../src/db";
-import { enc } from "./helpers";
+import { enc, apost as post, agetJson as getJson, aget } from "./helpers";
 
-const getJson = async (path: string) => (await SELF.fetch(`https://x${path}`)).json();
 
-const post = (path: string, body: unknown = {}) =>
-  SELF.fetch(`https://x${path}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+
+
 const now = "2026-07-07";
 
 beforeEach(async () => {
@@ -45,7 +44,7 @@ describe("F-013 정산 계산 배치", () => {
     expect(calc.lines).toBe(3);
     expect(calc.totalAmount).toBe(30000); // 3 x (100000 x 0.1)
 
-    const run = (await (await SELF.fetch(`https://x/api/runs/${id}`)).json()) as { status: string; lineCount: number };
+    const run = (await (await aget(`/api/runs/${id}`)).json()) as { status: string; lineCount: number };
     expect(run.status).toBe("calculated");
     expect(run.lineCount).toBe(3);
   });
@@ -89,7 +88,7 @@ describe("F-013 정산 계산 배치", () => {
     const { id } = (await (await post("/api/runs", { settlementMonth: "2026-06" })).json()) as { id: string };
     await post(`/api/runs/${id}/calculate`); // 계산액 각 10000
 
-    const recon = (await (await SELF.fetch(`https://x/api/runs/${id}/reconciliation`)).json()) as {
+    const recon = (await (await aget(`/api/runs/${id}/reconciliation`)).json()) as {
       insurers: { insurerId: string; insurerTotal: number; calculatedTotal: number; diff: number; status: string }[];
       diffContracts: { contractNo: string; diff: number }[];
     };
