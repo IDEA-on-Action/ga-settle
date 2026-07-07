@@ -8,12 +8,16 @@ import type { Db } from "./db";
 const te = new TextEncoder();
 const hex = (buf: ArrayBuffer) => [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
 
+// SESSION_SECRET 미설정(test/CI) 시 빈 키로 HMAC importKey가 크래시하므로 dev 폴백.
+// 프로덕션은 wrangler secret로 SESSION_SECRET 설정되어 폴백 미발동.
+const secretOf = (s: string) => (s && s.length > 0 ? s : "ga-settle-dev-secret");
+
 export async function hashPassword(pw: string, secret: string): Promise<string> {
-  return hex(await crypto.subtle.digest("SHA-256", te.encode(`${secret}:${pw}`)));
+  return hex(await crypto.subtle.digest("SHA-256", te.encode(`${secretOf(secret)}:${pw}`)));
 }
 
 async function hmac(secret: string, data: string): Promise<string> {
-  const key = await crypto.subtle.importKey("raw", te.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const key = await crypto.subtle.importKey("raw", te.encode(secretOf(secret)), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
   return hex(await crypto.subtle.sign("HMAC", key, te.encode(data)));
 }
 
