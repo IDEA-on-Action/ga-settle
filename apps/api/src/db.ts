@@ -13,3 +13,13 @@ export async function sha256Hex(data: ArrayBuffer): Promise<string> {
 
 // 암호화 필드 임시 인코딩. TODO(F-020): FIELD_ENCRYPTION_KEY로 AES-GCM 실제 암호화.
 export const encField = (v: unknown): string | null => (v == null ? null : String(v));
+
+// 감사 로그 기록 (F-015 NFR-04). audit_logs는 append-only(F-002 트리거)라 사후 변조 불가.
+export async function writeAudit(
+  db: Db, e: { actor: string; action: string; entity: string; entityId?: string; summary?: unknown; ip?: string },
+): Promise<void> {
+  await db.insert(schema.auditLogs).values({
+    actor: e.actor, action: e.action, entity: e.entity, entityId: e.entityId ?? null,
+    summaryJson: e.summary != null ? JSON.stringify(e.summary) : null, ip: e.ip ?? null, at: new Date().toISOString(),
+  });
+}
