@@ -130,9 +130,10 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 ### F-014 · 대사 + 차액 드릴다운
 - **REQ-023**: 원수사 지급총액 vs 계산총액 자동 비교, 차액을 계약 단위까지 추적 (FR-17, FR-18)
 - **Acceptance**:
-  - [ ] 의도적 차액 주입 시 원인 계약 특정 E2E
-- **Status**: TODO
+  - [x] 의도적 차액 주입 시 원인 계약 특정 (C3 commissionEnc 9000 주입 → diffContracts=[C3] 실측)
+- **Status**: DONE
 - **Sprint**: S3 (마일스톤 2 게이트: 실데이터 대사 시연)
+- **Notes**: GET /api/runs/:id/reconciliation: 원수사 보고액(commission_records.commissionEnc) vs 계산액(settlement_lines 합)을 계약(commissionRecordId) 단위 비교 → diff≠0 계약 드릴다운(역추적 불변식 활용). 원수사별 집계 → reconciliations 갱신(멱등 delete+insert). 브라우저 E2E는 F-021. *Enc 평문(F-020 전).
 
 ### F-015 · 수동 보정 + 감사 로그
 - **REQ-024**: 보정 사유 필수, 이중 승인(옵션 플래그), 전 쓰기 감사 기록 (FR-19, NFR-04)
