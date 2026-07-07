@@ -53,10 +53,11 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 - **REQ-009**: LLM 장애 시 규칙 기반 엔진으로 강등 동작 (자동 확정 비활성)
 - **REQ-010**: 전송 표본은 마스킹, 컬럼당 8개 한정 (NFR-02 연계)
 - **Acceptance**:
-  - [ ] 무의미 헤더('항목A') 샘플이 값 기반으로 매핑됨
-  - [ ] API 키 제거 상태에서 폴백 경로 테스트 PASS
-- **Status**: TODO
+  - [x] 무의미 헤더('항목A') 샘플이 값 기반으로 매핑됨 (산식 발굴, mapping + api 테스트)
+  - [x] API 키 제거 상태에서 폴백 경로 테스트 PASS (engine=local 강등)
+- **Status**: DONE
 - **Sprint**: S1
+- **Notes**: apps/api/src/llm.ts 어댑터 - aiMap(Claude tool_use로 매핑후보 JSON, 마스킹표본 8개) + resolveMapping(AI 시도→장애 시 localMap 강등 REQ-009→L3 정합성→L4 등급). 모델 claude-sonnet-5. 테스트 4(폴백/AI파싱/5xx강등/마스킹). GET /api/uploads/:id/mapping 라우트 E2E는 파싱된 프로파일 필요 → F-008에서 결선.
 
 ### F-006 · L3 정합성 교차검증 + L4 신뢰도 등급
 - **REQ-011**: 지급수수료 ≈ 보험료 x 수수료율 표본 검증, % 스케일 자동 감지
