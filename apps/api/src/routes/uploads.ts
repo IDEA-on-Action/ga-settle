@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { uploads, jobs, insurers, uploadErrors, commissionRecords } from "@ga-settle/schema";
 import type { StagedRow } from "@ga-settle/mapping";
 import type { Env } from "../types";
@@ -112,6 +112,12 @@ uploadsRoutes.post("/api/uploads/:id/approve", async (c) => {
   if (!stagedObj) return c.json({ error: "스테이징 데이터가 없어요" }, 409);
   const { staged } = JSON.parse(await stagedObj.text()) as { staged: StagedRow[] };
 
+  // 낙관적 락: review -> approved 전환을 조건부로 선점. 동시 승인 중 진 쪽은 0 rows -> 409
+  // (원장 이중 커밋 방지). 이 요청이 전환을 소유한 뒤에만 원장 insert.
+  const claim = await db.update(uploads).set({ status: "approved" })
+    .where(and(eq(uploads.id, up.id), eq(uploads.status, "review")));
+  if (claim.meta.changes === 0) return c.json({ error: "이미 승인됐거나 review 상태가 아니에요" }, 409);
+
   const recs = staged.map((s) => ({
     id: crypto.randomUUID(),
     uploadId: up.id, rowNo: s.rowNo, settlementMonth: up.settlementMonth, insurerId: up.insurerId,
@@ -125,9 +131,13 @@ uploadsRoutes.post("/api/uploads/:id/approve", async (c) => {
     clawbackEnc: encField(s.fields["환수금액"]),
   }));
 
-  // 트랜잭션 커밋: 상태 전환 + 원장 insert 원자적 (D1 batch)
-  const first = db.update(uploads).set({ status: "approved" }).where(eq(uploads.id, up.id));
-  await db.batch([first, ...recs.map((r) => db.insert(commissionRecords).values(r))]);
+  // 상태는 claim에서 전환됨. 원장 insert만 (있을 때) batch 커밋.
+  if (recs.length) {
+    await db.batch([
+      db.insert(commissionRecords).values(recs[0]!),
+      ...recs.slice(1).map((r) => db.insert(commissionRecords).values(r)),
+    ]);
+  }
 
   return c.json({ committed: recs.length, status: "approved" });
 });
