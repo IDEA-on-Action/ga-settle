@@ -1,6 +1,7 @@
 name = "ga-settle-api"
 main = "src/index.ts"
 compatibility_date = "2026-06-01"
+compatibility_flags = ["nodejs_compat"] # vitest-pool-workers 요건 + node: 빌트인 대비
 
 # 리소스 생성 완료 (2026-07-07, account: 생각과 행동)
 [[d1_databases]]
