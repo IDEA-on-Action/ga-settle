@@ -6,7 +6,7 @@ import { routes } from "@/routes";
 
 export function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/app">
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />

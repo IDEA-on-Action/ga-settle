@@ -59,8 +59,8 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
   if (res.status === 401) {
     clearStoredAuth();
     const body = await safeJson(res);
-    if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
-      window.location.assign("/login");
+    if (typeof window !== "undefined" && !window.location.pathname.startsWith("/app/login")) {
+      window.location.assign("/app/login");
     }
     throw new ApiError(messageFromBody(body, "인증이 만료됐어요"), 401, body);
   }
