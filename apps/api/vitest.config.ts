@@ -17,6 +17,10 @@ export default defineWorkersConfig(async () => {
           miniflare: {
             // setupFile 이 이 바인딩을 읽어 각 테스트 D1 에 스키마 적용
             bindings: { TEST_MIGRATIONS: migrations },
+            // 큐 소비자 자동 실행 억제(격리 스토리지 경계 침범 방지). maxBatchTimeout 을
+            // 테스트 실행시간보다 길게 두어 테스트 중 배치가 배달되지 않게 한다.
+            // producer send 는 그대로 동작하고, consumer 는 queueConsumer() 직접 호출로 테스트.
+            queueConsumers: { "ga-settle-parse": { maxBatchTimeout: 30, maxBatchSize: 100 } },
           },
         },
       },
