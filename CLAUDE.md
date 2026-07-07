@@ -46,6 +46,7 @@ pnpm -F api d1:migrate:local           # 로컬 D1에 마이그레이션 적용 
 - POST /api/org/units · GET /api/org/tree - 조직도(본부>사업단>팀) (F-009)
 - POST /api/agents · POST /api/agents/:id/assignments · GET /api/agents/:id/org?date= - 설계사/시점별 소속 (F-009)
 - POST /api/erp/agents - ERP 설계사+소속 일괄 등록 (F-009)
+- POST /api/rules · GET /api/rules · DELETE /api/rules/:id - 시책 룰 CRUD(선언형 조건+액션) (F-010)
 - POST /api/runs - 정산 실행 (F-013, 미구현 501)
 - GET /api/runs/:id/reconciliation - 대사 (F-014, 미구현 501)
 - POST /api/runs/:id/close - 마감 이중 잠금 (F-016, 미구현 501)

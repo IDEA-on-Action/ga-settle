@@ -5,6 +5,7 @@ import { uploadsRoutes } from "./routes/uploads";
 import { mappingRoutes } from "./routes/mapping";
 import { runsRoutes } from "./routes/runs";
 import { orgRoutes } from "./routes/org";
+import { rulesRoutes } from "./routes/rules";
 
 export type { Env };
 
@@ -23,6 +24,7 @@ app.route("/", uploadsRoutes); // F-003 업로드/진행률
 app.route("/", mappingRoutes); // F-005/F-007 매핑
 app.route("/", runsRoutes);    // F-013~F-016 정산/대사/마감
 app.route("/", orgRoutes);     // F-009 조직/설계사/소속 이력
+app.route("/", rulesRoutes);   // F-010 시책 룰 CRUD
 
 export default {
   fetch: app.fetch,

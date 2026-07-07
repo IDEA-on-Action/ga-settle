@@ -7,7 +7,7 @@
   "scripts": {
     "build": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
-    "test": "echo 'rules: F-010에서 case table 테스트 추가'"
+    "test": "vitest run"
   },
-  "devDependencies": { "typescript": "^5.6.0" }
+  "devDependencies": { "typescript": "^5.6.0", "vitest": "^2.1.0" }
 }
