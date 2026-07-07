@@ -49,14 +49,11 @@ app.route("/", insurersRoutes); // F-026 원수사 마스터 CRUD
 // SPA 서빙 (B-006 단일 오리진, run_worker_first=true라 모든 요청이 Worker 경유).
 // 루트=랜딩, /api·/health는 위에서 처리. 그 외(/app, /app/*, /assets/*)는 여기서:
 // 실제 자산이면 그대로, 없으면(SPA 클라이언트 라우트) index.html 셸로 폴백.
-app.all("*", async (c) => {
+app.all("*", (c) => {
   const path = new URL(c.req.url).pathname;
   if (path.startsWith("/api/")) return c.json({ error: "찾을 수 없어요" }, 404);
-  const res = await c.env.ASSETS.fetch(c.req.raw);
-  if (res.status !== 404) return res;
-  const idx = new URL(c.req.url);
-  idx.pathname = "/index.html";
-  return c.env.ASSETS.fetch(new Request(idx, c.req.raw));
+  // assets: html_handling=none(리다이렉트 없음) + not_found_handling=SPA(미스는 index.html).
+  return c.env.ASSETS.fetch(c.req.raw);
 });
 
 export default {

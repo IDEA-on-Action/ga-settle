@@ -32,6 +32,8 @@ ENV = "dev"
 directory = "../web/dist"
 binding = "ASSETS"
 run_worker_first = true
+not_found_handling = "single-page-application"
+html_handling = "none"
 
 # ─────────────────────────────────────────────────────────────
 # 프로덕션 환경 (배포: wrangler deploy --env production)
@@ -52,6 +54,8 @@ ENV = "production"
 directory = "../web/dist"
 binding = "ASSETS"
 run_worker_first = true
+not_found_handling = "single-page-application"
+html_handling = "none"
 
 [[env.production.d1_databases]]
 binding = "DB"
