@@ -19,8 +19,8 @@ export type { Env };
 
 export const app = new Hono<{ Bindings: Env }>();
 
-// 루트: 고객 데모용 랜딩/인터랙티브 페이지 (정식 SPA는 B-006).
-app.get("/", (c) => c.html(DEMO_HTML));
+// 데모용 랜딩/인터랙티브 페이지는 /demo로 보존 (루트는 정식 SPA가 차지).
+app.get("/demo", (c) => c.html(DEMO_HTML));
 
 app.get("/health", (c) => c.json({ ok: true, env: c.env.ENV }));
 
@@ -45,6 +45,17 @@ app.route("/", authRoutes);    // F-017 계정/세션 인증/RBAC 스코프
 app.route("/", payslipsRoutes); // F-018 지급 내역서/출력물
 app.route("/", statsRoutes);   // F-019 통계/집계
 app.route("/", insurersRoutes); // F-026 원수사 마스터 CRUD
+
+// SPA fallback (B-006 단일 오리진): API/health/demo 외 경로는 정적 자산으로.
+// 자산에 매칭되는 파일(js/css/favicon)은 이 핸들러 이전에 assets 레이어가 직접 서빙하고,
+// 매칭 안 되는 클라이언트 라우트(/upload, /runs 등)는 여기서 index.html(SPA 셸)로 폴백.
+app.all("*", (c) => {
+  const path = new URL(c.req.url).pathname;
+  if (path.startsWith("/api/")) return c.json({ error: "찾을 수 없어요" }, 404);
+  const url = new URL(c.req.url);
+  url.pathname = "/index.html";
+  return c.env.ASSETS.fetch(new Request(url, c.req.raw));
+});
 
 export default {
   fetch: app.fetch,

@@ -16,4 +16,6 @@ export type Env = {
   SESSION_SECRET: string;
   ADMIN_IP_ALLOWLIST: string;
   ENV: string;
+  // 정적 자산(SPA) 바인딩 - apps/web/dist를 같은 오리진(ata.minu.best)에서 서빙 (B-006 단일 오리진 배포)
+  ASSETS: Fetcher;
 };

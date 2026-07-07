@@ -26,6 +26,12 @@ ENV = "dev"
 # 시크릿은 .dev.vars / wrangler secret put:
 #   ANTHROPIC_API_KEY, FIELD_ENCRYPTION_KEY, SESSION_SECRET, ADMIN_IP_ALLOWLIST
 
+# 정적 자산(SPA) - apps/web/dist를 같은 오리진에서 서빙 (B-006 단일 오리진).
+# binding=ASSETS로 Worker가 SPA 폴백(index.html) 직접 서빙. 매칭 파일은 assets 레이어가 우선 서빙.
+[assets]
+directory = "../web/dist"
+binding = "ASSETS"
+
 # ─────────────────────────────────────────────────────────────
 # 프로덕션 환경 (배포: wrangler deploy --env production)
 # 커스텀 도메인 ata.minu.best (minu.best 가 이 CF 계정의 zone이어야 자동 DNS/cert 발급).
@@ -39,6 +45,11 @@ routes = [
 
 [env.production.vars]
 ENV = "production"
+
+# 프로덕션 정적 자산 (env-scoped라 재선언)
+[env.production.assets]
+directory = "../web/dist"
+binding = "ASSETS"
 
 [[env.production.d1_databases]]
 binding = "DB"
