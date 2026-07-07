@@ -22,8 +22,15 @@ export async function resolveTemplate(db: Db, insurerId: string, headers: string
     : null;
 }
 
-// L0~L4 매핑 결과 조회 - 파싱된 프로파일 필요 -> F-008에서 결선
-mappingRoutes.get("/api/uploads/:id/mapping", async (c) => c.json({ todo: "F-008 파싱 후 L0~L4 결과" }, 501));
+// 매핑 결과 조회 (F-008 파싱 후): 확정용 columnMap + 검증 카운트
+mappingRoutes.get("/api/uploads/:id/mapping", async (c) => {
+  const up = await getDb(c.env).select().from(uploads).where(eq(uploads.id, c.req.param("id"))).get();
+  if (!up) return c.json({ error: "없는 업로드예요" }, 404);
+  const stagedObj = await c.env.UPLOADS.get(`${up.r2Key}.staged.json`);
+  if (!stagedObj) return c.json({ error: "아직 파싱 전이에요", status: up.status }, 409);
+  const { columnMap } = JSON.parse(await stagedObj.text()) as { columnMap: Record<string, number> };
+  return c.json({ columnMap, rowCount: up.rowCount, okCount: up.okCount, errorCount: up.errorCount, templateVersionId: up.templateVersionId });
+});
 
 // 매핑 확정 -> TemplateVersion 저장 (REQ-013). 같은 시그니처면 재사용(멱등),
 // 다른 시그니처(양식 변경)면 새 버전 등록 (REQ-014, 개발자 개입 없음).

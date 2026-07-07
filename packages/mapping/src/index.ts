@@ -284,6 +284,68 @@ export function applyEvidence(cands: CandidateMap, evs: Evidence[], engineMode: 
   });
 }
 
+/* ---------------- 매핑 -> 컬럼맵 + 행 검증 (F-008) ---------------- */
+export const columnMapOf = (cands: CandidateMap): Record<string, number> => {
+  const out: Record<string, number> = {};
+  for (const [field, c] of Object.entries(cands)) out[field] = c.ci;
+  return out;
+};
+
+export type StagedRow = { rowNo: number; fields: Record<string, string | number | null> };
+export type RowError = { rowNo: number; field: string; reason: string; rawValue?: string };
+
+/**
+ * 행 검증 (F-008 REQ-015): 타입/필수/중복 검증. 오류 행은 전량 rowNo+사유로 수집.
+ * 통과 행만 staged. 확정된 columnMap(field->ci) 기준으로 파싱/표준화한다. 순수 함수(재현성).
+ */
+export function validateRows(rows: Cell[][], columnMap: Record<string, number>): { staged: StagedRow[]; errors: RowError[] } {
+  const staged: StagedRow[] = [];
+  const errors: RowError[] = [];
+  const seen = new Set<string>(); // 중복: 계약번호 + 납입회차
+
+  rows.forEach((r, i) => {
+    const rowNo = i + 1;
+    const fields: Record<string, string | number | null> = {};
+    let ok = true;
+
+    for (const f of ONTOLOGY) {
+      const ci = columnMap[f.key];
+      if (ci == null) {
+        if (f.required) { errors.push({ rowNo, field: f.key, reason: "필수 필드 미매핑" }); ok = false; }
+        continue;
+      }
+      const raw = r[ci];
+      if (raw == null || raw === "") {
+        if (f.required) { errors.push({ rowNo, field: f.key, reason: "필수 값 누락" }); ok = false; }
+        fields[f.key] = null;
+        continue;
+      }
+      if (f.type === "number" || f.type === "int") {
+        const p = parseNumber(raw);
+        if (!p.ok) { errors.push({ rowNo, field: f.key, reason: `숫자 아님`, rawValue: String(raw).slice(0, 32) }); ok = false; }
+        else fields[f.key] = f.type === "int" ? Math.round(p.value) : p.value;
+      } else if (f.type === "date") {
+        const p = parseDate(raw);
+        if (!p.ok) { errors.push({ rowNo, field: f.key, reason: `날짜 아님`, rawValue: String(raw).slice(0, 32) }); ok = false; }
+        else fields[f.key] = p.value;
+      } else {
+        fields[f.key] = String(raw);
+      }
+    }
+
+    const contract = fields["계약번호"];
+    if (contract != null) {
+      const key = `${contract}|${fields["납입회차"] ?? ""}`;
+      if (seen.has(key)) { errors.push({ rowNo, field: "계약번호", reason: "중복 행(계약번호+납입회차)" }); ok = false; }
+      else seen.add(key);
+    }
+
+    if (ok) staged.push({ rowNo, fields });
+  });
+
+  return { staged, errors };
+}
+
 /* ---------------- L2 프롬프트 입력 생성 (LLM 어댑터용) ---------------- */
 export function buildProfilePrompt(profiles: ColumnProfile[], mask = true): string {
   return profiles.map((p) => {

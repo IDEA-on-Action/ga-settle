@@ -81,9 +81,10 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 - **REQ-015**: 타입/필수/중복 검증, 오류 행 번호+사유 전량 표시 (FR-04, FR-05)
 - **REQ-016**: 승인 후에만 스테이징 → 원장 트랜잭션 커밋 (FR-07)
 - **Acceptance**:
-  - [ ] 골든 표본 변환 성공률 자동 산출 스크립트
-- **Status**: TODO
+  - [x] 골든 표본 변환 성공률 자동 산출 스크립트 (packages/golden runGolden + `pnpm golden`, 합성 표본 100%)
+- **Status**: DONE
 - **Sprint**: S1
+- **Notes**: queue consumer 실 파싱(SheetJS xlsx → detectHeaderRow/profileColumns → resolveTemplate L0캐시 or resolveMapping → validateRows). 검증(타입/필수/중복) 순수함수 packages/mapping.validateRows. 스테이징=R2 JSON(신규 테이블 없이), 오류=upload_errors, 카운트=uploads.rowCount/okCount/errorCount. GET .../errors 오류 리포트. POST .../approve: review 상태에서만 스테이징→commission_records batch 커밋(upload_id+row_no 역추적, REQ-016). *Enc는 F-020 전 평문(encField, 합성데이터). GET .../mapping 결선. 실샘플 골든 회귀는 F-021. workerd XLSX 느려 testTimeout 30s.
 
 ### F-009 · 조직도 + ERP 동기화 + 소속 이력
 - **REQ-017**: 본부>사업단>팀 트리, ERP 엑셀 일괄 등록, 월 정산은 당월 소속 기준 (FR-09~11)

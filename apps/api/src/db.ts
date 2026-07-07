@@ -10,3 +10,6 @@ export async function sha256Hex(data: ArrayBuffer): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", data);
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
+
+// 암호화 필드 임시 인코딩. TODO(F-020): FIELD_ENCRYPTION_KEY로 AES-GCM 실제 암호화.
+export const encField = (v: unknown): string | null => (v == null ? null : String(v));

@@ -1,9 +1,10 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
-import { uploads, jobs, insurers } from "@ga-settle/schema";
+import { uploads, jobs, insurers, uploadErrors, commissionRecords } from "@ga-settle/schema";
+import type { StagedRow } from "@ga-settle/mapping";
 import type { Env } from "../types";
-import { getDb, sha256Hex } from "../db";
+import { getDb, sha256Hex, encField } from "../db";
 
 // 업로드 파이프라인 (F-003): 해시 멱등 -> R2 불변 -> Queue -> jobs 진행률.
 export const uploadsRoutes = new Hono<{ Bindings: Env }>();
@@ -91,4 +92,42 @@ uploadsRoutes.get("/api/jobs/:id", async (c) => {
 uploadsRoutes.get("/api/uploads/:id", async (c) => {
   const up = await getDb(c.env).select().from(uploads).where(eq(uploads.id, c.req.param("id"))).get();
   return up ? c.json(up) : c.json({ error: "없는 업로드예요" }, 404);
+});
+
+// 오류 리포트 (F-008 REQ-015): 검증 실패 행 전량 (rowNo + field + reason)
+uploadsRoutes.get("/api/uploads/:id/errors", async (c) => {
+  const rows = await getDb(c.env).select().from(uploadErrors).where(eq(uploadErrors.uploadId, c.req.param("id"))).all();
+  return c.json(rows);
+});
+
+// 승인 커밋 (F-008 REQ-016): review 상태에서만, 스테이징 -> 원장 트랜잭션 커밋.
+// commission_records는 upload_id + row_no 역추적 보장 (도메인 불변식 1).
+uploadsRoutes.post("/api/uploads/:id/approve", async (c) => {
+  const db = getDb(c.env);
+  const up = await db.select().from(uploads).where(eq(uploads.id, c.req.param("id"))).get();
+  if (!up) return c.json({ error: "없는 업로드예요" }, 404);
+  if (up.status !== "review") return c.json({ error: "검토(review) 상태에서만 승인해요", status: up.status }, 409);
+
+  const stagedObj = await c.env.UPLOADS.get(`${up.r2Key}.staged.json`);
+  if (!stagedObj) return c.json({ error: "스테이징 데이터가 없어요" }, 409);
+  const { staged } = JSON.parse(await stagedObj.text()) as { staged: StagedRow[] };
+
+  const recs = staged.map((s) => ({
+    id: crypto.randomUUID(),
+    uploadId: up.id, rowNo: s.rowNo, settlementMonth: up.settlementMonth, insurerId: up.insurerId,
+    contractNo: String(s.fields["계약번호"] ?? ""),
+    installment: typeof s.fields["납입회차"] === "number" ? s.fields["납입회차"] : null,
+    agentId: s.fields["설계사코드"] != null ? String(s.fields["설계사코드"]) : null,
+    productName: s.fields["상품명"] != null ? String(s.fields["상품명"]) : null,
+    contractDate: s.fields["계약일"] != null ? String(s.fields["계약일"]) : null,
+    premiumEnc: encField(s.fields["보험료"]),
+    commissionEnc: encField(s.fields["지급수수료"]),
+    clawbackEnc: encField(s.fields["환수금액"]),
+  }));
+
+  // 트랜잭션 커밋: 상태 전환 + 원장 insert 원자적 (D1 batch)
+  const first = db.update(uploads).set({ status: "approved" }).where(eq(uploads.id, up.id));
+  await db.batch([first, ...recs.map((r) => db.insert(commissionRecords).values(r))]);
+
+  return c.json({ committed: recs.length, status: "approved" });
 });
