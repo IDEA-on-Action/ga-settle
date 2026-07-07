@@ -193,8 +193,11 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 
 ### F-022 · 병행 검증 (차액 0원 리포트)
 - **REQ-031**: 한 달치 실데이터 이중 정산 비교, 차이 발생 시 계약 단위 원인 리포트 (§2 성공 기준)
-- **Status**: TODO
+- **Acceptance**:
+  - [x] 정상 차액 0원 + 라인 변조 시 원인 계약 검출 테스트
+- **Status**: DONE
 - **Sprint**: S6
+- **Notes**: GET /api/runs/:id/parallel-verify: 저장된 settlement_lines vs 독립 재계산(computeSettlement 공유 로직)을 계약(commissionRecordId,ruleId) 단위 비교 → {verified, totalDiff, diffs}. evaluate 결정적이라 정상은 차액 0(§2 성공 기준), 변조/드리프트 시 원인 계약 diff 특정. calculate/verify가 computeSettlement 헬퍼 공유(이중 정산 동일 코드). 테스트: 정상 verified+totalDiff 0 / 라인 변조 검출.
 
 ### F-023 · 운영 배포 + 매뉴얼 + 인수인계
 - **REQ-032**: prod 배포, 사용/운영 매뉴얼, 검수 대응 자료 (NFR-07)
