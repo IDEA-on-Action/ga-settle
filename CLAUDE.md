@@ -55,6 +55,7 @@ pnpm -F api d1:migrate:local           # 로컬 D1에 마이그레이션 적용 
 - POST /api/runs/:id/adjustments · GET - 수동 보정(reason 필수)+감사로그 (F-015)
 - POST /api/runs/:id/close - 월 마감(이중 잠금 API+DB 트리거, R2 스냅샷) (F-016)
 - POST/GET /api/runs/:id/payslips · GET /:agentId · GET /transfer-master - 지급 내역서/이체 CSV (F-018)
+- GET /api/stats/by-org · by-insurer · by-month - 조직/원수사/기간별 집계 (F-019)
 
 ## 도메인 요지
 

@@ -9,6 +9,7 @@ import { rulesRoutes } from "./routes/rules";
 import { familyRoutes } from "./routes/family";
 import { authRoutes } from "./routes/auth";
 import { payslipsRoutes } from "./routes/payslips";
+import { statsRoutes } from "./routes/stats";
 
 export type { Env };
 
@@ -31,6 +32,7 @@ app.route("/", rulesRoutes);   // F-010 시책 룰 CRUD
 app.route("/", familyRoutes);  // F-011 가족계약 감지 HITL
 app.route("/", authRoutes);    // F-017 계정/세션 인증/RBAC 스코프
 app.route("/", payslipsRoutes); // F-018 지급 내역서/출력물
+app.route("/", statsRoutes);   // F-019 통계/집계
 
 export default {
   fetch: app.fetch,

@@ -169,8 +169,11 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 
 ### F-019 · 통계/집계
 - **REQ-028**: 조직/원수사/기간별 집계 (FR-24)
-- **Status**: TODO
+- **Acceptance**:
+  - [x] 조직/원수사/기간별 집계 정확성 테스트
+- **Status**: DONE
 - **Sprint**: S5
+- **Notes**: routes/stats.ts: GET /api/stats/by-org?month=(settlement_lines 조직별 합), by-insurer?month=(commission_records 원수사 보고액 합), by-month(월별 계산 지급 총액). JS 인메모리 groupSum(D1 복잡 GROUP BY 회피). 새 저장 없이 파생. 테스트 4.
 
 ### F-020 · 보안 하드닝
 - **REQ-029**: 금액/인적정보 필드 AES-GCM 암호화, 키는 Workers Secret (NFR-02)
