@@ -15,6 +15,13 @@
       "when": 1783464561925,
       "tag": "0002_otp_codes",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1783487340896,
+      "tag": "0003_damp_lizard",
+      "breakpoints": true
     }
   ]
 }
