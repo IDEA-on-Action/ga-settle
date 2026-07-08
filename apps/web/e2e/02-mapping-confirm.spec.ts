@@ -32,7 +32,7 @@ test("매핑 확정 -> TemplateVersion 저장 + 이력 반영", async ({ page })
   });
 
   await seedAuth(page);
-  await page.goto("/mapping-admin");
+  await page.goto("/app/mapping-admin");
 
   // 1) 확정 전: 이력 조회 -> 빈 목록
   await page.getByLabel("원수사 ID").fill(insurerId);

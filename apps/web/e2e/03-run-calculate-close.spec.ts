@@ -42,7 +42,7 @@ test("정산 Run 계산 -> 마감", async ({ page }) => {
   });
 
   await seedAuth(page);
-  await page.goto("/runs");
+  await page.goto("/app/runs");
 
   // 1) Run 조회/생성
   await page.getByLabel("정산월").fill("2026-06");
