@@ -38,7 +38,7 @@ test("대사 차액 드릴다운 + 병행 검증", async ({ page }) => {
   });
 
   await seedAuth(page);
-  await page.goto("/reconciliation");
+  await page.goto("/app/reconciliation");
 
   await page.getByLabel("Run ID").fill(runId);
   await page.getByRole("button", { name: "조회" }).click();

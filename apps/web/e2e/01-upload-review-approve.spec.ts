@@ -69,11 +69,11 @@ test("업로드 -> 진행률 폴링 -> 매핑 검토 -> 승인", async ({ page }
   });
 
   // 1) 로그인
-  await page.goto("/login");
+  await page.goto("/app/login");
   await page.getByLabel("이메일").fill("e2e@ga-settle.test");
   await page.getByLabel("비밀번호").fill("password123");
   await page.getByRole("button", { name: "로그인" }).click();
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page).toHaveURL(/\/app\/?$/);
 
   // 2) 업로드 화면 진입 + 업로드
   await page.getByRole("link", { name: "업로드" }).click();

@@ -40,7 +40,7 @@ test("지급 내역서 생성 + 이체 마스터 CSV 다운로드", async ({ pag
   });
 
   await seedAuth(page);
-  await page.goto("/payslips");
+  await page.goto("/app/payslips");
 
   // 1) Run 불러오기 -> 아직 생성 전
   await page.getByLabel("정산 Run ID").fill(runId);
