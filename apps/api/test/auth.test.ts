@@ -99,11 +99,34 @@ describe("F-024 인증 롤아웃 + F-017 RBAC", () => {
   });
 });
 
-describe("F-027 이메일 OTP (@atasset.co.kr)", () => {
-  it("@atasset.co.kr 계정: 비밀번호 로그인 차단 -> 403", async () => {
+describe("F-027 이메일 OTP + 임시 비번 (@atasset.co.kr)", () => {
+  it("기본(OTP 미강제): @atasset.co.kr 비밀번호 로그인 허용 -> 200", async () => {
     const admin = await bootstrapAdmin();
     await post("/api/users", { email: "kim@atasset.co.kr", name: "김", role: "staff", password: "pw1234" }, admin);
-    expect((await post("/api/auth/login", { email: "kim@atasset.co.kr", password: "pw1234" })).status).toBe(403);
+    const res = await post("/api/auth/login", { email: "kim@atasset.co.kr", password: "pw1234" });
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as { token: string }).token).toBeTruthy();
+  });
+
+  // 주: OTP_ENFORCED=true(=@도메인 비번 차단) 경로는 miniflare가 SELF 워커에 런타임 env
+  // mutation을 전파하지 않아 통합 테스트로 토글 불가. 기본 off가 실제 배포본이며, 강제 시
+  // 프론트는 서버 403{otp:true} 폴백으로 OTP UI를 재활성한다(e2e/06). 게이트는 1-liner 조건.
+
+  it("임시 비번(admin reset): 로그인 시 mustChangePassword=true -> 변경 후 false", async () => {
+    const admin = await bootstrapAdmin();
+    const created = (await (await post("/api/users", { email: "temp@atasset.co.kr", name: "임시", role: "staff", password: "pw1234" }, admin)).json()) as { id: string };
+    // admin이 임시 비번 발급 -> mustChangePassword=true 세팅
+    expect((await post(`/api/users/${created.id}/reset-password`, { newPassword: "temppass123" }, admin)).status).toBe(200);
+    // 임시 비번 로그인 -> mustChangePassword true
+    const l = await post("/api/auth/login", { email: "temp@atasset.co.kr", password: "temppass123" });
+    expect(l.status).toBe(200);
+    const body = (await l.json()) as { token: string; mustChangePassword: boolean };
+    expect(body.mustChangePassword).toBe(true);
+    // 본인 비번 변경 -> 성공 + 플래그 해제
+    expect((await post("/api/auth/change-password", { currentPassword: "temppass123", newPassword: "newpass12345" }, body.token)).status).toBe(200);
+    // 재로그인 -> mustChangePassword false
+    const l2 = await post("/api/auth/login", { email: "temp@atasset.co.kr", password: "newpass12345" });
+    expect(((await l2.json()) as { mustChangePassword: boolean }).mustChangePassword).toBe(false);
   });
 
   it("OTP 요청->검증: 코드로 로그인 + 토큰 발급 + 재사용 방지", async () => {

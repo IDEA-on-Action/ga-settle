@@ -188,6 +188,8 @@ export const users = sqliteTable("users", {
   role: text("role").notNull(),               // admin|manager|staff|viewer
   orgUnitId: text("org_unit_id").references(() => orgUnits.id), // 권한 스코프 (null=전사)
   passwordHash: text("password_hash").notNull(),
+  // 임시 비번(admin reset) 발급 시 true → 다음 로그인에서 비번 변경 강제(F-027 대체 흐름).
+  mustChangePassword: integer("must_change_password", { mode: "boolean" }).notNull().default(false),
   active: integer("active", { mode: "boolean" }).notNull().default(true),
   createdAt: text("created_at").notNull(),
 }, (t) => ({ uqUserEmail: uniqueIndex("uq_user_email").on(t.email) }));

@@ -8,6 +8,8 @@ export interface StoredAuth {
   email: string;
   role: "admin" | "manager" | "staff" | "viewer";
   orgUnitId: string | null;
+  // 임시 비번 로그인 시 true → 비번 변경 완료 전까지 /change-password로 강제 (F-027 대체 흐름).
+  mustChangePassword?: boolean;
 }
 
 const STORAGE_KEY = "ga_settle_auth";

@@ -295,13 +295,14 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 - **Notes**: routes/insurers.ts CRUD(생성 시 커스텀 id 허용/중복 409, 삭제는 uploads/commission_records/template_versions 참조 시 409 - 역추적 보호, 전 변경 audit). 데모: src/demo.ts 자체완결 HTML을 워커 루트에서 서빙 - 파이프라인(업로드→AI매핑→검증→원장→정산/대사→마감) 인터랙티브 재현 + 라이브 /health 배지. 공개 페이지라 자격증명 미포함(클라이언트 시뮬레이션). 정식 SPA는 [[B-006]]. api 67 PASS. E2E에서 발견한 "원수사 생성 API 부재" gap 해소.
 
 ### F-027 · 이메일 OTP 로그인 (@atasset.co.kr 전용)
-- **REQ-037**: 지정 도메인(@atasset.co.kr) 계정은 비밀번호 대신 이메일 일회용 코드(OTP)로만 로그인한다
+- **REQ-037**: 지정 도메인(@atasset.co.kr) 계정 로그인. OTP 강제(OTP_ENFORCED) 시 이메일 코드 전용, 미강제(기본) 시 임시 비밀번호 + 첫 로그인 강제 변경.
 - **Acceptance**:
-  - [x] @atasset.co.kr 비밀번호 로그인 403 차단, OTP 요청->검증으로 토큰 발급, 코드 재사용 방지
-  - [x] SPA 로그인 UI: @도메인 감지 -> OTP 요청 -> 6자리 코드 입력 -> 검증 흐름 (Playwright E2E 2흐름)
-- **Status**: DONE (앱 로직 + UI) · prod 실발송은 ATA Resend 계정 + atasset.co.kr 도메인 검증 대기
+  - [x] OTP 앱 로직: 요청->검증 토큰 발급, 코드 재사용 방지, 5분 만료/5회 제한
+  - [x] SPA 로그인 UI: 비번-우선 + 서버 403{otp:true} 폴백 시 OTP 코드 흐름 (Playwright E2E)
+  - [x] 임시 비번 대체 흐름: OTP 미강제(기본) 시 @도메인 비번 로그인 허용, admin reset -> mustChangePassword -> 강제 변경 화면 (Playwright E2E)
+- **Status**: DONE (앱 로직 + UI + 임시 비번 대체 흐름) · OTP 실발송은 ATA Resend 계정 + atasset.co.kr 도메인 검증 시 OTP_ENFORCED=true로 활성
 - **Sprint**: S7
-- **Notes**: otp_codes 테이블(0002 마이그레이션, 코드 해시+5분 만료+5회 시도제한+consumedAt). POST /api/auth/otp/request(도메인 검증, 계정 존재 시만 발송, 열거 방지 200) + /verify(ctEq, 소비 마킹, 토큰). login은 도메인 계정 403. UI: screens/Login.tsx 3-mode(credentials/otp) - @atasset.co.kr 감지 시 비번칸 대신 코드 요청, 서버 403{otp:true} 폴백 전환, devCode 자동채움(비-prod). lib/auth.tsx requestOtp/verifyOtp. E2E: e2e/06-otp-login.spec.ts(정상+틀린코드). 이메일: src/email.ts Resend API(RESEND_API_KEY 미설정 시 미발송). devCode는 비-prod 응답에만 노출(테스트). 도메인/발신주소는 OTP_EMAIL_DOMAIN/OTP_FROM_EMAIL vars. **prod 실발송 요건**: RESEND_API_KEY secret + Resend에서 발신 도메인 검증. ⚠️ 2026-07-08: ktds.io 계정 키가 임시 설정됐다가 거버넌스 규칙(ktds 자산 금지) 위반으로 삭제됨 - ATA(생각과 행동) 소유 Resend 계정에서 atasset.co.kr 검증 후 재설정 필요. admin(sinclairseo@gmail.com)은 @gmail이라 비번 로그인 유지. api 71 PASS + web E2E 7 PASS.
+- **Notes**: otp_codes 테이블(0002), users.must_change_password(0003). OTP 엔드포인트(request/verify)는 그대로 보존. **OTP_ENFORCED env(기본 off)**: off면 @도메인 계정도 임시 비번 로그인 허용(login 403 게이트가 `isOtpEmail && otpEnforced`), on이면 비번 403{otp:true}->OTP 전용. **임시 비번 흐름**: admin `POST /api/users/:id/reset-password`가 mustChangePassword=true 세팅 -> login 응답에 플래그 -> 프론트 ProtectedLayout이 /change-password로 강제 -> `POST /api/auth/change-password`가 플래그 해제. UI: screens/Login.tsx(비번-우선, 403 폴백 OTP), screens/ChangePassword.tsx(강제 변경), lib/auth.tsx(requestOtp/verifyOtp/changePassword). E2E: e2e/06(OTP 폴백), e2e/07(임시 비번 강제변경). 이메일: src/email.ts Resend API. devCode는 비-prod 응답에만 노출. **OTP 실발송 재활성 요건**: ATA(생각과 행동) 소유 Resend 계정 + atasset.co.kr DNS 검증 + RESEND_API_KEY + OTP_ENFORCED=true. ⚠️ ktds.io 계정 키는 거버넌스(ktds 자산 금지)로 사용 불가. admin(@gmail)은 비번 로그인 유지. api 72 PASS + web E2E 9 PASS.
 
 ## §3. Backlog (F-item 승격 대기)
 

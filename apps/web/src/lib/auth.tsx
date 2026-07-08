@@ -6,6 +6,7 @@ interface LoginResponse {
   token: string;
   role: StoredAuth["role"];
   orgUnitId: string | null;
+  mustChangePassword?: boolean;
 }
 
 interface OtpRequestResponse {
@@ -23,6 +24,8 @@ interface AuthContextValue {
   requestOtp: (email: string) => Promise<OtpRequestResponse>;
   /** @도메인 계정(F-027): OTP 코드 검증 → 세션 토큰 발급 */
   verifyOtp: (email: string, code: string) => Promise<void>;
+  /** 본인 비번 변경 (현재 비번 확인) → 성공 시 mustChangePassword 해제 (F-025/F-027) */
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -37,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       body: JSON.stringify({ email, password }),
       skipAuth: true,
     });
-    const next: StoredAuth = { token: res.token, role: res.role, orgUnitId: res.orgUnitId, email };
+    const next: StoredAuth = { token: res.token, role: res.role, orgUnitId: res.orgUnitId, email, mustChangePassword: res.mustChangePassword };
     setStoredAuth(next);
     setAuth(next);
   }, []);
@@ -61,14 +64,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAuth(next);
   }, []);
 
+  const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
+    await apiFetch<{ ok: boolean }>("/api/auth/change-password", {
+      method: "POST",
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+    // 변경 완료 → 강제 플래그 해제 (저장/상태 동기화)
+    setAuth((prev) => {
+      if (!prev) return prev;
+      const next: StoredAuth = { ...prev, mustChangePassword: false };
+      setStoredAuth(next);
+      return next;
+    });
+  }, []);
+
   const logout = useCallback(() => {
     clearStoredAuth();
     setAuth(null);
   }, []);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ auth, isAuthenticated: auth !== null, login, requestOtp, verifyOtp, logout }),
-    [auth, login, requestOtp, verifyOtp, logout],
+    () => ({ auth, isAuthenticated: auth !== null, login, requestOtp, verifyOtp, changePassword, logout }),
+    [auth, login, requestOtp, verifyOtp, changePassword, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

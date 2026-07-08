@@ -7,9 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-// 서버 OTP_EMAIL_DOMAIN(F-027)과 일치. 이 도메인 계정은 비밀번호 대신 이메일 OTP로만 로그인한다.
-// 서버가 최종 판정(비번 403 {otp:true})하므로, 드리프트 시에도 아래 handlePasswordLogin 폴백이 OTP로 전환한다.
-const OTP_DOMAIN = "atasset.co.kr";
+// 기본은 비밀번호 로그인(임시 비번 포함). OTP 강제(OTP_ENFORCED)가 켜지면 서버가 비번 로그인에
+// 403 {otp:true}로 응답하고, 아래 handlePasswordLogin 폴백이 OTP 코드 흐름으로 전환한다(F-027).
 
 export default function Login() {
   const { login, requestOtp, verifyOtp } = useAuth();
@@ -24,7 +23,6 @@ export default function Login() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const from = (location.state as { from?: { pathname: string } } | null)?.from?.pathname ?? "/";
-  const isOtpEmail = email.trim().toLowerCase().endsWith(`@${OTP_DOMAIN}`);
 
   function goToApp() {
     navigate(from, { replace: true });
@@ -63,11 +61,6 @@ export default function Login() {
     } finally {
       setIsSubmitting(false);
     }
-  }
-
-  async function handleOtpRequest(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    await sendOtp();
   }
 
   async function handleOtpVerify(e: FormEvent<HTMLFormElement>) {
@@ -127,28 +120,6 @@ export default function Login() {
               >
                 이메일 다시 입력
               </button>
-            </form>
-          ) : isOtpEmail ? (
-            <form className="flex flex-col gap-4" onSubmit={handleOtpRequest}>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="email">이메일</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  autoComplete="username"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@example.com"
-                />
-              </div>
-              <p className="text-sm text-axis-text-secondary">
-                @{OTP_DOMAIN} 계정은 이메일 인증 코드로 로그인해요.
-              </p>
-              {error && <p className="text-sm text-axis-text-error">{error}</p>}
-              <Button type="submit" disabled={isSubmitting} className="mt-2">
-                {isSubmitting ? "발송 중..." : "인증 코드 받기"}
-              </Button>
             </form>
           ) : (
             <form className="flex flex-col gap-4" onSubmit={handlePasswordLogin}>
