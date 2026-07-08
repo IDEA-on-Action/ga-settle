@@ -7,5 +7,6 @@ dist/
 *.local
 coverage/
 playwright-report/
+test-results/
 .playwright-mcp/
 .bkit/

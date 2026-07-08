@@ -298,9 +298,10 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 - **REQ-037**: 지정 도메인(@atasset.co.kr) 계정은 비밀번호 대신 이메일 일회용 코드(OTP)로만 로그인한다
 - **Acceptance**:
   - [x] @atasset.co.kr 비밀번호 로그인 403 차단, OTP 요청->검증으로 토큰 발급, 코드 재사용 방지
-- **Status**: DONE (앱 로직) · prod 메일 발송은 RESEND_API_KEY 설정 필요
+  - [x] SPA 로그인 UI: @도메인 감지 -> OTP 요청 -> 6자리 코드 입력 -> 검증 흐름 (Playwright E2E 2흐름)
+- **Status**: DONE (앱 로직 + UI) · prod 실발송은 ATA Resend 계정 + atasset.co.kr 도메인 검증 대기
 - **Sprint**: S7
-- **Notes**: otp_codes 테이블(0002 마이그레이션, 코드 해시+5분 만료+5회 시도제한+consumedAt). POST /api/auth/otp/request(도메인 검증, 계정 존재 시만 발송, 열거 방지 200) + /verify(ctEq, 소비 마킹, 토큰). login은 도메인 계정 403. 이메일: src/email.ts Resend API(RESEND_API_KEY 미설정 시 미발송). devCode는 비-prod 응답에만 노출(테스트). 도메인/발신주소는 OTP_EMAIL_DOMAIN/OTP_FROM_EMAIL vars. **prod 실발송 요건**: RESEND_API_KEY secret + Resend에서 발신 도메인 검증. admin(sinclairseo@gmail.com)은 @gmail이라 비번 로그인 유지. api 71 PASS.
+- **Notes**: otp_codes 테이블(0002 마이그레이션, 코드 해시+5분 만료+5회 시도제한+consumedAt). POST /api/auth/otp/request(도메인 검증, 계정 존재 시만 발송, 열거 방지 200) + /verify(ctEq, 소비 마킹, 토큰). login은 도메인 계정 403. UI: screens/Login.tsx 3-mode(credentials/otp) - @atasset.co.kr 감지 시 비번칸 대신 코드 요청, 서버 403{otp:true} 폴백 전환, devCode 자동채움(비-prod). lib/auth.tsx requestOtp/verifyOtp. E2E: e2e/06-otp-login.spec.ts(정상+틀린코드). 이메일: src/email.ts Resend API(RESEND_API_KEY 미설정 시 미발송). devCode는 비-prod 응답에만 노출(테스트). 도메인/발신주소는 OTP_EMAIL_DOMAIN/OTP_FROM_EMAIL vars. **prod 실발송 요건**: RESEND_API_KEY secret + Resend에서 발신 도메인 검증. ⚠️ 2026-07-08: ktds.io 계정 키가 임시 설정됐다가 거버넌스 규칙(ktds 자산 금지) 위반으로 삭제됨 - ATA(생각과 행동) 소유 Resend 계정에서 atasset.co.kr 검증 후 재설정 필요. admin(sinclairseo@gmail.com)은 @gmail이라 비번 로그인 유지. api 71 PASS + web E2E 7 PASS.
 
 ## §3. Backlog (F-item 승격 대기)
 
