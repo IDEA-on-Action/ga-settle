@@ -101,6 +101,27 @@ runsRoutes.get("/api/runs/:id", async (c) => {
   return c.json({ ...run, lineCount: lines.length, totalAmount: amts.reduce((s, a) => s + a, 0) });
 });
 
+// run 계약 목록 (F-041 REQ-057): 보정 대상 선택기용. 해당 run 월의 계약(contractNo/설계사/상품).
+// 금액(암호화 필드)은 제외(불변식 5) - 대상 식별용 최소 정보만.
+runsRoutes.get("/api/runs/:id/contracts", async (c) => {
+  const db = getDb(c.env);
+  const run = await db.select().from(settlementRuns).where(eq(settlementRuns.id, c.req.param("id"))).get();
+  if (!run) return c.json({ error: "없는 run이에요" }, 404);
+  const recs = await db
+    .select({
+      contractNo: commissionRecords.contractNo,
+      agentId: commissionRecords.agentId,
+      productName: commissionRecords.productName,
+    })
+    .from(commissionRecords)
+    .where(eq(commissionRecords.settlementMonth, run.settlementMonth))
+    .all();
+  // 계약번호 단위로 중복 제거(같은 계약의 여러 회차 행 합침)
+  const byContract = new Map<string, { contractNo: string; agentId: string | null; productName: string | null }>();
+  for (const r of recs) if (!byContract.has(r.contractNo)) byContract.set(r.contractNo, r);
+  return c.json({ contracts: [...byContract.values()] });
+});
+
 /**
  * 대사 (F-014 REQ-023): 원수사 보고액(commission_records.commissionEnc) vs 계산액
  * (settlement_lines 합)을 원수사별로 비교하고, 차액을 계약(commissionRecordId) 단위까지 추적.

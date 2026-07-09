@@ -356,29 +356,29 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 ### F-039 · 원수사 등록 UI
 - **REQ-055**: 화면에서 새 원수사(id+이름)를 등록할 수 있다 (API/시드 없이)
 - **Acceptance**:
-  - [ ] 매핑관리 화면에 '새 원수사 등록' 폼(id+name) → POST /api/insurers
-  - [ ] 등록 성공 시 원수사 드롭다운 목록 즉시 갱신(invalidate)
-- **Status**: 📋 PLANNED
+  - [x] 매핑관리 화면에 '새 원수사 등록' 폼(id+name) → POST /api/insurers
+  - [x] 등록 성공 시 원수사 드롭다운 목록 즉시 갱신(invalidate)
+- **Status**: DONE
 - **Sprint**: S8
-- **Notes**: PRD `docs/prd/demo-input-ux` 후속. 프론트 전용(POST /api/insurers 기존 F-032).
+- **Notes**: PRD `docs/prd/demo-input-ux` 후속. 프론트 전용(POST /api/insurers 기존 F-032). 브라우저 검증: 한화생명 등록 → 드롭다운 즉시 반영.
 
 ### F-040 · 설계사 목록 API + 선택기
 - **REQ-056**: 설계사 ID를 손입력이 아닌 목록에서 선택한다
 - **Acceptance**:
-  - [ ] `GET /api/agents` 신규: 설계사 목록(id, code, name, status)
-  - [ ] 가족계약 감지 화면의 '설계사 ID' 입력을 이름 선택기로 대체
-- **Status**: 📋 PLANNED
+  - [x] `GET /api/agents` 신규: 설계사 목록(id, code, name, status) - 이름순
+  - [x] 가족계약 감지 화면의 '설계사 ID' 입력을 이름 선택기로 대체
+- **Status**: DONE
 - **Sprint**: S8
-- **Notes**: PRD `docs/prd/demo-input-ux` 후속. AgentSelect 공용 선택기 추가.
+- **Notes**: PRD `docs/prd/demo-input-ux` 후속. AgentSelect(EntitySelects.tsx). 라벨 "이름(코드)". 브라우저 검증: 김영희(FC1001)·홍길동(FC1000).
 
 ### F-041 · 계약 선택기 (보정 대상)
 - **REQ-057**: 보정 대상 계약을 손입력이 아닌 run 계약 목록에서 선택한다
 - **Acceptance**:
-  - [ ] `GET /api/runs/:id/contracts` 신규: 해당 run 월의 계약(contractNo, agentId, productName) - 금액 제외
-  - [ ] 보정 화면 targetType=contract일 때 '대상 ID'를 계약 선택기로 대체
-- **Status**: 📋 PLANNED
+  - [x] `GET /api/runs/:id/contracts` 신규: 해당 run 월의 계약(contractNo, agentId, productName) - 금액 제외
+  - [x] 보정 화면 targetType=contract일 때 '대상 ID'를 계약 선택기로 대체
+- **Status**: DONE
 - **Sprint**: S8
-- **Notes**: PRD `docs/prd/demo-input-ux` 후속. 원장 조회는 금액(암호화) 제외 화이트리스트(불변식 5). line 타입은 수동 유지(고급).
+- **Notes**: PRD `docs/prd/demo-input-ux` 후속. 원장 조회 금액(암호화) 제외 화이트리스트(불변식 5, 테스트 검증). targetType도 Select화(contract/line), line은 수동 유지. 브라우저 검증: "C001·FC1000·종신보험". api 테스트 +2(agents, contracts), 총 78 PASS.
 
 ## §3. Backlog (F-item 승격 대기)
 

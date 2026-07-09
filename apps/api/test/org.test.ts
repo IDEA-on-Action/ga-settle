@@ -46,4 +46,16 @@ describe("F-009 조직 + 소속 이력", () => {
     await post("/api/agents", { id: "ag2", code: "FC2", name: "박" });
     expect((await post("/api/agents/ag2/assignments", { orgUnitId: "A", validFrom: "2026/01/01" })).status).toBe(400);
   });
+
+  it("GET /api/agents: 설계사 목록(선택기용, 이름순) (F-040)", async () => {
+    await post("/api/agents", { id: "agz", code: "FCZ", name: "정지훈" });
+    await post("/api/agents", { id: "aga", code: "FCA", name: "강민지" });
+    const { agents } = (await getJson("/api/agents")) as { agents: { id: string; code: string; name: string; status: string }[] };
+    expect(agents.length).toBeGreaterThanOrEqual(2);
+    const names = agents.map((a) => a.name);
+    expect(names).toContain("강민지");
+    expect(names).toContain("정지훈");
+    // 이름 오름차순
+    expect([...names]).toEqual([...names].sort((x, y) => x.localeCompare(y)));
+  });
 });

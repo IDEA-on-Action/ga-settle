@@ -55,6 +55,36 @@ export function useRunsList() {
   });
 }
 
+export interface AgentRow {
+  id: string;
+  code: string;
+  name: string;
+  status: string;
+}
+
+export interface ContractRow {
+  contractNo: string;
+  agentId: string | null;
+  productName: string | null;
+}
+
+export function useAgents() {
+  return useQuery({
+    queryKey: ["agents"],
+    queryFn: () => apiFetch<{ agents: AgentRow[] }>("/api/agents").then((r) => r.agents),
+    staleTime: 60_000,
+  });
+}
+
+export function useRunContracts(runId: string) {
+  return useQuery({
+    queryKey: ["run-contracts", runId],
+    queryFn: () => apiFetch<{ contracts: ContractRow[] }>(`/api/runs/${runId}/contracts`).then((r) => r.contracts),
+    enabled: runId.length > 0,
+    staleTime: 15_000,
+  });
+}
+
 /** 선택기 라벨 헬퍼 - 사용자가 알아볼 수 있는 라벨(원수사/월/상태). */
 export function uploadLabel(u: UploadListRow): string {
   return `${u.insurerName ?? u.insurerId} · ${u.settlementMonth} · ${u.status}`;
@@ -62,4 +92,15 @@ export function uploadLabel(u: UploadListRow): string {
 
 export function runLabel(r: RunListRow): string {
   return `${r.settlementMonth} · ${r.status}`;
+}
+
+export function agentLabel(a: AgentRow): string {
+  return `${a.name} (${a.code})`;
+}
+
+export function contractLabel(c: ContractRow): string {
+  const parts = [c.contractNo];
+  if (c.agentId) parts.push(c.agentId);
+  if (c.productName) parts.push(c.productName);
+  return parts.join(" · ");
 }

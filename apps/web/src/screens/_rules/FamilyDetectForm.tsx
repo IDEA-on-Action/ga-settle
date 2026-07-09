@@ -3,6 +3,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AgentSelect } from "@/components/pickers/EntitySelects";
 import type { FamilyContractInput } from "./types";
 
 interface FamilyDetectFormProps {
@@ -71,12 +72,8 @@ export function FamilyDetectForm({ onDetect, isDetecting }: FamilyDetectFormProp
               />
             </div>
             <div className="flex flex-col gap-1">
-              <Label className="text-xs">설계사 ID</Label>
-              <Input
-                value={row.agentId}
-                onChange={(e) => updateRow(idx, { agentId: e.target.value })}
-                placeholder="agent-001"
-              />
+              <Label className="text-xs">설계사</Label>
+              <AgentSelect value={row.agentId} onChange={(v) => updateRow(idx, { agentId: v })} />
             </div>
             <div className="flex flex-col gap-1">
               <Label className="text-xs">계약자명</Label>

@@ -4,8 +4,10 @@ import { apiFetch, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { ContractSelect } from "@/components/pickers/EntitySelects";
 import { formatDateTime } from "./format";
 
 /**
@@ -77,13 +79,32 @@ export function AdjustmentsPanel({ runId, closed }: { runId: string; closed: boo
             <Label htmlFor="adj-target-type" className="text-xs text-axis-text-tertiary">
               대상 유형
             </Label>
-            <Input id="adj-target-type" value={targetType} onChange={(e) => setTargetType(e.target.value)} placeholder="contract | line" disabled={closed} />
+            <Select
+              value={targetType}
+              onValueChange={(v) => {
+                setTargetType(v);
+                setTargetId("");
+              }}
+              disabled={closed}
+            >
+              <SelectTrigger id="adj-target-type">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="contract">계약 (contract)</SelectItem>
+                <SelectItem value="line">정산 라인 (line)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div className="flex-1">
             <Label htmlFor="adj-target-id" className="text-xs text-axis-text-tertiary">
-              대상 ID
+              대상 {targetType === "contract" ? "계약" : "라인 ID"}
             </Label>
-            <Input id="adj-target-id" value={targetId} onChange={(e) => setTargetId(e.target.value)} placeholder="계약/라인 ID" disabled={closed} />
+            {targetType === "contract" ? (
+              <ContractSelect id="adj-target-id" runId={runId} value={targetId} onChange={setTargetId} disabled={closed} />
+            ) : (
+              <Input id="adj-target-id" value={targetId} onChange={(e) => setTargetId(e.target.value)} placeholder="정산 라인 ID" disabled={closed} />
+            )}
           </div>
           <div className="w-32">
             <Label htmlFor="adj-amount" className="text-xs text-axis-text-tertiary">

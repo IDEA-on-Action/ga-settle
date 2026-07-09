@@ -159,6 +159,19 @@ describe("F-036/037 목록 API (선택기 데이터)", () => {
     expect("r2Key" in up!).toBe(false);
     expect("fileHash" in up!).toBe(false);
   });
+
+  it("GET /api/runs/:id/contracts: 계약 목록(금액 제외) (F-041)", async () => {
+    const { id } = (await (await post("/api/runs", { settlementMonth: "2026-06" })).json()) as { id: string };
+    const { contracts } = (await getJson(`/api/runs/${id}/contracts`)) as {
+      contracts: { contractNo: string; agentId: string | null; productName: string | null }[];
+    };
+    const nos = contracts.map((c) => c.contractNo).sort();
+    expect(nos).toEqual(["C1", "C2", "C3"]);
+    expect(contracts[0]!.agentId).toBe("ag1");
+    // 금액(암호화) 필드 미노출
+    expect("premiumEnc" in contracts[0]!).toBe(false);
+    expect("commissionEnc" in contracts[0]!).toBe(false);
+  });
 });
 
 describe("F-038 승인자·확정자 인증 사용자 자동 기록", () => {

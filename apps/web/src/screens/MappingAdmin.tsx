@@ -18,9 +18,61 @@ import type { MappingConfirmResponse, TemplateVersionRow } from "./_pipeline/typ
 export default function MappingAdmin() {
   return (
     <div className="flex max-w-[1200px] flex-col gap-5">
+      <InsurerRegisterCard />
       <TemplateHistoryCard />
       <MappingConfirmCard />
     </div>
+  );
+}
+
+/** 새 원수사 등록 (F-039). id(영문 슬러그)+이름 → POST /api/insurers. 성공 시 드롭다운 즉시 갱신. */
+function InsurerRegisterCard() {
+  const queryClient = useQueryClient();
+  const [id, setId] = useState("");
+  const [name, setName] = useState("");
+
+  const createMutation = useMutation({
+    mutationFn: () =>
+      apiFetch<{ id: string; name: string }>("/api/insurers", {
+        method: "POST",
+        body: JSON.stringify({ id: id.trim(), name: name.trim() }),
+      }),
+    onSuccess: () => {
+      setId("");
+      setName("");
+      void queryClient.invalidateQueries({ queryKey: ["insurers"] });
+    },
+  });
+
+  const canSubmit = id.trim().length > 0 && name.trim().length > 0 && !createMutation.isPending;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-sm">새 원수사 등록</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-wrap items-end gap-3">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="ins-id">원수사 ID (영문 슬러그)</Label>
+          <Input id="ins-id" value={id} onChange={(e) => setId(e.target.value)} placeholder="예: hanwha-life" className="w-56" />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="ins-name">원수사 이름</Label>
+          <Input id="ins-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="예: 한화생명" className="w-56" />
+        </div>
+        <Button onClick={() => createMutation.mutate()} disabled={!canSubmit}>
+          {createMutation.isPending ? "등록 중..." : "원수사 등록"}
+        </Button>
+        {createMutation.isError && (
+          <p className="w-full text-xs font-medium text-axis-text-error">
+            {createMutation.error instanceof ApiError ? createMutation.error.message : "원수사 등록에 실패했어요"}
+          </p>
+        )}
+        {createMutation.isSuccess && (
+          <p className="w-full text-xs text-axis-text-success">등록됐어요. 업로드·매핑 화면 원수사 드롭다운에 바로 반영돼요.</p>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

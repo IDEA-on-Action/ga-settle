@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 import { orgUnits, agents, agentAssignments } from "@ga-settle/schema";
 import type { Env } from "../types";
 import { getDb, type Db } from "../db";
@@ -49,6 +49,15 @@ orgRoutes.get("/api/org/tree", async (c) => {
     else roots.push(node);
   }
   return c.json(roots);
+});
+
+// 설계사 목록 (F-040 REQ-056): 선택기용. 손입력(agent-001) 대신 이름으로 고르게 한다.
+orgRoutes.get("/api/agents", async (c) => {
+  const rows = await getDb(c.env)
+    .select({ id: agents.id, code: agents.code, name: agents.name, status: agents.status })
+    .from(agents)
+    .orderBy(asc(agents.name));
+  return c.json({ agents: rows });
 });
 
 orgRoutes.post("/api/agents", async (c) => {
