@@ -380,6 +380,16 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 - **Sprint**: S8
 - **Notes**: PRD `docs/prd/demo-input-ux` 후속. 원장 조회 금액(암호화) 제외 화이트리스트(불변식 5, 테스트 검증). targetType도 Select화(contract/line), line은 수동 유지. 브라우저 검증: "C001·FC1000·종신보험". api 테스트 +2(agents, contracts), 총 78 PASS.
 
+### F-042 · 목록 페이지네이션 + 선택기 검색
+- **REQ-058**: 목록이 50개를 넘어도 검색·페이지로 원하는 항목에 도달할 수 있다
+- **Acceptance**:
+  - [ ] 목록 API(uploads/runs/agents/contracts/insurers/family/adjustments)에 `?q`(검색)·`?limit`·`?offset` + 응답 total
+  - [ ] 선택기(원수사·업로드·Run·설계사·계약)에 검색창(type-to-filter, 서버 ?q 연동)
+  - [ ] 가족계약·보정 테이블에 Prev/Next + 페이지·총건수
+- **Status**: 📋 PLANNED
+- **Sprint**: S8
+- **Notes**: PRD `docs/prd/demo-input-ux` §7 마지막 backlog 승격. 기존 소비자 호환(named key 유지 + total 추가). SearchableSelect 무의존성 콤보박스.
+
 ## §3. Backlog (F-item 승격 대기)
 
 | ID | 한 줄 | 승격 기준 충족? | 우선 |
