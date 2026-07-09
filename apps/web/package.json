@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
+    "guide:pdf": "node scripts/build-guide-pdf.mjs",
     "test": "echo 'web tests: F-007 이후 vitest + testing-library 추가'",
     "e2e": "playwright test",
     "e2e:install": "playwright install chromium"

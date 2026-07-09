@@ -11,6 +11,7 @@ import {
   Receipt,
   BarChart3,
   Building2,
+  BookOpen,
   type LucideIcon,
 } from "lucide-react";
 
@@ -25,6 +26,7 @@ import Reconciliation from "./screens/Reconciliation";
 import Payslips from "./screens/Payslips";
 import Stats from "./screens/Stats";
 import Org from "./screens/Org";
+import Guide from "./screens/Guide";
 
 /**
  * 라우트 registry - 단일 등록 지점.
@@ -32,7 +34,7 @@ import Org from "./screens/Org";
  * 화면 작업자는 이 파일을 건드리지 말고 screens/*.tsx만 편집할 것.
  */
 
-export type RouteGroupId = "pipeline" | "rules" | "closing" | "output" | "admin";
+export type RouteGroupId = "pipeline" | "rules" | "closing" | "output" | "admin" | "help";
 
 export interface RouteGroup {
   id: RouteGroupId;
@@ -45,6 +47,7 @@ export const routeGroups: RouteGroup[] = [
   { id: "closing", label: "마감" },
   { id: "output", label: "출력" },
   { id: "admin", label: "관리" },
+  { id: "help", label: "도움말" },
 ];
 
 export interface RouteDef {
@@ -144,5 +147,13 @@ export const routes: RouteDef[] = [
     group: "admin",
     icon: Building2,
     Component: Org,
+  },
+  {
+    path: "/guide",
+    label: "사용 가이드",
+    subtitle: "데모 사용법 · 전체 정산 파이프라인 안내",
+    group: "help",
+    icon: BookOpen,
+    Component: Guide,
   },
 ];

@@ -304,6 +304,18 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 - **Sprint**: S7
 - **Notes**: otp_codes 테이블(0002), users.must_change_password(0003). OTP 엔드포인트(request/verify)는 그대로 보존. **OTP_ENFORCED env(기본 off)**: off면 @도메인 계정도 임시 비번 로그인 허용(login 403 게이트가 `isOtpEmail && otpEnforced`), on이면 비번 403{otp:true}->OTP 전용. **임시 비번 흐름**: admin `POST /api/users/:id/reset-password`가 mustChangePassword=true 세팅 -> login 응답에 플래그 -> 프론트 ProtectedLayout이 /change-password로 강제 -> `POST /api/auth/change-password`가 플래그 해제. UI: screens/Login.tsx(비번-우선, 403 폴백 OTP), screens/ChangePassword.tsx(강제 변경), lib/auth.tsx(requestOtp/verifyOtp/changePassword). E2E: e2e/06(OTP 폴백), e2e/07(임시 비번 강제변경). 이메일: src/email.ts Resend API. devCode는 비-prod 응답에만 노출. **OTP 실발송 재활성 요건**: ATA(생각과 행동) 소유 Resend 계정 + atasset.co.kr DNS 검증 + RESEND_API_KEY + OTP_ENFORCED=true. ⚠️ ktds.io 계정 키는 거버넌스(ktds 자산 금지)로 사용 불가. admin(@gmail)은 비번 로그인 유지. api 72 PASS + web E2E 9 PASS.
 
+### F-034 · 데모 사용 가이드 + 인라인 온보딩
+- **REQ-049**: 고객이 데모 사용법을 사이트에서 확인하고 문서(PDF)로 내려받을 수 있다
+- **REQ-050**: 화면에서 사용자에게 인라인 가이드(화면별 도움말 + 첫 방문 투어)를 제공한다
+- **Acceptance**:
+  - [x] SPA `/app/guide` 화면: 전체 파이프라인 8단계 가이드 + 'PDF 내려받기' + '화면 투어 다시 보기'
+  - [x] 가이드 PDF 공개 서빙(`/guide/GA-Settle-사용가이드.pdf`), 데모 랜딩(/)에서 다운로드 링크
+  - [x] 화면별 인라인 도움말: TopBar '도움말' 팝오버(현재 경로별 요약+포인트)
+  - [x] 첫 로그인 후 1회 자동 스포트라이트 투어(localStorage 플래그, 재시작 가능)
+- **Status**: DONE
+- **Sprint**: S8
+- **Notes**: 고객 피드백("데모 사용 어려움") 대응. 단일 소스 `apps/web/src/content/guide.ts`(guideSteps 8단계 + screenHelp 화면별 + tourSteps)를 Guide 화면·HelpPanel·Tour가 공유. PDF는 `scripts/build-guide-pdf.mjs`(Node 타입스트리핑으로 guide.ts 직접 import + @playwright/test chromium, Noto Sans KR 웹폰트)로 생성 → `public/guide/`(vite가 dist 복사, 공개 자산). 인라인 가이드 무의존성 구현: Tour는 box-shadow 스포트라이트 + 뷰포트 클램프 위치계산, 사이드바 nav에 `data-tour="nav-{path}"` 앵커. routes.tsx에 'help' 그룹/`/guide` 라우트 추가(registry 단일 지점). API 변경 없음. 문구 수정 시 guide.ts 편집 후 `pnpm -F web guide:pdf` 재생성.
+
 ## §3. Backlog (F-item 승격 대기)
 
 | ID | 한 줄 | 승격 기준 충족? | 우선 |

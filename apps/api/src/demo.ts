@@ -100,6 +100,7 @@ export const DEMO_HTML = `<!doctype html>
   <span class="sp"></span>
   <span class="badge"><span class="dot" id="hdot"></span><span id="hstat">API 상태 확인 중…</span></span>
   <a class="btn g" href="#demo">라이브 데모</a>
+  <a class="btn g" href="/guide/ga-settle-guide.pdf" target="_blank" rel="noopener">사용 가이드</a>
   <a class="btn p" href="/app">시작하기 →</a>
 </div></header>
 
@@ -110,7 +111,7 @@ export const DEMO_HTML = `<!doctype html>
   <p class="lead">수기 대사와 엑셀 취합으로 며칠씩 태우던 마감을 자동화합니다. AI가 제각각인 컬럼을 표준 필드로 매핑하면, 검증된 결정적 코드가 정산-대사-마감까지 끝냅니다. 모든 숫자는 원본 엑셀 행까지 역추적되어 감사에 그대로 답이 됩니다.</p>
   <div class="cta">
     <a class="btn p" href="#demo">▶ 60초 파이프라인 데모</a>
-    <a class="btn g" href="#feat">타협 없는 원칙</a>
+    <a class="btn g" href="/guide/ga-settle-guide.pdf" target="_blank" rel="noopener">📘 사용 가이드 (PDF)</a>
   </div>
   <div class="stats">
     <div class="stat"><b>30+</b><span>원수사 양식, 손 안 대고 대응</span></div>

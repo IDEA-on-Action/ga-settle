@@ -1,6 +1,7 @@
 import { Outlet } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
+import { Tour } from "@/components/help/Tour";
 
 /**
  * 인증된 화면 공통 셸: 좌측 Sidebar + 상단 TopBar + <Outlet/>(화면 본문).
@@ -16,6 +17,7 @@ export function AppShell() {
           <Outlet />
         </main>
       </div>
+      <Tour />
     </div>
   );
 }

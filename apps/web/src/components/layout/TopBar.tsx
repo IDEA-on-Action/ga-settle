@@ -1,5 +1,6 @@
 import { useLocation } from "react-router-dom";
 import { routes } from "@/routes";
+import { HelpPanel } from "@/components/help/HelpPanel";
 
 export function TopBar() {
   const location = useLocation();
@@ -11,6 +12,9 @@ export function TopBar() {
         {current?.label ?? "GA-Settle"}
       </div>
       {current?.subtitle && <div className="text-xs text-axis-text-tertiary">{current.subtitle}</div>}
+      <div className="ml-auto flex-none">
+        <HelpPanel />
+      </div>
     </header>
   );
 }

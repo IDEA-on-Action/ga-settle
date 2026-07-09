@@ -35,6 +35,7 @@ export function Sidebar() {
                 <NavLink
                   key={route.path}
                   to={route.path}
+                  data-tour={`nav-${route.path}`}
                   end={route.path === "/"}
                   className={({ isActive }) =>
                     cn(
