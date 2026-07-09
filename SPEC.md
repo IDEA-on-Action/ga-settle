@@ -222,9 +222,9 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 - **REQ-034**: Tailwind 4 + shadcn/ui 도입, `colors_and_type.css` Axis 토큰 206개를 Tailwind 테마(CSS 변수)로 이식한다
 - **REQ-035**: 사이드바 네비게이션 셸(11개 화면 라우트) + 로그인 게이트 + Bearer 토큰 저장/주입 + TanStack Query 클라이언트/API fetch 래퍼
 - **Acceptance**:
-  - [ ] `pnpm -F web build` PASS, 목업 사이드바/레이아웃/토큰 재현(대시보드 셸 렌더)
-  - [ ] 로그인 화면 → 토큰 저장 → 인증 필요한 화면 접근 가능, 미인증 시 로그인 리다이렉트
-- **Status**: 📋
+  - [x] `pnpm -F web build` PASS, 목업 사이드바/레이아웃/토큰 재현(대시보드 셸 렌더)
+  - [x] 로그인 화면 → 토큰 저장 → 인증 필요한 화면 접근 가능, 미인증 시 로그인 리다이렉트
+- **Status**: DONE
 - **Sprint**: S8
 - **Notes**: 나머지 화면 F-item(F-026~F-029)의 토대(디자인시스템+인증셸+쿼리클라이언트). react-router 또는 상태 기반 라우팅 결정은 Plan에서. D1 migration 없음.
 
@@ -232,9 +232,9 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 - **REQ-036**: 대시보드 KPI(변환 성공률/대사 차액/오류 행/당월 지급액) + 파이프라인 5단계 상태 표시
 - **REQ-037**: 업로드(드롭 + jobs 진행률 폴링) + AI 매핑 검토(컬럼맵/신뢰도 등급/오류 행 리포트/승인 커밋) + 매핑 관리(TemplateVersion 이력/확정)
 - **Acceptance**:
-  - [ ] 업로드 → 진행률 폴링 → 매핑 검토 → 승인 원장 커밋 UI 흐름 동작(실 API 결선)
-  - [ ] 매핑 확정 → TemplateVersion 이력 표시
-- **Status**: 📋
+  - [x] 업로드 → 진행률 폴링 → 매핑 검토 → 승인 원장 커밋 UI 흐름 동작(실 API 결선)
+  - [x] 매핑 확정 → TemplateVersion 이력 표시
+- **Status**: DONE
 - **Sprint**: S9
 - **Notes**: API: POST /api/uploads, GET /api/jobs/:id, GET /api/uploads/:id·/mapping·/errors, POST /api/uploads/:id/approve·/mapping/confirm, GET /api/insurers/:id/templates. F-025 셸 의존.
 
@@ -242,9 +242,9 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 - **REQ-038**: 시책 룰 빌더(선언형 조건/액션 CRUD) + 룰 시뮬레이션 지급액 diff 미리보기
 - **REQ-039**: 가족계약 HITL(후보 목록/실무자 확정/해제, 자동 확정 경로 없음)
 - **Acceptance**:
-  - [ ] 룰 생성/수정/삭제 + 시뮬레이션 diff 표시 UI 동작(실 API)
-  - [ ] 가족 후보 확정/해제 UI 동작, 확정은 confirmedBy 입력 필수
-- **Status**: 📋
+  - [x] 룰 생성/수정/삭제 + 시뮬레이션 diff 표시 UI 동작(실 API)
+  - [x] 가족 후보 확정/해제 UI 동작, 확정은 confirmedBy 입력 필수
+- **Status**: DONE
 - **Sprint**: S10
 - **Notes**: API: POST/GET/DELETE /api/rules, POST /api/rules/simulate, POST /api/family/detect·/:id/confirm·/:id/release, GET /api/family. F-025 셸 의존.
 
@@ -252,9 +252,9 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 - **REQ-040**: 정산 Run(월 생성/계산/수동 보정 reason 필수/마감) 상태 흐름 UI
 - **REQ-041**: 대사·차액 드릴다운(원수사 보고액 vs 계산액, 계약 단위 차액) + 병행 검증 리포트
 - **Acceptance**:
-  - [ ] Run 생성 → 계산 → 보정 → 마감 UI 흐름, 마감 후 보정 차단 표시
-  - [ ] 대사 차액 계약 드릴다운 + 병행 검증(차액 0원) 표시
-- **Status**: 📋
+  - [x] Run 생성 → 계산 → 보정 → 마감 UI 흐름, 마감 후 보정 차단 표시
+  - [x] 대사 차액 계약 드릴다운 + 병행 검증(차액 0원) 표시
+- **Status**: DONE
 - **Sprint**: S11
 - **Notes**: API: POST /api/runs·/:id/calculate·/adjustments·/close, GET /api/runs/:id·/reconciliation·/parallel-verify. F-025 셸 의존.
 
@@ -262,17 +262,17 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 - **REQ-042**: 지급 내역서(설계사별 롤업/라인 상세) + 이체 마스터 CSV 다운로드
 - **REQ-043**: 통계(조직/원수사/기간별 집계) + 조직·계정 관리(트리/계정/RBAC 스코프)
 - **Acceptance**:
-  - [ ] 내역서 조회 + 이체 CSV 다운로드 UI 동작(실 API)
-  - [ ] 통계 집계 표시 + 조직 트리/계정 관리 UI 동작
-- **Status**: 📋
+  - [x] 내역서 조회 + 이체 CSV 다운로드 UI 동작(실 API)
+  - [x] 통계 집계 표시 + 조직 트리/계정 관리 UI 동작
+- **Status**: DONE
 - **Sprint**: S12
 - **Notes**: API: POST/GET /api/runs/:id/payslips·/:agentId·/transfer-master, GET /api/stats/by-org·by-insurer·by-month, POST /api/org/units·GET /api/org/tree, POST /api/agents·/users. F-025 셸 의존.
 
 ### F-030 · Playwright 브라우저 E2E 5흐름
 - **REQ-044**: 업로드→매핑→대사→마감→내역서 핵심 5흐름을 브라우저 Playwright E2E로 관통(NFR-06 완결, F-021 API E2E 보완)
 - **Acceptance**:
-  - [ ] Playwright 5흐름 시나리오 그린(실 web SPA + api 대상)
-- **Status**: 📋
+  - [x] Playwright 5흐름 시나리오 그린(실 web SPA + api 대상)
+- **Status**: DONE
 - **Sprint**: S13
 - **Notes**: F-026~F-029 화면 완성 의존. F-021에서 브라우저 E2E는 B-006(=F-030)으로 미뤄둔 부분을 완결. CI 통합 여부는 Plan에서 결정.
 
