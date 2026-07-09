@@ -353,6 +353,33 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 - **Sprint**: S8
 - **Notes**: PRD `docs/prd/demo-input-ux`. 서버(runs.ts close/adjustments, family.ts confirm)가 authUser().email로 기록 - 본문 입력 무시(스푸핑 방지). 보정 이중 통제(등록자=로그인, approvedBy=선택적 별도 승인자) 유지. api 테스트 4건 추가(목록 2 + F-038 2), 총 76 PASS.
 
+### F-039 · 원수사 등록 UI
+- **REQ-055**: 화면에서 새 원수사(id+이름)를 등록할 수 있다 (API/시드 없이)
+- **Acceptance**:
+  - [ ] 매핑관리 화면에 '새 원수사 등록' 폼(id+name) → POST /api/insurers
+  - [ ] 등록 성공 시 원수사 드롭다운 목록 즉시 갱신(invalidate)
+- **Status**: 📋 PLANNED
+- **Sprint**: S8
+- **Notes**: PRD `docs/prd/demo-input-ux` 후속. 프론트 전용(POST /api/insurers 기존 F-032).
+
+### F-040 · 설계사 목록 API + 선택기
+- **REQ-056**: 설계사 ID를 손입력이 아닌 목록에서 선택한다
+- **Acceptance**:
+  - [ ] `GET /api/agents` 신규: 설계사 목록(id, code, name, status)
+  - [ ] 가족계약 감지 화면의 '설계사 ID' 입력을 이름 선택기로 대체
+- **Status**: 📋 PLANNED
+- **Sprint**: S8
+- **Notes**: PRD `docs/prd/demo-input-ux` 후속. AgentSelect 공용 선택기 추가.
+
+### F-041 · 계약 선택기 (보정 대상)
+- **REQ-057**: 보정 대상 계약을 손입력이 아닌 run 계약 목록에서 선택한다
+- **Acceptance**:
+  - [ ] `GET /api/runs/:id/contracts` 신규: 해당 run 월의 계약(contractNo, agentId, productName) - 금액 제외
+  - [ ] 보정 화면 targetType=contract일 때 '대상 ID'를 계약 선택기로 대체
+- **Status**: 📋 PLANNED
+- **Sprint**: S8
+- **Notes**: PRD `docs/prd/demo-input-ux` 후속. 원장 조회는 금액(암호화) 제외 화이트리스트(불변식 5). line 타입은 수동 유지(고급).
+
 ## §3. Backlog (F-item 승격 대기)
 
 | ID | 한 줄 | 승격 기준 충족? | 우선 |
