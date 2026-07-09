@@ -36,7 +36,7 @@ pnpm -F api d1:migrate:local           # 로컬 D1에 마이그레이션 적용 
 
 - GET / - 고객 데모 랜딩/인터랙티브 페이지 (정식 SPA는 B-006)
 - GET /health - 헬스체크
-- POST /api/insurers · GET /api/insurers · GET/PATCH/DELETE /api/insurers/:id - 원수사 마스터 CRUD(삭제는 참조 있으면 409) (F-026)
+- POST /api/insurers · GET /api/insurers · GET/PATCH/DELETE /api/insurers/:id - 원수사 마스터 CRUD(삭제는 참조 있으면 409) (F-032)
 - POST /api/uploads - 엑셀 업로드(멀티파트). SHA-256 멱등(중복 409), R2 불변 보관, Queue 발행, 202+{uploadId,jobId} (F-003)
 - GET /api/jobs/:id - 파싱 진행률 폴링 (F-003)
 - GET /api/uploads/:id - 업로드 상태 조회 (F-003)
@@ -52,8 +52,8 @@ pnpm -F api d1:migrate:local           # 로컬 D1에 마이그레이션 적용 
 - POST /api/rules/simulate - 룰 변경 지급액 diff 미리보기(실데이터 무영향) (F-012)
 - POST /api/family/detect · /:id/confirm · /:id/release · GET /api/family - 가족계약 감지 HITL (F-011)
 - POST /api/users · POST /api/auth/login · GET /api/orgs/:id/agents - 계정/세션인증/RBAC 조직스코프 (F-017)
-- POST /api/auth/change-password · POST /api/users/:id/reset-password - 본인 비번 변경(현재 비번 확인, mustChangePassword 해제)·admin 초기화(mustChangePassword=true 임시 비번 발급) (F-025/F-027)
-- POST /api/auth/otp/request · POST /api/auth/otp/verify - @atasset.co.kr 이메일 OTP(6자리, 5분). OTP_ENFORCED=true일 때만 비번 차단, 기본 off는 임시 비번 로그인 허용 (F-027)
+- POST /api/auth/change-password · POST /api/users/:id/reset-password - 본인 비번 변경(현재 비번 확인, mustChangePassword 해제)·admin 초기화(mustChangePassword=true 임시 비번 발급) (F-031/F-033)
+- POST /api/auth/otp/request · POST /api/auth/otp/verify - @atasset.co.kr 이메일 OTP(6자리, 5분). OTP_ENFORCED=true일 때만 비번 차단, 기본 off는 임시 비번 로그인 허용 (F-033)
 - POST /api/runs · POST /api/runs/:id/calculate · GET /api/runs/:id - 월 정산 run + 룰 계산(재현성) (F-013)
 - GET /api/runs/:id/reconciliation - 대사(원수사 보고액 vs 계산액, 계약 단위 차액 드릴다운) (F-014)
 - GET /api/runs/:id/parallel-verify - 병행 검증(저장 vs 재계산 차액 0원 무결성) (F-022)
