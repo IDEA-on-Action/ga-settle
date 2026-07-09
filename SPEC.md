@@ -383,12 +383,12 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 ### F-042 · 목록 페이지네이션 + 선택기 검색
 - **REQ-058**: 목록이 50개를 넘어도 검색·페이지로 원하는 항목에 도달할 수 있다
 - **Acceptance**:
-  - [ ] 목록 API(uploads/runs/agents/contracts/insurers/family/adjustments)에 `?q`(검색)·`?limit`·`?offset` + 응답 total
-  - [ ] 선택기(원수사·업로드·Run·설계사·계약)에 검색창(type-to-filter, 서버 ?q 연동)
-  - [ ] 가족계약·보정 테이블에 Prev/Next + 페이지·총건수
-- **Status**: 📋 PLANNED
+  - [x] 목록 API(uploads/runs/agents/contracts/insurers/family/adjustments)에 `?q`(검색)·`?limit`·`?offset` + 응답 total
+  - [x] 선택기(원수사·업로드·Run·설계사·계약)에 검색창(type-to-filter, 서버 ?q 연동)
+  - [x] 가족계약·보정 테이블에 Prev/Next + 페이지·총건수
+- **Status**: DONE
 - **Sprint**: S8
-- **Notes**: PRD `docs/prd/demo-input-ux` §7 마지막 backlog 승격. 기존 소비자 호환(named key 유지 + total 추가). SearchableSelect 무의존성 콤보박스.
+- **Notes**: PRD `docs/prd/demo-input-ux` §7 마지막 backlog 승격. 공용 `pagination.ts`(pageParams). family/adjustments는 bare array→`{items,total}` 전환(소비자 갱신). 그 외 named key 유지+total 추가. SearchableSelect 무의존성 콤보박스(검색창+debounce 서버 ?q, 선택라벨 캐시). 공용 Pager. api 테스트 +3(검색/페이지 total), 총 81 PASS. 브라우저 검증: "삼성" 검색 필터·보정 12건 "1/2·이전/다음". 부수: Runs.tsx 낡은 "GET /api/runs 없음" 안내 정정(F-037로 존재).
 
 ## §3. Backlog (F-item 승격 대기)
 

@@ -3,9 +3,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Info } from "lucide-react";
 import { apiFetch, ApiError } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Pager } from "@/components/ui/pager";
 import { FamilyDetectForm } from "./_rules/FamilyDetectForm";
 import { FamilyTable } from "./_rules/FamilyTable";
 import type { FamilyContractInput, FamilyFlag } from "./_rules/types";
+
+const FAMILY_PAGE = 20;
 
 /**
  * 가족계약 HITL 화면 (F-027). GET /api/family + POST /api/family/detect·/:id/confirm·/:id/release.
@@ -15,10 +18,11 @@ import type { FamilyContractInput, FamilyFlag } from "./_rules/types";
 export default function Family() {
   const queryClient = useQueryClient();
   const [actionError, setActionError] = useState<string | null>(null);
+  const [offset, setOffset] = useState(0);
 
   const familyQuery = useQuery({
-    queryKey: ["family"],
-    queryFn: () => apiFetch<FamilyFlag[]>("/api/family"),
+    queryKey: ["family", offset],
+    queryFn: () => apiFetch<{ items: FamilyFlag[]; total: number }>(`/api/family?limit=${FAMILY_PAGE}&offset=${offset}`),
   });
 
   const detectMutation = useMutation({
@@ -51,7 +55,8 @@ export default function Family() {
     onError: (err) => setActionError(err instanceof ApiError ? err.message : "해제 처리에 실패했어요"),
   });
 
-  const flags = familyQuery.data ?? [];
+  const flags = familyQuery.data?.items ?? [];
+  const total = familyQuery.data?.total ?? 0;
   const pendingId = confirmMutation.isPending ? confirmMutation.variables : undefined;
   const releasingId = releaseMutation.isPending ? releaseMutation.variables : undefined;
 
@@ -92,6 +97,11 @@ export default function Family() {
               isConfirming={(id) => pendingId === id}
               isReleasing={(id) => releasingId === id}
             />
+          )}
+          {!familyQuery.isLoading && !familyQuery.isError && total > 0 && (
+            <div className="border-t border-axis-border-default px-4 py-2.5">
+              <Pager offset={offset} limit={FAMILY_PAGE} total={total} onOffset={setOffset} />
+            </div>
           )}
         </CardContent>
       </Card>

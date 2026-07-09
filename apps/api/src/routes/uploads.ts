@@ -1,10 +1,11 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, like, or, sql } from "drizzle-orm";
 import { uploads, jobs, insurers, uploadErrors, commissionRecords } from "@ga-settle/schema";
 import type { StagedRow } from "@ga-settle/mapping";
 import type { Env } from "../types";
 import { getDb, sha256Hex, encField } from "../db";
+import { pageParams } from "../pagination";
 
 // 업로드 파이프라인 (F-003): 해시 멱등 -> R2 불변 -> Queue -> jobs 진행률.
 export const uploadsRoutes = new Hono<{ Bindings: Env }>();
@@ -82,9 +83,19 @@ uploadsRoutes.post("/api/uploads", async (c) => {
 });
 
 // 업로드 목록 (F-036 REQ-052): 최근순 선택기용. 민감정보(r2Key/해시) 제외, 원수사명 조인.
-// 매핑/대시보드에서 uploadId를 손으로 복사하지 않고 목록에서 고를 수 있게 한다.
+// F-042: ?q(원수사명/월/상태/id 검색)·?limit·?offset + total.
 uploadsRoutes.get("/api/uploads", async (c) => {
-  const rows = await getDb(c.env)
+  const { q, limit, offset } = pageParams(c);
+  const db = getDb(c.env);
+  const where = q
+    ? or(
+        like(insurers.name, `%${q}%`),
+        like(uploads.settlementMonth, `%${q}%`),
+        like(uploads.status, `%${q}%`),
+        like(uploads.insurerId, `%${q}%`),
+      )
+    : undefined;
+  const rows = await db
     .select({
       id: uploads.id,
       insurerId: uploads.insurerId,
@@ -98,9 +109,16 @@ uploadsRoutes.get("/api/uploads", async (c) => {
     })
     .from(uploads)
     .leftJoin(insurers, eq(uploads.insurerId, insurers.id))
+    .where(where)
     .orderBy(desc(uploads.createdAt))
-    .limit(50);
-  return c.json({ uploads: rows });
+    .limit(limit)
+    .offset(offset);
+  const cnt = await db
+    .select({ n: sql<number>`count(*)` })
+    .from(uploads)
+    .leftJoin(insurers, eq(uploads.insurerId, insurers.id))
+    .where(where);
+  return c.json({ uploads: rows, total: Number(cnt[0]?.n ?? 0) });
 });
 
 // 진행률 폴링 (F-003 REQ-006, SPA)

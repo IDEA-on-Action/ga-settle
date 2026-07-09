@@ -1,9 +1,10 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, isNull, like, or, sql } from "drizzle-orm";
 import { orgUnits, agents, agentAssignments } from "@ga-settle/schema";
 import type { Env } from "../types";
 import { getDb, type Db } from "../db";
+import { pageParams } from "../pagination";
 
 // 조직도(본부>사업단>팀) + 설계사 + 시점별 소속 이력 (F-009, FR-09~11).
 export const orgRoutes = new Hono<{ Bindings: Env }>();
@@ -51,13 +52,20 @@ orgRoutes.get("/api/org/tree", async (c) => {
   return c.json(roots);
 });
 
-// 설계사 목록 (F-040 REQ-056): 선택기용. 손입력(agent-001) 대신 이름으로 고르게 한다.
+// 설계사 목록 (F-040 REQ-056): 선택기용. F-042: ?q(이름/코드)·?limit·?offset + total.
 orgRoutes.get("/api/agents", async (c) => {
-  const rows = await getDb(c.env)
+  const { q, limit, offset } = pageParams(c);
+  const db = getDb(c.env);
+  const where = q ? or(like(agents.name, `%${q}%`), like(agents.code, `%${q}%`)) : undefined;
+  const rows = await db
     .select({ id: agents.id, code: agents.code, name: agents.name, status: agents.status })
     .from(agents)
-    .orderBy(asc(agents.name));
-  return c.json({ agents: rows });
+    .where(where)
+    .orderBy(asc(agents.name))
+    .limit(limit)
+    .offset(offset);
+  const cnt = await db.select({ n: sql<number>`count(*)` }).from(agents).where(where);
+  return c.json({ agents: rows, total: Number(cnt[0]?.n ?? 0) });
 });
 
 orgRoutes.post("/api/agents", async (c) => {

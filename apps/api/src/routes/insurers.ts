@@ -1,10 +1,11 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { asc, eq, like, or, sql } from "drizzle-orm";
 import { insurers, uploads, commissionRecords, templateVersions } from "@ga-settle/schema";
 import type { Env } from "../types";
 import { getDb, writeAudit } from "../db";
 import { authUser } from "../auth";
+import { pageParams } from "../pagination";
 
 // 원수사(보험사) 마스터 CRUD (F-026). 업로드가 insurerId 선행 등록을 요구 - 이 라우트로 등록.
 // 조회/변경 참조: mapping.ts GET /api/insurers/:id/templates (버전 이력).
@@ -27,10 +28,14 @@ insurersRoutes.post("/api/insurers", async (c) => {
   return c.json({ id, name: b.data.name }, 201);
 });
 
-// 목록
+// 목록. F-042: ?q(이름/id)·?limit·?offset + total (선택기 검색).
 insurersRoutes.get("/api/insurers", async (c) => {
-  const rows = await getDb(c.env).select().from(insurers).all();
-  return c.json({ insurers: rows });
+  const { q, limit, offset } = pageParams(c);
+  const db = getDb(c.env);
+  const where = q ? or(like(insurers.name, `%${q}%`), like(insurers.id, `%${q}%`)) : undefined;
+  const rows = await db.select().from(insurers).where(where).orderBy(asc(insurers.name)).limit(limit).offset(offset);
+  const cnt = await db.select({ n: sql<number>`count(*)` }).from(insurers).where(where);
+  return c.json({ insurers: rows, total: Number(cnt[0]?.n ?? 0) });
 });
 
 // 단건

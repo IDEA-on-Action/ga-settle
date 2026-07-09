@@ -29,7 +29,7 @@ describe("F-011 HITL 플로우", () => {
     const res = await post("/api/family/detect", { contracts: [{ contractNo: "C1", agentId: "a1", holderName: "김철수", holderBirth: "800101" }] });
     expect(res.status).toBe(201);
     expect((await res.json() as { candidates: number }).candidates).toBe(1);
-    const all = (await getJson("/api/family")) as { status: string }[];
+    const all = ((await getJson("/api/family")) as { items: { status: string }[] }).items;
     expect(all.length).toBe(1);
     expect(all.every((f) => f.status === "candidate")).toBe(true);
     expect(all.filter((f) => f.status === "confirmed")).toHaveLength(0); // 자동 확정 없음
@@ -38,7 +38,7 @@ describe("F-011 HITL 플로우", () => {
   it("확정: candidate에서만 + 확정자는 인증 사용자 자동 기록 (F-038)", async () => {
     await seedAgent("a1", "김철수", "800101");
     await post("/api/family/detect", { contracts: [{ contractNo: "C1", agentId: "a1", holderName: "김철수", holderBirth: "800101" }] });
-    const [flag] = (await getJson("/api/family")) as { id: string }[];
+    const [flag] = ((await getJson("/api/family")) as { items: { id: string }[] }).items;
 
     // 확정자는 손입력이 아닌 로그인 사용자로 서버가 자동 기록 (본문 불필요)
     const ok = await post(`/api/family/${flag!.id}/confirm`, {});
@@ -50,10 +50,10 @@ describe("F-011 HITL 플로우", () => {
   it("해제: 이력 보존(행 유지, released)", async () => {
     await seedAgent("a1", "김철수", "800101");
     await post("/api/family/detect", { contracts: [{ contractNo: "C1", agentId: "a1", holderName: "김철수", holderBirth: "800101" }] });
-    const [flag] = (await getJson("/api/family")) as { id: string }[];
+    const [flag] = ((await getJson("/api/family")) as { items: { id: string }[] }).items;
     await post(`/api/family/${flag!.id}/confirm`, { confirmedBy: "staff1" });
     expect((await post(`/api/family/${flag!.id}/release`, {})).status).toBe(200);
-    const all = (await getJson("/api/family")) as { id: string; status: string }[];
+    const all = ((await getJson("/api/family")) as { items: { id: string; status: string }[] }).items;
     expect(all).toHaveLength(1); // 삭제 아님(이력 보존)
     expect(all[0]!.status).toBe("released");
   });

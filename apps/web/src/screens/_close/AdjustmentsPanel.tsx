@@ -7,8 +7,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Pager } from "@/components/ui/pager";
 import { ContractSelect } from "@/components/pickers/EntitySelects";
 import { formatDateTime } from "./format";
+
+const ADJ_PAGE = 10;
 
 /**
  * GET /api/runs/:id/adjustments가 adjustments 테이블 원본 행을 그대로 반환하므로
@@ -41,10 +44,11 @@ export function AdjustmentsPanel({ runId, closed }: { runId: string; closed: boo
   const [amount, setAmount] = useState("");
   const [reason, setReason] = useState("");
   const [approvedBy, setApprovedBy] = useState("");
+  const [offset, setOffset] = useState(0);
 
   const listQuery = useQuery({
-    queryKey: ["run-adjustments", runId],
-    queryFn: () => apiFetch<AdjustmentRow[]>(`/api/runs/${runId}/adjustments`),
+    queryKey: ["run-adjustments", runId, offset],
+    queryFn: () => apiFetch<{ items: AdjustmentRow[]; total: number }>(`/api/runs/${runId}/adjustments?limit=${ADJ_PAGE}&offset=${offset}`),
   });
 
   const createMutation = useMutation({
@@ -139,8 +143,8 @@ export function AdjustmentsPanel({ runId, closed }: { runId: string; closed: boo
 
       {listQuery.isLoading && <p className="text-xs text-axis-text-tertiary">보정 내역 조회 중...</p>}
       {listQuery.isError && <p className="text-xs text-axis-text-error">보정 내역을 불러오지 못했어요.</p>}
-      {listQuery.data && listQuery.data.length === 0 && <p className="text-xs text-axis-text-tertiary">등록된 보정이 없어요.</p>}
-      {listQuery.data && listQuery.data.length > 0 && (
+      {listQuery.data && listQuery.data.total === 0 && <p className="text-xs text-axis-text-tertiary">등록된 보정이 없어요.</p>}
+      {listQuery.data && listQuery.data.total > 0 && (
         <Table>
           <TableHeader>
             <TableRow>
@@ -152,7 +156,7 @@ export function AdjustmentsPanel({ runId, closed }: { runId: string; closed: boo
             </TableRow>
           </TableHeader>
           <TableBody>
-            {listQuery.data.map((a) => (
+            {listQuery.data.items.map((a) => (
               <TableRow key={a.id}>
                 <TableCell className="font-mono text-xs text-axis-text-brand">
                   {a.targetType}:{a.targetId}
@@ -169,6 +173,9 @@ export function AdjustmentsPanel({ runId, closed }: { runId: string; closed: boo
             ))}
           </TableBody>
         </Table>
+      )}
+      {listQuery.data && listQuery.data.total > ADJ_PAGE && (
+        <Pager offset={offset} limit={ADJ_PAGE} total={listQuery.data.total} onOffset={setOffset} />
       )}
       <p className="text-xs text-axis-text-tertiary">
         참고: 목록 API는 금액을 amountEnc(암호화 원문)로만 반환해 화면에 복호화 금액을 표시할 수 없어요(API 갭).

@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "./api";
 
@@ -31,26 +32,29 @@ export interface RunListRow {
   closedAt: string | null;
 }
 
-export function useInsurers() {
+// 선택기 검색: q를 서버 ?q로 넘겨 상위 매치만 받는다(F-042). limit는 드롭다운 표시 상한.
+const qs = (q: string, limit = 50) => `?q=${encodeURIComponent(q)}&limit=${limit}`;
+
+export function useInsurers(q = "") {
   return useQuery({
-    queryKey: ["insurers"],
-    queryFn: () => apiFetch<{ insurers: InsurerRow[] }>("/api/insurers").then((r) => r.insurers),
+    queryKey: ["insurers", q],
+    queryFn: () => apiFetch<{ insurers: InsurerRow[] }>(`/api/insurers${qs(q)}`).then((r) => r.insurers),
     staleTime: 60_000,
   });
 }
 
-export function useUploadsList() {
+export function useUploadsList(q = "") {
   return useQuery({
-    queryKey: ["uploads-list"],
-    queryFn: () => apiFetch<{ uploads: UploadListRow[] }>("/api/uploads").then((r) => r.uploads),
+    queryKey: ["uploads-list", q],
+    queryFn: () => apiFetch<{ uploads: UploadListRow[] }>(`/api/uploads${qs(q)}`).then((r) => r.uploads),
     staleTime: 15_000,
   });
 }
 
-export function useRunsList() {
+export function useRunsList(q = "") {
   return useQuery({
-    queryKey: ["runs-list"],
-    queryFn: () => apiFetch<{ runs: RunListRow[] }>("/api/runs").then((r) => r.runs),
+    queryKey: ["runs-list", q],
+    queryFn: () => apiFetch<{ runs: RunListRow[] }>(`/api/runs${qs(q)}`).then((r) => r.runs),
     staleTime: 15_000,
   });
 }
@@ -68,21 +72,31 @@ export interface ContractRow {
   productName: string | null;
 }
 
-export function useAgents() {
+export function useAgents(q = "") {
   return useQuery({
-    queryKey: ["agents"],
-    queryFn: () => apiFetch<{ agents: AgentRow[] }>("/api/agents").then((r) => r.agents),
+    queryKey: ["agents", q],
+    queryFn: () => apiFetch<{ agents: AgentRow[] }>(`/api/agents${qs(q)}`).then((r) => r.agents),
     staleTime: 60_000,
   });
 }
 
-export function useRunContracts(runId: string) {
+export function useRunContracts(runId: string, q = "") {
   return useQuery({
-    queryKey: ["run-contracts", runId],
-    queryFn: () => apiFetch<{ contracts: ContractRow[] }>(`/api/runs/${runId}/contracts`).then((r) => r.contracts),
+    queryKey: ["run-contracts", runId, q],
+    queryFn: () => apiFetch<{ contracts: ContractRow[] }>(`/api/runs/${runId}/contracts${qs(q)}`).then((r) => r.contracts),
     enabled: runId.length > 0,
     staleTime: 15_000,
   });
+}
+
+/** 입력값 디바운스(선택기 서버 검색용). */
+export function useDebounced<T>(value: T, ms = 250): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), ms);
+    return () => clearTimeout(t);
+  }, [value, ms]);
+  return debounced;
 }
 
 /** 선택기 라벨 헬퍼 - 사용자가 알아볼 수 있는 라벨(원수사/월/상태). */

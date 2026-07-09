@@ -1,10 +1,11 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import { familyFlags, agents } from "@ga-settle/schema";
 import type { Env } from "../types";
 import { getDb, encField } from "../db";
 import { authUser } from "../auth";
+import { pageParams } from "../pagination";
 import { findFamilyCandidates, type FamilyContract } from "../family";
 
 // 가족계약 감지 HITL (F-011, FR-14). 자동은 candidate 생성까지만, 확정/해제는 실무자 수동.
@@ -37,10 +38,15 @@ familyRoutes.post("/api/family/detect", async (c) => {
   return c.json({ candidates: created }, 201); // 전부 candidate, confirmed 0
 });
 
+// F-042: 테이블 페이지네이션 ?limit·?offset + total. 기존 ?status 필터 유지. 최근순.
 familyRoutes.get("/api/family", async (c) => {
+  const { limit, offset } = pageParams(c);
   const status = c.req.query("status");
-  const rows = await getDb(c.env).select().from(familyFlags).all();
-  return c.json(status ? rows.filter((r) => r.status === status) : rows);
+  const db = getDb(c.env);
+  const where = status ? eq(familyFlags.status, status) : undefined;
+  const rows = await db.select().from(familyFlags).where(where).orderBy(desc(familyFlags.createdAt)).limit(limit).offset(offset);
+  const cnt = await db.select({ n: sql<number>`count(*)` }).from(familyFlags).where(where);
+  return c.json({ items: rows, total: Number(cnt[0]?.n ?? 0) });
 });
 
 // 확정: 실무자만, candidate에서만. 자동 확정 불가.

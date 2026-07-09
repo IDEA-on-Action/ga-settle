@@ -58,4 +58,13 @@ describe("F-009 조직 + 소속 이력", () => {
     // 이름 오름차순
     expect([...names]).toEqual([...names].sort((x, y) => x.localeCompare(y)));
   });
+
+  it("GET /api/agents?q= 검색 + total (F-042)", async () => {
+    await post("/api/agents", { id: "agx", code: "FCX", name: "특이한이름" });
+    await post("/api/agents", { id: "agy", code: "FCY", name: "평범한이름" });
+    const hit = (await getJson("/api/agents?q=특이한")) as { agents: { name: string }[]; total: number };
+    expect(hit.agents.map((a) => a.name)).toContain("특이한이름");
+    expect(hit.agents.every((a) => a.name.includes("특이한"))).toBe(true);
+    expect(hit.total).toBe(hit.agents.length);
+  });
 });

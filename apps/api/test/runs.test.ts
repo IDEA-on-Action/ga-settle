@@ -109,7 +109,7 @@ describe("F-013 정산 계산 배치", () => {
     expect(res.status).toBe(201);
     const { id: adjId } = (await res.json()) as { id: string };
 
-    const list = (await getJson(`/api/runs/${id}/adjustments`)) as { reason: string; approvedBy: string }[];
+    const list = ((await getJson(`/api/runs/${id}/adjustments`)) as { items: { reason: string; approvedBy: string }[] }).items;
     expect(list).toHaveLength(1);
     expect(list[0]).toMatchObject({ reason: "과소지급 보정", approvedBy: "manager1" });
 
@@ -160,6 +160,22 @@ describe("F-036/037 목록 API (선택기 데이터)", () => {
     expect("fileHash" in up!).toBe(false);
   });
 
+  it("GET /api/uploads?q= 검색 + total (F-042)", async () => {
+    const hit = (await getJson("/api/uploads?q=A생명")) as { uploads: unknown[]; total: number };
+    expect(hit.uploads.length).toBeGreaterThanOrEqual(1);
+    expect(hit.total).toBeGreaterThanOrEqual(1);
+    const miss = (await getJson("/api/uploads?q=없는원수사zzz")) as { uploads: unknown[]; total: number };
+    expect(miss.uploads).toHaveLength(0);
+    expect(miss.total).toBe(0);
+  });
+
+  it("GET /api/runs?limit=1&offset=0 페이지네이션 total (F-042)", async () => {
+    await post("/api/runs", { settlementMonth: "2026-06" });
+    const page = (await getJson("/api/runs?limit=1&offset=0")) as { runs: unknown[]; total: number };
+    expect(page.runs.length).toBeLessThanOrEqual(1);
+    expect(page.total).toBeGreaterThanOrEqual(1);
+  });
+
   it("GET /api/runs/:id/contracts: 계약 목록(금액 제외) (F-041)", async () => {
     const { id } = (await (await post("/api/runs", { settlementMonth: "2026-06" })).json()) as { id: string };
     const { contracts } = (await getJson(`/api/runs/${id}/contracts`)) as {
@@ -189,7 +205,7 @@ describe("F-038 승인자·확정자 인증 사용자 자동 기록", () => {
     await post(`/api/runs/${id}/calculate`);
     const res = await post(`/api/runs/${id}/adjustments`, { targetType: "line", targetId: "cr1", amount: 100, reason: "테스트 보정" });
     expect(res.status).toBe(201);
-    const rows = (await getJson(`/api/runs/${id}/adjustments`)) as { createdBy: string }[];
+    const rows = ((await getJson(`/api/runs/${id}/adjustments`)) as { items: { createdBy: string }[] }).items;
     expect(rows[0]!.createdBy).toBe("admin@test.local");
     const audits = await getDb(env).select().from(auditLogs).all();
     expect(audits.some((a) => a.action === "adjustment.create" && a.actor === "admin@test.local")).toBe(true);

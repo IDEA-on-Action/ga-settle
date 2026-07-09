@@ -176,7 +176,7 @@ export default function Runs() {
           <CardHeader>
             <CardTitle className="text-base">최근 조회한 Run</CardTitle>
             <CardDescription>
-              GET /api/runs(목록) 엔드포인트가 없어 이 브라우저에서 조회·생성한 Run만 로컬로 기억해요 - API 갭.
+              이 브라우저에서 최근 조회·생성한 Run이에요. 전체 Run은 대사·내역서 화면의 Run 선택기에서 월로 고를 수 있어요.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-1">

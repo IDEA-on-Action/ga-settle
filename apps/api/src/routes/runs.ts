@@ -1,20 +1,24 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, like, or, sql } from "drizzle-orm";
 import { settlementRuns, settlementLines, commissionRecords, familyFlags, reconciliations, adjustments } from "@ga-settle/schema";
 import { evaluate, type CommissionInput } from "@ga-settle/rules";
 import type { Env } from "../types";
 import { getDb, encField, decNum, writeAudit, type Db } from "../db";
 import { authUser } from "../auth";
+import { pageParams } from "../pagination";
 import { resolveAssignment } from "./org";
 import { loadRules } from "./rules";
 
 // 정산/대사/마감 (F-013 실행, F-014 대사, F-016 마감 이중 잠금).
 export const runsRoutes = new Hono<{ Bindings: Env }>();
 
-// 정산 Run 목록 (F-037 REQ-053): 월/상태 라벨 선택기용. 대사·내역서에서 run UUID 손입력 제거.
+// 정산 Run 목록 (F-037 REQ-053): 월/상태 라벨 선택기용. F-042: ?q(월/상태)·?limit·?offset + total.
 runsRoutes.get("/api/runs", async (c) => {
-  const rows = await getDb(c.env)
+  const { q, limit, offset } = pageParams(c);
+  const db = getDb(c.env);
+  const where = q ? or(like(settlementRuns.settlementMonth, `%${q}%`), like(settlementRuns.status, `%${q}%`)) : undefined;
+  const rows = await db
     .select({
       id: settlementRuns.id,
       settlementMonth: settlementRuns.settlementMonth,
@@ -22,9 +26,12 @@ runsRoutes.get("/api/runs", async (c) => {
       closedAt: settlementRuns.closedAt,
     })
     .from(settlementRuns)
+    .where(where)
     .orderBy(desc(settlementRuns.settlementMonth))
-    .limit(50);
-  return c.json({ runs: rows });
+    .limit(limit)
+    .offset(offset);
+  const cnt = await db.select({ n: sql<number>`count(*)` }).from(settlementRuns).where(where);
+  return c.json({ runs: rows, total: Number(cnt[0]?.n ?? 0) });
 });
 
 // 월 정산 run 생성 (draft). 월당 1개(uq_run_month).
@@ -102,8 +109,9 @@ runsRoutes.get("/api/runs/:id", async (c) => {
 });
 
 // run 계약 목록 (F-041 REQ-057): 보정 대상 선택기용. 해당 run 월의 계약(contractNo/설계사/상품).
-// 금액(암호화 필드)은 제외(불변식 5) - 대상 식별용 최소 정보만.
+// 금액(암호화 필드)은 제외(불변식 5). F-042: ?q(계약번호/설계사/상품)·?limit·?offset + total.
 runsRoutes.get("/api/runs/:id/contracts", async (c) => {
+  const { q, limit, offset } = pageParams(c);
   const db = getDb(c.env);
   const run = await db.select().from(settlementRuns).where(eq(settlementRuns.id, c.req.param("id"))).get();
   if (!run) return c.json({ error: "없는 run이에요" }, 404);
@@ -119,7 +127,17 @@ runsRoutes.get("/api/runs/:id/contracts", async (c) => {
   // 계약번호 단위로 중복 제거(같은 계약의 여러 회차 행 합침)
   const byContract = new Map<string, { contractNo: string; agentId: string | null; productName: string | null }>();
   for (const r of recs) if (!byContract.has(r.contractNo)) byContract.set(r.contractNo, r);
-  return c.json({ contracts: [...byContract.values()] });
+  let all = [...byContract.values()];
+  if (q) {
+    const ql = q.toLowerCase();
+    all = all.filter(
+      (cr) =>
+        cr.contractNo.toLowerCase().includes(ql) ||
+        (cr.agentId ?? "").toLowerCase().includes(ql) ||
+        (cr.productName ?? "").toLowerCase().includes(ql),
+    );
+  }
+  return c.json({ contracts: all.slice(offset, offset + limit), total: all.length });
 });
 
 /**
@@ -233,9 +251,14 @@ runsRoutes.post("/api/runs/:id/adjustments", async (c) => {
   return c.json({ id, runId: run.id, reason: b.data.reason, approvedBy: b.data.approvedBy ?? null }, 201);
 });
 
+// 보정 목록 (F-015). F-042: 테이블 페이지네이션 ?limit·?offset + total, 최근순.
 runsRoutes.get("/api/runs/:id/adjustments", async (c) => {
-  const rows = await getDb(c.env).select().from(adjustments).where(eq(adjustments.runId, c.req.param("id"))).all();
-  return c.json(rows);
+  const { limit, offset } = pageParams(c);
+  const db = getDb(c.env);
+  const cond = eq(adjustments.runId, c.req.param("id"));
+  const rows = await db.select().from(adjustments).where(cond).orderBy(desc(adjustments.createdAt)).limit(limit).offset(offset);
+  const cnt = await db.select({ n: sql<number>`count(*)` }).from(adjustments).where(cond);
+  return c.json({ items: rows, total: Number(cnt[0]?.n ?? 0) });
 });
 
 /**
