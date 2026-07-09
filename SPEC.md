@@ -276,17 +276,17 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 - **Sprint**: S13
 - **Notes**: F-026~F-029 화면 완성 의존. F-021에서 브라우저 E2E는 B-006(=F-030)으로 미뤄둔 부분을 완결. CI 통합 여부는 Plan에서 결정.
 
-### F-025 · 비밀번호 변경/초기화 API
-- **REQ-034**: 사용자가 자기 비밀번호를 변경하고, admin이 타 계정 비밀번호를 초기화할 수 있다
+### F-031 · 비밀번호 변경/초기화 API
+- **REQ-045**: 사용자가 자기 비밀번호를 변경하고, admin이 타 계정 비밀번호를 초기화할 수 있다
 - **Acceptance**:
   - [x] 본인 변경은 현재 비밀번호 확인 후 새 비번(8자+)으로만 로그인 가능, admin 초기화는 admin만
 - **Status**: DONE
 - **Sprint**: S7
 - **Notes**: POST /api/auth/change-password(본인, currentPassword 확인 + ctEq, newPassword 8자+, 기존과 동일 거부, audit) + POST /api/users/:id/reset-password(admin only, 분실 대응, audit). 계정 생성(min 4)보다 강한 8자+ 정책. 한계: HMAC 토큰은 서버측 폐기 없음 - 변경 후 기존 토큰은 exp(8h)까지 유효(토큰 버전/블록리스트는 후속). api 62 PASS.
 
-### F-026 · 원수사 마스터 CRUD + 고객 데모 랜딩
-- **REQ-035**: 원수사(insurers)를 API로 등록/조회/수정/삭제할 수 있다 (업로드 선행조건)
-- **REQ-036**: 루트(/)에서 고객에게 보여줄 수 있는 데모 페이지를 제공한다
+### F-032 · 원수사 마스터 CRUD + 고객 데모 랜딩
+- **REQ-046**: 원수사(insurers)를 API로 등록/조회/수정/삭제할 수 있다 (업로드 선행조건)
+- **REQ-047**: 루트(/)에서 고객에게 보여줄 수 있는 데모 페이지를 제공한다
 - **Acceptance**:
   - [x] POST/GET/PATCH/DELETE /api/insurers, 참조 있는 원수사 삭제는 409
   - [x] GET / 이 데모 랜딩 페이지(HTML)를 반환
@@ -294,8 +294,8 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 - **Sprint**: S7
 - **Notes**: routes/insurers.ts CRUD(생성 시 커스텀 id 허용/중복 409, 삭제는 uploads/commission_records/template_versions 참조 시 409 - 역추적 보호, 전 변경 audit). 데모: src/demo.ts 자체완결 HTML을 워커 루트에서 서빙 - 파이프라인(업로드→AI매핑→검증→원장→정산/대사→마감) 인터랙티브 재현 + 라이브 /health 배지. 공개 페이지라 자격증명 미포함(클라이언트 시뮬레이션). 정식 SPA는 [[B-006]]. api 67 PASS. E2E에서 발견한 "원수사 생성 API 부재" gap 해소.
 
-### F-027 · 이메일 OTP 로그인 (@atasset.co.kr 전용)
-- **REQ-037**: 지정 도메인(@atasset.co.kr) 계정 로그인. OTP 강제(OTP_ENFORCED) 시 이메일 코드 전용, 미강제(기본) 시 임시 비밀번호 + 첫 로그인 강제 변경.
+### F-033 · 이메일 OTP 로그인 (@atasset.co.kr 전용)
+- **REQ-048**: 지정 도메인(@atasset.co.kr) 계정 로그인. OTP 강제(OTP_ENFORCED) 시 이메일 코드 전용, 미강제(기본) 시 임시 비밀번호 + 첫 로그인 강제 변경.
 - **Acceptance**:
   - [x] OTP 앱 로직: 요청->검증 토큰 발급, 코드 재사용 방지, 5분 만료/5회 제한
   - [x] SPA 로그인 UI: 비번-우선 + 서버 403{otp:true} 폴백 시 OTP 코드 흐름 (Playwright E2E)
@@ -313,8 +313,8 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 | B-003 | 시책 룰 자연어 → JSON 초안 생성 | — | mid |
 | B-004 | 원수사 API 직접 연동 | - | low |
 | ~~B-005~~ | ~~전 엔드포인트 인증 롤아웃~~ -> F-024로 승격·완료 | 완료 | - |
-| B-006 | 정식 SPA 운영 UI + Playwright 브라우저 E2E (현재 루트는 F-026 데모 랜딩 임시 대체) | 3+파일·관찰가능 | mid |
-| B-007 | OTP 이메일 발송 설정(Resend API 키 + 도메인 검증) - F-027 실사용 요건 | 인프라 설정 | high |
+| B-006 | 정식 SPA 운영 UI + Playwright 브라우저 E2E (현재 루트는 F-032 데모 랜딩 임시 대체) | 3+파일·관찰가능 | mid |
+| B-007 | OTP 이메일 발송 설정(Resend API 키 + 도메인 검증) - F-033 실사용 요건 | 인프라 설정 | high |
 | B-008 | 세분화 RBAC - 엔드포인트별 role/org 스코프(마스터변경 admin, 조직데이터 스코프) | 다수 파일 | mid |
 | B-009 | 토큰 폐기(token_version) + 비번 해시 PBKDF2/argon2 강화 | 다수 파일 | mid |
 | B-010 | 실제 ATA 로고 파일 임베드(현재 SVG 재현) | 관찰가능 | low |
@@ -335,10 +335,10 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 | 4 · 백오피스(S4) | W9-10 | F-017 | planned |
 | 5 · 출력(S5) | W11-12 | F-018, F-019 | planned |
 | 6 · 검증(S6) | W13-14 | F-020~F-022 → 차액 0원 리포트 | planned |
-| 7 · 오픈(S7) | W15 | F-023, F-024 | done |
-| 8 · SPA 셸(S8) | 후속 | F-025 (디자인시스템+인증셸) | planned |
-| 9 · 파이프라인 화면(S9) | 후속 | F-026 | planned |
-| 10 · 룰·검증 화면(S10) | 후속 | F-027 | planned |
-| 11 · 마감 화면(S11) | 후속 | F-028 | planned |
-| 12 · 출력·관리 화면(S12) | 후속 | F-029 | planned |
-| 13 · 브라우저 E2E(S13) | 후속 | F-030 | planned |
+| 7 · 오픈(S7) | W15 | F-023, F-024, F-031~F-033(auth/CRUD 보강) | done |
+| 8 · SPA 셸(S8) | 후속 | F-025 (디자인시스템+인증셸) | done |
+| 9 · 파이프라인 화면(S9) | 후속 | F-026 | done |
+| 10 · 룰·검증 화면(S10) | 후속 | F-027 | done |
+| 11 · 마감 화면(S11) | 후속 | F-028 | done |
+| 12 · 출력·관리 화면(S12) | 후속 | F-029 | done |
+| 13 · 브라우저 E2E(S13) | 후속 | F-030 | done |
