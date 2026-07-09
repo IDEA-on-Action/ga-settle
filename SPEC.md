@@ -316,6 +316,43 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 - **Sprint**: S8
 - **Notes**: 고객 피드백("데모 사용 어려움") 대응. 단일 소스 `apps/web/src/content/guide.ts`(guideSteps 8단계 + screenHelp 화면별 + tourSteps)를 Guide 화면·HelpPanel·Tour가 공유. PDF는 `scripts/build-guide-pdf.mjs`(Node 타입스트리핑으로 guide.ts 직접 import + @playwright/test chromium, Noto Sans KR 웹폰트)로 생성 → `public/guide/`(vite가 dist 복사, 공개 자산). 인라인 가이드 무의존성 구현: Tour는 box-shadow 스포트라이트 + 뷰포트 클램프 위치계산, 사이드바 nav에 `data-tour="nav-{path}"` 앵커. routes.tsx에 'help' 그룹/`/guide` 라우트 추가(registry 단일 지점). API 변경 없음. 문구 수정 시 guide.ts 편집 후 `pnpm -F web guide:pdf` 재생성.
 
+### F-035 · 원수사 선택 드롭다운 (입력 진입장벽 제거)
+- **REQ-051**: 업로드·매핑관리에서 원수사를 id 손입력이 아닌 목록에서 선택한다
+- **Acceptance**:
+  - [ ] 업로드 화면 insurerId 입력 → `GET /api/insurers` 기반 드롭다운(이름 표시/ id 전송)
+  - [ ] 매핑관리 화면 insurerId도 동일 드롭다운
+  - [ ] Upload.tsx 낡은 주석("GET /api/insurers 부재") 제거
+- **Status**: 📋 PLANNED
+- **Sprint**: S8
+- **Notes**: PRD `docs/prd/demo-input-ux`. 프론트 전용(API 기존 F-032). 고객 데모 피드백 대응 - insurerId를 몰라도 업로드 가능해야 함.
+
+### F-036 · 업로드 목록 API + 최근 업로드 선택기
+- **REQ-052**: uploadId를 손으로 복사하지 않고 최근 업로드 목록에서 선택한다
+- **Acceptance**:
+  - [ ] `GET /api/uploads` 신규: 최근 업로드(id, 원수사, 정산월, 상태, 시각) - 민감정보 제외
+  - [ ] AI매핑검토·매핑관리·대시보드의 uploadId 입력을 선택기로 대체(최근순 라벨)
+- **Status**: 📋 PLANNED
+- **Sprint**: S8
+- **Notes**: PRD `docs/prd/demo-input-ux`. 목록 API는 조회 전용(불변식 무영향), 필드 화이트리스트로 금액/인적 미노출.
+
+### F-037 · 정산 Run 목록 API + 월/Run 선택기
+- **REQ-053**: run id를 손으로 복사하지 않고 월/Run 목록에서 선택한다
+- **Acceptance**:
+  - [ ] `GET /api/runs` 신규: Run 목록(id, 정산월, 상태, 시각)
+  - [ ] 대사·내역서·대시보드의 run id 입력을 월·상태 라벨 선택기로 대체
+- **Status**: 📋 PLANNED
+- **Sprint**: S8
+- **Notes**: PRD `docs/prd/demo-input-ux`. 목록 API 조회 전용.
+
+### F-038 · 승인자·확정자 로그인 사용자 자동 반영
+- **REQ-054**: 보정/마감/가족확정의 승인자·확정자를 로그인 사용자로 자동 기록한다
+- **Acceptance**:
+  - [ ] 보정(이중 승인자)·마감(closedBy)·가족확정(확정자) 자유입력 → 로그인 사용자 자동 채움
+  - [ ] 서버가 authUser로 신원 재확인 후 감사 필드 기록(신뢰 경계=서버)
+- **Status**: 📋 PLANNED
+- **Sprint**: S8
+- **Notes**: PRD `docs/prd/demo-input-ux`. 감사 무결성 강화. 마감·보정의 이중 통제(요청자 vs 승인자 역할 구분)는 유지.
+
 ## §3. Backlog (F-item 승격 대기)
 
 | ID | 한 줄 | 승격 기준 충족? | 우선 |
