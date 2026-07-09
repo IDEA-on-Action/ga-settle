@@ -7,13 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { InsurerSelect } from "@/components/pickers/EntitySelects";
 import type { JobDetail, UploadAcceptedResponse, UploadDetail, UploadDuplicateBody } from "./_pipeline/types";
 import { currentMonth, formatNumber, ProgressBar, StatusBadge } from "./_pipeline/shared";
 
 /**
  * 업로드 (F-026): 엑셀 업로드 -> 파싱 진행률 폴링 -> 업로드 상태.
- * API 제약: GET /api/uploads(목록) 엔드포인트가 없어 세션 내 업로드 이력만 화면에 유지한다
- * (새로고침 시 초기화됨 - 목록 엔드포인트 추가 전까지의 알려진 한계, 최종 보고에 기재).
+ * 원수사는 목록 드롭다운으로 선택(F-035). 최근 업로드 목록은 GET /api/uploads(F-036)로 조회 가능.
  */
 
 interface SessionUpload {
@@ -108,14 +108,8 @@ export default function UploadScreen() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="insurerId">원수사 ID</Label>
-                  <Input
-                    id="insurerId"
-                    value={insurerId}
-                    onChange={(e) => setInsurerId(e.target.value)}
-                    placeholder="사전 등록된 insurerId"
-                    required
-                  />
+                  <Label htmlFor="insurerId">원수사</Label>
+                  <InsurerSelect id="insurerId" value={insurerId} onChange={setInsurerId} />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="settlementMonth">정산월</Label>
@@ -129,8 +123,6 @@ export default function UploadScreen() {
                   />
                 </div>
               </div>
-              <p className="text-xs text-axis-text-tertiary">원수사 목록 조회 API가 아직 없어(GET /api/insurers 부재) ID를 직접 입력해요.</p>
-
               {duplicateNotice && (
                 <div className="flex items-center gap-2 rounded-md border border-axis-border-error bg-axis-surface-error px-3 py-2 text-xs font-medium text-axis-text-error">
                   {duplicateNotice}

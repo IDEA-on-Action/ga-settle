@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { familyFlags, agents } from "@ga-settle/schema";
 import type { Env } from "../types";
 import { getDb, encField } from "../db";
+import { authUser } from "../auth";
 import { findFamilyCandidates, type FamilyContract } from "../family";
 
 // 가족계약 감지 HITL (F-011, FR-14). 자동은 candidate 생성까지만, 확정/해제는 실무자 수동.
@@ -42,16 +43,16 @@ familyRoutes.get("/api/family", async (c) => {
   return c.json(status ? rows.filter((r) => r.status === status) : rows);
 });
 
-// 확정: 실무자만(confirmedBy 필수), candidate에서만. 자동 확정 불가.
+// 확정: 실무자만, candidate에서만. 자동 확정 불가.
+// 확정자(confirmedBy)는 인증 사용자로 자동 기록(F-038) - 손입력 대신 로그인 사용자, 감사 무결성.
 familyRoutes.post("/api/family/:id/confirm", async (c) => {
-  const b = z.object({ confirmedBy: z.string().min(1) }).safeParse(await c.req.json().catch(() => null));
-  if (!b.success) return c.json({ error: "확정자(confirmedBy)가 필요해요 - 실무자만 확정" }, 400);
   const db = getDb(c.env);
+  const confirmedBy = (await authUser(c.req.raw, db, c.env.SESSION_SECRET))?.email ?? "system";
   const flag = await db.select().from(familyFlags).where(eq(familyFlags.id, c.req.param("id"))).get();
   if (!flag) return c.json({ error: "없는 플래그예요" }, 404);
   if (flag.status !== "candidate") return c.json({ error: "candidate 상태에서만 확정해요", status: flag.status }, 409);
-  await db.update(familyFlags).set({ status: "confirmed", confirmedBy: b.data.confirmedBy }).where(eq(familyFlags.id, flag.id));
-  return c.json({ id: flag.id, status: "confirmed", confirmedBy: b.data.confirmedBy });
+  await db.update(familyFlags).set({ status: "confirmed", confirmedBy }).where(eq(familyFlags.id, flag.id));
+  return c.json({ id: flag.id, status: "confirmed", confirmedBy });
 });
 
 // 해제: 이력 보존(행 유지, status만 released).

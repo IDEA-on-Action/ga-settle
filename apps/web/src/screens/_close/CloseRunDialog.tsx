@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Dialog,
@@ -22,18 +21,14 @@ interface CloseResponse {
   lines: number;
 }
 
-/** 월 마감 확인 다이얼로그 - 되돌릴 수 없음을 명시하고 closedBy를 받아 POST /:id/close. */
-export function CloseRunDialog({ runId, defaultClosedBy, disabled }: { runId: string; defaultClosedBy: string; disabled: boolean }) {
+/** 월 마감 확인 다이얼로그 - 되돌릴 수 없음을 명시. 마감자는 로그인 사용자로 서버가 자동 기록(F-038). */
+export function CloseRunDialog({ runId, closedByLabel, disabled }: { runId: string; closedByLabel: string; disabled: boolean }) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [closedBy, setClosedBy] = useState(defaultClosedBy);
 
   const closeMutation = useMutation({
     mutationFn: () =>
-      apiFetch<CloseResponse>(`/api/runs/${runId}/close`, {
-        method: "POST",
-        body: JSON.stringify({ closedBy: closedBy.trim() || "system" }),
-      }),
+      apiFetch<CloseResponse>(`/api/runs/${runId}/close`, { method: "POST" }),
     onSuccess: () => {
       setOpen(false);
       void queryClient.invalidateQueries({ queryKey: ["run", runId] });
@@ -56,10 +51,10 @@ export function CloseRunDialog({ runId, defaultClosedBy, disabled }: { runId: st
           </DialogDescription>
         </DialogHeader>
         <div>
-          <Label htmlFor="closed-by" className="text-xs text-axis-text-tertiary">
-            마감 처리자
-          </Label>
-          <Input id="closed-by" value={closedBy} onChange={(e) => setClosedBy(e.target.value)} placeholder="closedBy" />
+          <Label className="text-xs text-axis-text-tertiary">마감 처리자</Label>
+          <p className="mt-1 text-sm font-medium text-axis-text-primary">
+            {closedByLabel} <span className="font-normal text-axis-text-tertiary">(로그인 사용자로 자동 기록)</span>
+          </p>
         </div>
         {closeMutation.isError && (
           <p className="text-xs font-medium text-axis-text-error">

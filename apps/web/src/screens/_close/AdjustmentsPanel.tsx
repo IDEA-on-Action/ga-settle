@@ -100,9 +100,10 @@ export function AdjustmentsPanel({ runId, closed }: { runId: string; closed: boo
         </div>
         <div>
           <Label htmlFor="adj-approved-by" className="text-xs text-axis-text-tertiary">
-            승인자 (선택)
+            이중 승인자 (선택, 등록자와 다른 담당자)
           </Label>
-          <Input id="adj-approved-by" value={approvedBy} onChange={(e) => setApprovedBy(e.target.value)} placeholder="이중 승인자" disabled={closed} />
+          <Input id="adj-approved-by" value={approvedBy} onChange={(e) => setApprovedBy(e.target.value)} placeholder="이중 통제 시 승인자" disabled={closed} />
+          <p className="mt-1 text-[11px] text-axis-text-tertiary">등록자는 로그인 사용자로 자동 기록돼요(F-038).</p>
         </div>
         {createMutation.isError && (
           <p className="text-xs font-medium text-axis-text-error">

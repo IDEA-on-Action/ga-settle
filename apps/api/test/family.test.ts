@@ -35,16 +35,16 @@ describe("F-011 HITL 플로우", () => {
     expect(all.filter((f) => f.status === "confirmed")).toHaveLength(0); // 자동 확정 없음
   });
 
-  it("확정은 실무자만(confirmedBy 필수) + candidate에서만", async () => {
+  it("확정: candidate에서만 + 확정자는 인증 사용자 자동 기록 (F-038)", async () => {
     await seedAgent("a1", "김철수", "800101");
     await post("/api/family/detect", { contracts: [{ contractNo: "C1", agentId: "a1", holderName: "김철수", holderBirth: "800101" }] });
     const [flag] = (await getJson("/api/family")) as { id: string }[];
 
-    expect((await post(`/api/family/${flag!.id}/confirm`, {})).status).toBe(400); // confirmedBy 없음
-    const ok = await post(`/api/family/${flag!.id}/confirm`, { confirmedBy: "staff1" });
+    // 확정자는 손입력이 아닌 로그인 사용자로 서버가 자동 기록 (본문 불필요)
+    const ok = await post(`/api/family/${flag!.id}/confirm`, {});
     expect(ok.status).toBe(200);
-    expect((await ok.json() as { status: string; confirmedBy: string })).toMatchObject({ status: "confirmed", confirmedBy: "staff1" });
-    expect((await post(`/api/family/${flag!.id}/confirm`, { confirmedBy: "staff1" })).status).toBe(409); // 이미 confirmed
+    expect((await ok.json() as { status: string; confirmedBy: string })).toMatchObject({ status: "confirmed", confirmedBy: "admin@test.local" });
+    expect((await post(`/api/family/${flag!.id}/confirm`, {})).status).toBe(409); // 이미 confirmed
   });
 
   it("해제: 이력 보존(행 유지, released)", async () => {

@@ -1,7 +1,5 @@
-import { useState } from "react";
 import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { FamilyFlag, FamilyStatus } from "./types";
@@ -20,7 +18,8 @@ const STATUS_CLASS: Record<FamilyStatus, string> = {
 
 interface FamilyTableProps {
   flags: FamilyFlag[];
-  onConfirm: (id: string, confirmedBy: string) => void;
+  // 확정자는 로그인 사용자로 서버가 자동 기록(F-038) - 화면에서 손입력하지 않는다.
+  onConfirm: (id: string) => void;
   onRelease: (id: string) => void;
   isConfirming: (id: string) => boolean;
   isReleasing: (id: string) => boolean;
@@ -32,8 +31,6 @@ interface FamilyTableProps {
  * API 응답이 평문을 주지 않음. 클라이언트에서 복호화 불가라 잠금 표시만 함.
  */
 export function FamilyTable({ flags, onConfirm, onRelease, isConfirming, isReleasing }: FamilyTableProps) {
-  const [confirmedByDraft, setConfirmedByDraft] = useState<Record<string, string>>({});
-
   return (
     <Table>
       <TableHeader>
@@ -64,19 +61,13 @@ export function FamilyTable({ flags, onConfirm, onRelease, isConfirming, isRelea
             <TableCell className="text-right">
               {f.status === "candidate" && (
                 <div className="flex items-center justify-end gap-1.5">
-                  <Input
-                    value={confirmedByDraft[f.id] ?? ""}
-                    onChange={(e) => setConfirmedByDraft((prev) => ({ ...prev, [f.id]: e.target.value }))}
-                    placeholder="확정자 이름"
-                    className="h-8 w-28 text-xs"
-                  />
                   <Button
                     type="button"
                     size="sm"
-                    disabled={isConfirming(f.id) || !(confirmedByDraft[f.id] ?? "").trim()}
-                    onClick={() => onConfirm(f.id, (confirmedByDraft[f.id] ?? "").trim())}
+                    disabled={isConfirming(f.id)}
+                    onClick={() => onConfirm(f.id)}
                   >
-                    확정
+                    {isConfirming(f.id) ? "확정 중..." : "확정"}
                   </Button>
                 </div>
               )}

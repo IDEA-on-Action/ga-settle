@@ -8,11 +8,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { InsurerSelect, UploadSelect } from "@/components/pickers/EntitySelects";
 import type { MappingConfirmResponse, TemplateVersionRow } from "./_pipeline/types";
 
 /**
  * 매핑 관리 (F-026): 원수사 매핑 버전 이력(TemplateVersion) + 매핑 확정.
- * API 제약: GET /api/insurers(목록) 엔드포인트가 없어 원수사 ID를 직접 입력한다.
+ * 원수사는 드롭다운(F-035), 대상 업로드는 목록 선택기(F-036)로 고른다.
  */
 export default function MappingAdmin() {
   return (
@@ -24,13 +25,7 @@ export default function MappingAdmin() {
 }
 
 function TemplateHistoryCard() {
-  const [insurerIdInput, setInsurerIdInput] = useState("");
   const [insurerId, setInsurerId] = useState("");
-
-  function handleSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setInsurerId(insurerIdInput.trim());
-  }
 
   const templatesQuery = useQuery({
     queryKey: ["insurer-templates", insurerId],
@@ -45,20 +40,12 @@ function TemplateHistoryCard() {
         <CardTitle className="text-sm">원수사 매핑 버전 이력</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        <form className="flex flex-wrap items-end gap-3" onSubmit={handleSubmit}>
+        <div className="flex flex-wrap items-end gap-3">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="ma-insurer-id">원수사 ID</Label>
-            <Input
-              id="ma-insurer-id"
-              value={insurerIdInput}
-              onChange={(e) => setInsurerIdInput(e.target.value)}
-              placeholder="사전 등록된 insurerId"
-              className="w-64"
-            />
+            <Label htmlFor="ma-insurer-id">원수사</Label>
+            <InsurerSelect id="ma-insurer-id" value={insurerId} onChange={setInsurerId} className="w-64" />
           </div>
-          <Button type="submit">조회</Button>
-        </form>
-        <p className="text-xs text-axis-text-tertiary">원수사 목록 조회 API가 아직 없어(GET /api/insurers 부재) ID를 직접 입력해요.</p>
+        </div>
 
         {templatesQuery.error instanceof ApiError && <p className="text-sm text-axis-text-error">{templatesQuery.error.message}</p>}
 
@@ -150,8 +137,8 @@ function MappingConfirmCard() {
       <CardContent>
         <form className="flex flex-col gap-3" onSubmit={handleSubmit}>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="ma-upload-id">Upload ID</Label>
-            <Input id="ma-upload-id" value={uploadId} onChange={(e) => setUploadId(e.target.value)} placeholder="확정할 uploadId" required />
+            <Label htmlFor="ma-upload-id">업로드 선택</Label>
+            <UploadSelect id="ma-upload-id" value={uploadId} onChange={setUploadId} />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="ma-headers">원본 헤더 (콤마 구분)</Label>

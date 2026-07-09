@@ -1,15 +1,31 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { settlementRuns, settlementLines, commissionRecords, familyFlags, reconciliations, adjustments } from "@ga-settle/schema";
 import { evaluate, type CommissionInput } from "@ga-settle/rules";
 import type { Env } from "../types";
 import { getDb, encField, decNum, writeAudit, type Db } from "../db";
+import { authUser } from "../auth";
 import { resolveAssignment } from "./org";
 import { loadRules } from "./rules";
 
 // 정산/대사/마감 (F-013 실행, F-014 대사, F-016 마감 이중 잠금).
 export const runsRoutes = new Hono<{ Bindings: Env }>();
+
+// 정산 Run 목록 (F-037 REQ-053): 월/상태 라벨 선택기용. 대사·내역서에서 run UUID 손입력 제거.
+runsRoutes.get("/api/runs", async (c) => {
+  const rows = await getDb(c.env)
+    .select({
+      id: settlementRuns.id,
+      settlementMonth: settlementRuns.settlementMonth,
+      status: settlementRuns.status,
+      closedAt: settlementRuns.closedAt,
+    })
+    .from(settlementRuns)
+    .orderBy(desc(settlementRuns.settlementMonth))
+    .limit(50);
+  return c.json({ runs: rows });
+});
 
 // 월 정산 run 생성 (draft). 월당 1개(uq_run_month).
 runsRoutes.post("/api/runs", async (c) => {
@@ -175,6 +191,9 @@ runsRoutes.post("/api/runs/:id/adjustments", async (c) => {
   if (!b.success) return c.json({ error: "보정 검증 실패 (targetType/targetId/amount/reason 필수)" }, 400);
 
   const db = getDb(c.env);
+  // 등록자(createdBy)는 클라이언트 입력이 아닌 인증 사용자로 기록(F-038, 감사 무결성).
+  // approvedBy는 이중 통제의 별도 승인자(선택) - 요청자와 역할 구분 유지.
+  const requester = (await authUser(c.req.raw, db, c.env.SESSION_SECRET))?.email ?? "system";
   const run = await db.select().from(settlementRuns).where(eq(settlementRuns.id, c.req.param("id"))).get();
   if (!run) return c.json({ error: "없는 run이에요" }, 404);
   if (run.status === "closed") return c.json({ error: "마감된 run은 보정 불가" }, 409);
@@ -183,11 +202,11 @@ runsRoutes.post("/api/runs/:id/adjustments", async (c) => {
   const now = new Date().toISOString();
   await db.insert(adjustments).values({
     id, runId: run.id, targetType: b.data.targetType, targetId: b.data.targetId,
-    amountEnc: (await encField(b.data.amount, c.env.FIELD_ENCRYPTION_KEY))!, reason: b.data.reason, createdBy: "system",
+    amountEnc: (await encField(b.data.amount, c.env.FIELD_ENCRYPTION_KEY))!, reason: b.data.reason, createdBy: requester,
     approvedBy: b.data.approvedBy ?? null, createdAt: now,
   });
   await writeAudit(db, {
-    actor: b.data.approvedBy ?? "system", action: "adjustment.create", entity: "adjustments", entityId: id,
+    actor: requester, action: "adjustment.create", entity: "adjustments", entityId: id,
     summary: { runId: run.id, targetType: b.data.targetType, targetId: b.data.targetId, amount: b.data.amount, reason: b.data.reason },
   });
   return c.json({ id, runId: run.id, reason: b.data.reason, approvedBy: b.data.approvedBy ?? null }, 201);
@@ -204,9 +223,9 @@ runsRoutes.get("/api/runs/:id/adjustments", async (c) => {
  * INSERT/UPDATE/DELETE를 RAISE(ABORT)로 차단(우회 불가).
  */
 runsRoutes.post("/api/runs/:id/close", async (c) => {
-  const parsed = z.object({ closedBy: z.string().min(1) }).safeParse(await c.req.json().catch(() => ({})));
-  const closedBy = parsed.success ? parsed.data.closedBy : "system";
   const db = getDb(c.env);
+  // 마감자(closedBy)는 인증 사용자로 자동 기록(F-038) - 클라이언트 입력 신뢰 안 함.
+  const closedBy = (await authUser(c.req.raw, db, c.env.SESSION_SECRET))?.email ?? "system";
   const run = await db.select().from(settlementRuns).where(eq(settlementRuns.id, c.req.param("id"))).get();
   if (!run) return c.json({ error: "없는 run이에요" }, 404);
   if (run.status === "closed") return c.json({ error: "이미 마감된 run이에요", status: "closed" }, 409);

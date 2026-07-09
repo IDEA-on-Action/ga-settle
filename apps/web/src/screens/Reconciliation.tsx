@@ -1,12 +1,11 @@
 import { Fragment, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch, ApiError } from "@/lib/api";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { RunSelect } from "@/components/pickers/EntitySelects";
 import { krw, signedKrw } from "@/screens/_close/format";
 import { getLastRunId } from "@/screens/_close/run-storage";
 
@@ -49,7 +48,6 @@ interface ParallelVerifyResponse {
 }
 
 export default function Reconciliation() {
-  const [runIdInput, setRunIdInput] = useState(() => getLastRunId() ?? "");
   const [appliedRunId, setAppliedRunId] = useState<string | null>(() => getLastRunId());
   const [expandedInsurer, setExpandedInsurer] = useState<string | null>(null);
 
@@ -77,19 +75,16 @@ export default function Reconciliation() {
         <CardHeader>
           <CardTitle>Run 선택</CardTitle>
           <CardDescription>
-            대사·병행 검증은 Run ID 기준으로 조회해요. 정산 Run 화면에서 조회·생성한 Run ID를 붙여넣으세요.
+            대사·병행 검증은 정산 Run 기준으로 조회해요. 아래에서 정산월 Run을 선택하세요.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex items-end gap-2">
           <div className="flex-1">
             <Label htmlFor="recon-run-id" className="text-xs text-axis-text-tertiary">
-              Run ID
+              정산 Run
             </Label>
-            <Input id="recon-run-id" value={runIdInput} onChange={(e) => setRunIdInput(e.target.value)} placeholder="run UUID" className="font-mono text-xs" />
+            <RunSelect id="recon-run-id" value={appliedRunId ?? ""} onChange={(v) => setAppliedRunId(v || null)} />
           </div>
-          <Button onClick={() => setAppliedRunId(runIdInput.trim() || null)} disabled={!runIdInput.trim()}>
-            조회
-          </Button>
         </CardContent>
       </Card>
 

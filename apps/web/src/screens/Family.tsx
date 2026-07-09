@@ -9,7 +9,8 @@ import type { FamilyContractInput, FamilyFlag } from "./_rules/types";
 
 /**
  * 가족계약 HITL 화면 (F-027). GET /api/family + POST /api/family/detect·/:id/confirm·/:id/release.
- * 자동 확정 경로 없음(FR-14) - 확정은 실무자가 confirmedBy를 입력해야만 진행된다.
+ * 자동 확정 경로 없음(FR-14) - 확정은 실무자가 '확정' 버튼을 눌러야만 진행되고,
+ * 확정자는 로그인 사용자로 서버가 자동 기록한다(F-038).
  */
 export default function Family() {
   const queryClient = useQueryClient();
@@ -30,10 +31,9 @@ export default function Family() {
   });
 
   const confirmMutation = useMutation({
-    mutationFn: ({ id, confirmedBy }: { id: string; confirmedBy: string }) =>
+    mutationFn: (id: string) =>
       apiFetch<{ id: string; status: string; confirmedBy: string }>(`/api/family/${id}/confirm`, {
         method: "POST",
-        body: JSON.stringify({ confirmedBy }),
       }),
     onSuccess: () => {
       setActionError(null);
@@ -52,7 +52,7 @@ export default function Family() {
   });
 
   const flags = familyQuery.data ?? [];
-  const pendingId = confirmMutation.isPending ? confirmMutation.variables?.id : undefined;
+  const pendingId = confirmMutation.isPending ? confirmMutation.variables : undefined;
   const releasingId = releaseMutation.isPending ? releaseMutation.variables : undefined;
 
   return (
@@ -87,7 +87,7 @@ export default function Family() {
           {!familyQuery.isLoading && !familyQuery.isError && (
             <FamilyTable
               flags={flags}
-              onConfirm={(id, confirmedBy) => confirmMutation.mutate({ id, confirmedBy })}
+              onConfirm={(id) => confirmMutation.mutate(id)}
               onRelease={(id) => releaseMutation.mutate(id)}
               isConfirming={(id) => pendingId === id}
               isReleasing={(id) => releasingId === id}

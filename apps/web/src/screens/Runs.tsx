@@ -118,7 +118,7 @@ export default function Runs() {
               <Button variant="outline" size="sm" onClick={() => calculateMutation.mutate()} disabled={!canCalculate || calculateMutation.isPending}>
                 {calculateMutation.isPending ? "계산 중..." : "계산 실행"}
               </Button>
-              {run && <CloseRunDialog runId={run.id} defaultClosedBy={auth?.email ?? "system"} disabled={!canClose} />}
+              {run && <CloseRunDialog runId={run.id} closedByLabel={auth?.email ?? "로그인 사용자"} disabled={!canClose} />}
             </span>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">

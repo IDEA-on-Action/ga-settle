@@ -7,28 +7,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { RunSelect, UploadSelect } from "@/components/pickers/EntitySelects";
 import type { RunDetail, ReconciliationResult, StatsByInsurer, StatsByOrg, StatsByMonth, UploadDetail } from "./_pipeline/types";
 import { currentMonth, formatCurrency, formatNumber, formatPercent, StatusBadge, StepDot, type StepState } from "./_pipeline/shared";
 
 /**
  * 대시보드 (F-026): KPI + 파이프라인 5단계 현황.
- * 실 API 제약: run/upload 목록 조회 엔드포인트가 없어(GET /api/runs, GET /api/uploads 부재)
- * 정산월 집계(stats/by-month·by-insurer·by-org)는 자동 조회하되, run/upload 단위 KPI(대사 차액·오류 행)는
- * 사용자가 Run ID/Upload ID를 직접 입력해 조회한다 (API 계약 불일치 항목, 최종 보고에 기재).
+ * 정산월 집계(stats/by-month·by-insurer·by-org)는 자동 조회. run/upload 단위 KPI(대사 차액·오류 행)는
+ * Run/업로드 목록 선택기(F-036/F-037)로 대상을 골라 조회한다.
  */
 export default function Dashboard() {
   const [month, setMonth] = useState(currentMonth());
   const [monthInput, setMonthInput] = useState(currentMonth());
   const [runId, setRunId] = useState("");
-  const [runIdInput, setRunIdInput] = useState("");
   const [uploadId, setUploadId] = useState("");
-  const [uploadIdInput, setUploadIdInput] = useState("");
 
   function handleQuerySubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setMonth(monthInput);
-    setRunId(runIdInput.trim());
-    setUploadId(uploadIdInput.trim());
   }
 
   const byMonthQuery = useQuery({
@@ -106,18 +102,15 @@ export default function Dashboard() {
               <Input id="dash-month" value={monthInput} onChange={(e) => setMonthInput(e.target.value)} placeholder="2026-06" className="w-32" />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="dash-run">Run ID (대사 · 마감 KPI)</Label>
-              <Input id="dash-run" value={runIdInput} onChange={(e) => setRunIdInput(e.target.value)} placeholder="run id" className="w-56" />
+              <Label htmlFor="dash-run">정산 Run (대사 · 마감 KPI)</Label>
+              <RunSelect id="dash-run" value={runId} onChange={setRunId} className="w-56" />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="dash-upload">Upload ID (수집 · 오류 행 KPI)</Label>
-              <Input id="dash-upload" value={uploadIdInput} onChange={(e) => setUploadIdInput(e.target.value)} placeholder="upload id" className="w-56" />
+              <Label htmlFor="dash-upload">업로드 (수집 · 오류 행 KPI)</Label>
+              <UploadSelect id="dash-upload" value={uploadId} onChange={setUploadId} className="w-56" />
             </div>
-            <Button type="submit">조회</Button>
+            <Button type="submit">정산월 조회</Button>
           </form>
-          <p className="mt-2 text-xs text-axis-text-tertiary">
-            Run/Upload 목록 조회 API가 아직 없어(GET /api/runs, GET /api/uploads 부재) ID를 직접 입력해 조회해요. 업로드 화면에서 발급된 ID를 붙여넣으세요.
-          </p>
         </CardContent>
       </Card>
 

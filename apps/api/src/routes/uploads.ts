@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { uploads, jobs, insurers, uploadErrors, commissionRecords } from "@ga-settle/schema";
 import type { StagedRow } from "@ga-settle/mapping";
 import type { Env } from "../types";
@@ -79,6 +79,28 @@ uploadsRoutes.post("/api/uploads", async (c) => {
   await c.env.PARSE_QUEUE.send({ kind: "parse-upload", uploadId, jobId, r2Key, insurerId: meta.data.insurerId });
 
   return c.json({ uploadId, jobId, status: "queued" }, 202);
+});
+
+// 업로드 목록 (F-036 REQ-052): 최근순 선택기용. 민감정보(r2Key/해시) 제외, 원수사명 조인.
+// 매핑/대시보드에서 uploadId를 손으로 복사하지 않고 목록에서 고를 수 있게 한다.
+uploadsRoutes.get("/api/uploads", async (c) => {
+  const rows = await getDb(c.env)
+    .select({
+      id: uploads.id,
+      insurerId: uploads.insurerId,
+      insurerName: insurers.name,
+      settlementMonth: uploads.settlementMonth,
+      status: uploads.status,
+      rowCount: uploads.rowCount,
+      okCount: uploads.okCount,
+      errorCount: uploads.errorCount,
+      createdAt: uploads.createdAt,
+    })
+    .from(uploads)
+    .leftJoin(insurers, eq(uploads.insurerId, insurers.id))
+    .orderBy(desc(uploads.createdAt))
+    .limit(50);
+  return c.json({ uploads: rows });
 });
 
 // 진행률 폴링 (F-003 REQ-006, SPA)

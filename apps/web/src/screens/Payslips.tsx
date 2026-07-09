@@ -2,10 +2,10 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { RunSelect } from "@/components/pickers/EntitySelects";
 import { downloadFile } from "./_output/download";
 import { formatWon, initialOf } from "./_output/format";
 
@@ -41,7 +41,6 @@ function formatBasis(basis: string | null): string {
 }
 
 export default function Payslips() {
-  const [runId, setRunId] = useState("");
   const [activeRunId, setActiveRunId] = useState("");
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   const [downloadError, setDownloadError] = useState<string | null>(null);
@@ -68,12 +67,6 @@ export default function Payslips() {
     },
   });
 
-  function handleLoad() {
-    const id = runId.trim();
-    setActiveRunId(id);
-    setSelectedAgentId(null);
-  }
-
   async function handleDownload() {
     setDownloadError(null);
     setIsDownloading(true);
@@ -99,18 +92,17 @@ export default function Payslips() {
       <Card>
         <CardContent className="flex flex-wrap items-end gap-3 pt-6">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="run-id">정산 Run ID</Label>
-            <Input
+            <Label htmlFor="run-id">정산 Run</Label>
+            <RunSelect
               id="run-id"
-              placeholder="정산 Run 화면에서 확인한 run id"
-              value={runId}
-              onChange={(e) => setRunId(e.target.value)}
+              value={activeRunId}
+              onChange={(v) => {
+                setActiveRunId(v);
+                setSelectedAgentId(null);
+              }}
               className="w-80"
             />
           </div>
-          <Button variant="secondary" onClick={handleLoad} disabled={runId.trim().length === 0}>
-            불러오기
-          </Button>
           <Button
             onClick={() => generateMutation.mutate()}
             disabled={activeRunId.length === 0 || generateMutation.isPending}

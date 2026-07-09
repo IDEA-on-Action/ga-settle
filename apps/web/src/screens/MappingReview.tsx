@@ -1,30 +1,24 @@
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { UploadSelect } from "@/components/pickers/EntitySelects";
 import type { ApproveResponse, MappingResult, UploadDetail, UploadErrorRow } from "./_pipeline/types";
 import { formatNumber, formatPercent, StatusBadge } from "./_pipeline/shared";
 
 /**
  * AI 매핑 검토 (F-026): 컬럼 매핑 + 검증 카운트 + 오류 행 리포트 -> 승인(원장 커밋).
- * 업로드 화면에서 `?uploadId=` 링크로 진입하거나, Upload ID를 직접 입력해 조회한다.
+ * 업로드 화면에서 `?uploadId=` 링크로 진입하거나, 업로드 목록 선택기로 대상을 고른다(F-036).
  */
 export default function MappingReview() {
   const [searchParams] = useSearchParams();
-  const [uploadIdInput, setUploadIdInput] = useState(searchParams.get("uploadId") ?? "");
   const [uploadId, setUploadId] = useState(searchParams.get("uploadId") ?? "");
   const queryClient = useQueryClient();
-
-  function handleSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setUploadId(uploadIdInput.trim());
-  }
 
   const uploadQuery = useQuery({
     queryKey: ["mr-upload", uploadId],
@@ -60,19 +54,12 @@ export default function MappingReview() {
     <div className="flex max-w-[1280px] flex-col gap-5">
       <Card>
         <CardContent className="pt-6">
-          <form className="flex flex-wrap items-end gap-3" onSubmit={handleSubmit}>
+          <div className="flex flex-wrap items-end gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="mr-upload-id">Upload ID</Label>
-              <Input
-                id="mr-upload-id"
-                value={uploadIdInput}
-                onChange={(e) => setUploadIdInput(e.target.value)}
-                placeholder="업로드 화면에서 발급된 uploadId"
-                className="w-80"
-              />
+              <Label htmlFor="mr-upload-id">업로드 선택</Label>
+              <UploadSelect id="mr-upload-id" value={uploadId} onChange={setUploadId} className="w-80" />
             </div>
-            <Button type="submit">조회</Button>
-          </form>
+          </div>
         </CardContent>
       </Card>
 

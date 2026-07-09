@@ -141,3 +141,44 @@ describe("F-013 정산 계산 배치", () => {
     await expect(db.update(settlementRuns).set({ closedBy: "hacker" }).where(eq(settlementRuns.id, id))).rejects.toThrow();
   });
 });
+
+describe("F-036/037 목록 API (선택기 데이터)", () => {
+  it("GET /api/runs: Run 목록(월/상태) 반환", async () => {
+    await post("/api/runs", { settlementMonth: "2026-06" });
+    const { runs } = (await getJson("/api/runs")) as { runs: { id: string; settlementMonth: string; status: string }[] };
+    expect(runs.length).toBeGreaterThanOrEqual(1);
+    expect(runs.some((r) => r.settlementMonth === "2026-06" && r.status === "draft")).toBe(true);
+  });
+
+  it("GET /api/uploads: 원수사명 조인 + 민감정보(r2Key/해시) 제외", async () => {
+    const { uploads: rows } = (await getJson("/api/uploads")) as { uploads: Record<string, unknown>[] };
+    const up = rows.find((u) => u.id === "up1");
+    expect(up).toBeTruthy();
+    expect(up!.insurerName).toBe("A생명");
+    expect(up!.settlementMonth).toBe("2026-06");
+    expect("r2Key" in up!).toBe(false);
+    expect("fileHash" in up!).toBe(false);
+  });
+});
+
+describe("F-038 승인자·확정자 인증 사용자 자동 기록", () => {
+  it("close: closedBy는 본문이 아닌 인증 사용자로 기록", async () => {
+    const { id } = (await (await post("/api/runs", { settlementMonth: "2026-06" })).json()) as { id: string };
+    await post(`/api/runs/${id}/calculate`);
+    // 본문에 다른 이름을 넣어도 무시하고 인증 사용자(admin@test.local)로 기록
+    await post(`/api/runs/${id}/close`, { closedBy: "spoofed" });
+    const run = (await getJson(`/api/runs/${id}`)) as { closedBy: string };
+    expect(run.closedBy).toBe("admin@test.local");
+  });
+
+  it("adjustment: createdBy·audit actor는 인증 사용자", async () => {
+    const { id } = (await (await post("/api/runs", { settlementMonth: "2026-06" })).json()) as { id: string };
+    await post(`/api/runs/${id}/calculate`);
+    const res = await post(`/api/runs/${id}/adjustments`, { targetType: "line", targetId: "cr1", amount: 100, reason: "테스트 보정" });
+    expect(res.status).toBe(201);
+    const rows = (await getJson(`/api/runs/${id}/adjustments`)) as { createdBy: string }[];
+    expect(rows[0]!.createdBy).toBe("admin@test.local");
+    const audits = await getDb(env).select().from(auditLogs).all();
+    expect(audits.some((a) => a.action === "adjustment.create" && a.actor === "admin@test.local")).toBe(true);
+  });
+});
