@@ -400,7 +400,7 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
   - [x] 원본 이미지 ↔ 확정 룰 역추적 + 3중 검증(신뢰도·확정·원본 보관) 메시지 노출
   - [x] 대표 포스터 2종(KB손보 주차시상 표밀집형, 한화손보 여성시대 장식폰트형) 시나리오
   - [x] **실 엔진 연동**: POST /api/incentive-plans/ocr - CLOVA OCR + Upstage 구조화 + R2 원본 보관(SHA-256 멱등), 인증 게이트. 실 포스터 실측 검증(한화 0.963/DB손보 0.873, 저신뢰 필드 색표시)
-- **Status**: DONE (데모 PoC + 실 엔진 연동). 손보 318열 전량 구조화·감사 소명 화면은 [[B-012]]
+- **Status**: DONE (데모 PoC + 실 엔진 연동). 손보 318열 구조화·감사 소명은 F-044로 완료(B-012 종결)
 - **Sprint**: S14
 - **Notes**: 근거 자료 `docs/specs/고객제공자료/260708/` + 고객 문의답변(Q2) + OCR 정확도 검증 PDF. PRD·인터뷰 `docs/specs/req-ocr-sichaek/`(prd-final, 스코어 94/100·Ambiguity 0.125). 인터뷰 결정: 하이브리드 엔진·추출+룰 구조화·제안 데모 반영. 구현: (1) `apps/api/src/demo.ts` 좌우 대조 인터랙티브 플로우(포스터 2종 상태머신: 검토→보정→확정→역추적). (2) **실 연동** `src/ocr.ts`(clovaOcr General OCR + structureRule Upstage Solar, blended 신뢰도=LLM×OCR평균, 임계 0.85) + `routes/incentive-plans.ts` POST /api/incentive-plans/ocr(multipart 이미지→R2 `incentive-plans/{sha}.{ext}` 불변 보관→OCR→구조화, /api/* 인증 게이트 뒤). 시크릿은 `.dev.vars`(CLOVA_OCR_INVOKE_URL/SECRET, UPSTAGE_API_KEY/BASE_URL/MODEL). wrangler dev E2E 검증(한화 4통과/2확인, DB손보 6통과, 무인증 401). 실 OCR 엔진 상시 구동 배포(prod secret)·손보 318열·감사 화면은 [[B-012]].
 
@@ -460,4 +460,4 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 | 12 · 출력·관리 화면(S12) | 후속 | F-029 | done |
 | 13 · 브라우저 E2E(S13) | 후속 | F-030 | done |
 | 14 · 시책안 OCR(S14) | 후속 | F-043 (데모 + CLOVA/Upstage 실 연동, 정식은 [[B-012]]) | done |
-| 15 · 시상정의 카탈로그(S15) | 후속 | F-044 (전용 테이블 + 9,227건 무손실 반영) | done |
+| 15 · 시상정의 카탈로그(S15) | 후속 | F-044 (전용 테이블 14,590건[생보9,227+손보5,363] + OCR결선 + 운영룰 확정 UI + 감사 소명) | done |
