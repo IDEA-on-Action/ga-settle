@@ -412,9 +412,10 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
   - [x] 생보 시상정의 9,227건 무손실 반영(로컬+prod), incentive_rules의 lossy import분 제거(정산엔진 정리)
   - [x] GET /api/incentive-plan-definitions(?insurerId·?month·?q + 페이지네이션) + /summary(월별 집계), 인증 게이트
   - [x] 로컬+prod 배포·검증(defs 9,227·rules 2·insurers 33, summary 월별, 필터/검색 동작)
+  - [x] **OCR→정의 write 결선**: POST /api/incentive-plan-definitions - 담당자 확정 행을 planImageKey(F-043 OCR 원본 R2 키) 연결해 저장(source_type=ocr), 확정자(createdBy) 인증사용자 자동·감사로그. 역추적: 정의→plan_image_key→원본 이미지
 - **Status**: DONE
 - **Sprint**: S14
-- **Notes**: [[B-012]] "스키마 확장" 부분 분리 승격(사용자 결정: 전용 테이블 신설). 기존 F-043 후속 데이터 반영에서 incentive_rules에 lossy 적재했던 것을 전용 카탈로그로 이관 - 납입기간·지급시점(익월/13차월/구간/연속/가동)·채널(FC/법인)·지점·조건을 1급 컬럼으로. rate_type: 적용률<100=rate(보험료×배수)/≥100=fixed(정액). 임포터 `scripts/import-sisang-saengbo.mjs`(def-sib-{월}-{행} 결정적 id, DELETE 헤더 idempotent). 정의↔운영룰 도메인 분리로 정산 엔진 무영향. **잔여 B-012**: 손보 318열 비정형 구조화, OCR→정의 write 결선(현재 OCR은 추출만), 정의→운영룰 확정 UI, 감사 소명 화면. 상세 `docs/specs/req-ocr-sichaek/data-import-log.md`.
+- **Notes**: [[B-012]] "스키마 확장" 부분 분리 승격(사용자 결정: 전용 테이블 신설). 기존 F-043 후속 데이터 반영에서 incentive_rules에 lossy 적재했던 것을 전용 카탈로그로 이관 - 납입기간·지급시점(익월/13차월/구간/연속/가동)·채널(FC/법인)·지점·조건을 1급 컬럼으로. rate_type: 적용률<100=rate(보험료×배수)/≥100=fixed(정액). 임포터 `scripts/import-sisang-saengbo.mjs`(def-sib-{월}-{행} 결정적 id, DELETE 헤더 idempotent). 정의↔운영룰 도메인 분리로 정산 엔진 무영향. **OCR 결선**: F-043 OCR(추출·후보) → 담당자 확정 → POST 정의 write(HITL, 불변식 #3 준수). wrangler dev E2E(한화 포스터 OCR→planImageKey→확정 3건→역추적 key 일치·감사로그 확인). **잔여 B-012**: 손보 318열 비정형 구조화, 정의→운영룰 확정 UI(정산 반영), 감사 소명 화면. 상세 `docs/specs/req-ocr-sichaek/data-import-log.md`.
 
 ## §3. Backlog (F-item 승격 대기)
 
@@ -431,7 +432,7 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 | B-009 | 토큰 폐기(token_version) + 비번 해시 PBKDF2/argon2 강화 | 다수 파일 | mid |
 | B-010 | 실제 ATA 로고 파일 임베드(현재 SVG 재현) | 관찰가능 | low |
 | B-011 | 원수사 코드 체계 실제 값으로 조정(현재 영문 슬러그) | 데이터 | low |
-| B-012 | OCR 시책안 정식 구현 잔여 - 손보 318열 비정형 구조화 + OCR→정의 write 결선 + 정의→운영룰 확정 UI + 감사 소명 화면 (스키마 확장은 F-044로 완료) | D1 migration·다수 파일 | high |
+| B-012 | OCR 시책안 정식 구현 잔여 - 손보 318열 비정형 구조화 + 정의→운영룰 확정 UI(정산 반영) + 감사 소명 화면 (스키마 확장·OCR→정의 write는 F-044로 완료) | D1 migration·다수 파일 | high |
 
 > 프로덕션: `https://ata.minu.best` 배포·운영 중. admin=sinclairseo@gmail.com(비번). @atasset.co.kr=OTP. 주요 원수사 26곳 등록. 상세 next-task는 세션 Task 목록(#1~#7) 참조.
 
