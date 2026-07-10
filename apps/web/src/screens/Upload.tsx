@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { InsurerSelect } from "@/components/pickers/EntitySelects";
 import { IncentivePlanUpload } from "./_pipeline/IncentivePlanUpload";
+import { PlanUploadHistory } from "./_pipeline/PlanUploadHistory";
 import { UploadHistory } from "./_pipeline/UploadHistory";
 import type { JobDetail, UploadAcceptedResponse, UploadDetail, UploadDuplicateBody } from "./_pipeline/types";
 import { currentMonth, formatNumber, ProgressBar, StatusBadge } from "./_pipeline/shared";
@@ -105,6 +106,7 @@ export default function UploadScreen() {
       </div>
 
       {kind === "plan" && <IncentivePlanUpload />}
+      {kind === "plan" && <PlanUploadHistory />}
 
       {kind === "excel" && (
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

@@ -1,6 +1,6 @@
 import { useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { FileText } from "lucide-react";
 import { apiFetch, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ interface RuleField {
   confidence: number;
 }
 interface OcrResult {
+  planId?: string;
   planImageKey: string;
   sha256: string;
   idempotentReuse: boolean;
@@ -37,6 +38,7 @@ const ACCEPT = ".png,.jpg,.jpeg,.webp,.pdf,image/png,image/jpeg,image/webp,appli
  * 확정(시상정의 write)·운영룰 승격은 /plan-definitions에서 HITL로 이어진다(불변식 #3).
  */
 export function IncentivePlanUpload() {
+  const qc = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
@@ -48,8 +50,15 @@ export function IncentivePlanUpload() {
       form.append("image", file);
       return apiFetch<OcrResult>("/api/incentive-plans/ocr", { method: "POST", body: form });
     },
-    onError: (err) => setError(err instanceof ApiError ? err.message : "OCR 처리에 실패했어요"),
-    onSuccess: () => setError(null),
+    // OCR 실패도 업로드 즉시 대장에 기록되므로(F-048), 성공/실패 모두 등록 내역을 갱신한다.
+    onError: (err) => {
+      setError(err instanceof ApiError ? err.message : "OCR 처리에 실패했어요");
+      qc.invalidateQueries({ queryKey: ["incentive-plans"] });
+    },
+    onSuccess: () => {
+      setError(null);
+      qc.invalidateQueries({ queryKey: ["incentive-plans"] });
+    },
   });
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
