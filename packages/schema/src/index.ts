@@ -109,6 +109,32 @@ export const incentiveRules = sqliteTable("incentive_rules", {
   createdAt: text("created_at").notNull(),
 }, (t) => ({ idxRulePriority: index("idx_rule_priority").on(t.active, t.priority) }));
 
+// 시상정의 카탈로그 (F-044): 원수사가 준 시상 정의 원형(xlsx/OCR 출처)을 무손실 보관.
+// incentive_rules(정산 엔진 운영 룰)와 분리 - 정의는 후보/참조, 확정 시 운영 룰로 파생.
+// 현 incentive_rules condition이 담지 못하던 차원(납입기간·지급시점·채널·지점·조건)을 1급 컬럼으로.
+export const incentivePlanDefinitions = sqliteTable("incentive_plan_definitions", {
+  id: text("id").primaryKey(),
+  insurerId: text("insurer_id").notNull().references(() => insurers.id),
+  baseMonth: text("base_month").notNull(),        // 기준월 YYYYMM (예: 202605)
+  lineType: text("line_type"),                    // 손생보: 생보|손보
+  product: text("product").notNull(),             // 상품명(상품1[+상품2])
+  payTerm: text("pay_term"),                       // 납입기간 (5년납 등)
+  payTiming: text("pay_timing"),                   // 지급시점 (익월|13차월|15차월|구간|연속|가동)
+  channel: text("channel"),                        // FC|법인
+  branch: text("branch"),                          // 적용지점
+  cond1: text("cond1"),
+  cond2: text("cond2"),
+  cond3: text("cond3"),
+  rateType: text("rate_type").notNull(),           // rate(보험료×배수) | fixed(정액)
+  rateValue: real("rate_value").notNull(),         // 적용률 또는 정액(원)
+  note: text("note"),                              // 비고
+  sourceType: text("source_type").notNull(),       // xlsx|ocr
+  sourceRef: text("source_ref"),                   // 원본 파일명/업로드 참조
+  planImageKey: text("plan_image_key"),            // OCR 원본 이미지 R2 키 (역추적, F-043)
+  createdBy: text("created_by").notNull(),
+  createdAt: text("created_at").notNull(),
+}, (t) => ({ idxDefInsurerMonth: index("idx_def_insurer_month").on(t.insurerId, t.baseMonth) }));
+
 // 가족계약 후보: 자동 확정 경로 없음 - 확정은 실무자(HITL)만 (F-011)
 export const familyFlags = sqliteTable("family_flags", {
   id: text("id").primaryKey(),

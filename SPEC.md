@@ -404,6 +404,18 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 - **Sprint**: S14
 - **Notes**: 근거 자료 `docs/specs/고객제공자료/260708/` + 고객 문의답변(Q2) + OCR 정확도 검증 PDF. PRD·인터뷰 `docs/specs/req-ocr-sichaek/`(prd-final, 스코어 94/100·Ambiguity 0.125). 인터뷰 결정: 하이브리드 엔진·추출+룰 구조화·제안 데모 반영. 구현: (1) `apps/api/src/demo.ts` 좌우 대조 인터랙티브 플로우(포스터 2종 상태머신: 검토→보정→확정→역추적). (2) **실 연동** `src/ocr.ts`(clovaOcr General OCR + structureRule Upstage Solar, blended 신뢰도=LLM×OCR평균, 임계 0.85) + `routes/incentive-plans.ts` POST /api/incentive-plans/ocr(multipart 이미지→R2 `incentive-plans/{sha}.{ext}` 불변 보관→OCR→구조화, /api/* 인증 게이트 뒤). 시크릿은 `.dev.vars`(CLOVA_OCR_INVOKE_URL/SECRET, UPSTAGE_API_KEY/BASE_URL/MODEL). wrangler dev E2E 검증(한화 4통과/2확인, DB손보 6통과, 무인증 401). 실 OCR 엔진 상시 구동 배포(prod secret)·손보 318열·감사 화면은 [[B-012]].
 
+### F-044 · 시상정의 카탈로그 (스키마 확장, B-012 분리 승격)
+- **REQ-061**: 원수사가 준 시상정의 원형(기준월·상품·납입기간·지급시점·채널·지점·조건·적용률)을 무손실로 보관·조회할 수 있다
+- **REQ-062**: 시상정의는 정산 엔진 운영 룰(incentive_rules)과 분리되어, 정의는 참조/후보로만 두고 확정 시 운영 룰로 파생한다
+- **Acceptance**:
+  - [x] `incentive_plan_definitions` 테이블(migration 0004) - 16열 무손실 + rate/fixed + 원본이미지 링크(planImageKey, F-043 역추적)
+  - [x] 생보 시상정의 9,227건 무손실 반영(로컬+prod), incentive_rules의 lossy import분 제거(정산엔진 정리)
+  - [x] GET /api/incentive-plan-definitions(?insurerId·?month·?q + 페이지네이션) + /summary(월별 집계), 인증 게이트
+  - [x] 로컬+prod 배포·검증(defs 9,227·rules 2·insurers 33, summary 월별, 필터/검색 동작)
+- **Status**: DONE
+- **Sprint**: S14
+- **Notes**: [[B-012]] "스키마 확장" 부분 분리 승격(사용자 결정: 전용 테이블 신설). 기존 F-043 후속 데이터 반영에서 incentive_rules에 lossy 적재했던 것을 전용 카탈로그로 이관 - 납입기간·지급시점(익월/13차월/구간/연속/가동)·채널(FC/법인)·지점·조건을 1급 컬럼으로. rate_type: 적용률<100=rate(보험료×배수)/≥100=fixed(정액). 임포터 `scripts/import-sisang-saengbo.mjs`(def-sib-{월}-{행} 결정적 id, DELETE 헤더 idempotent). 정의↔운영룰 도메인 분리로 정산 엔진 무영향. **잔여 B-012**: 손보 318열 비정형 구조화, OCR→정의 write 결선(현재 OCR은 추출만), 정의→운영룰 확정 UI, 감사 소명 화면. 상세 `docs/specs/req-ocr-sichaek/data-import-log.md`.
+
 ## §3. Backlog (F-item 승격 대기)
 
 | ID | 한 줄 | 승격 기준 충족? | 우선 |
@@ -419,7 +431,7 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 | B-009 | 토큰 폐기(token_version) + 비번 해시 PBKDF2/argon2 강화 | 다수 파일 | mid |
 | B-010 | 실제 ATA 로고 파일 임베드(현재 SVG 재현) | 관찰가능 | low |
 | B-011 | 원수사 코드 체계 실제 값으로 조정(현재 영문 슬러그) | 데이터 | low |
-| B-012 | OCR 시책안 정식 구현 - 실 엔진(오픈소스 자체호스팅/상용 API) 연동 + 손보 318열 비정형 구조화 + 감사 소명 화면 (F-043 데모 PoC 후속, 계약 후) | D1 migration·다수 파일 | high |
+| B-012 | OCR 시책안 정식 구현 잔여 - 손보 318열 비정형 구조화 + OCR→정의 write 결선 + 정의→운영룰 확정 UI + 감사 소명 화면 (스키마 확장은 F-044로 완료) | D1 migration·다수 파일 | high |
 
 > 프로덕션: `https://ata.minu.best` 배포·운영 중. admin=sinclairseo@gmail.com(비번). @atasset.co.kr=OTP. 주요 원수사 26곳 등록. 상세 next-task는 세션 Task 목록(#1~#7) 참조.
 
@@ -444,3 +456,4 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 | 12 · 출력·관리 화면(S12) | 후속 | F-029 | done |
 | 13 · 브라우저 E2E(S13) | 후속 | F-030 | done |
 | 14 · 시책안 OCR(S14) | 후속 | F-043 (데모 + CLOVA/Upstage 실 연동, 정식은 [[B-012]]) | done |
+| 15 · 시상정의 카탈로그(S15) | 후속 | F-044 (전용 테이블 + 9,227건 무손실 반영) | done |
