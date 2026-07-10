@@ -2,6 +2,7 @@
 // 하이브리드 2단계: ① CLOVA General OCR로 이미지 → 텍스트(+토큰 신뢰도)
 //                   ② Upstage Solar로 텍스트 → 시책룰 필드 구조화(후보/근거만, 금액 계산 직접 경로 아님).
 // 도메인 불변식: AI(LLM/OCR) 출력은 담당자 확정 전까지 후보일 뿐이며, 금액은 결정적 코드가 계산한다.
+import { PDFDocument } from "pdf-lib";
 import type { Env } from "./types";
 
 export class OcrError extends Error {
@@ -45,27 +46,68 @@ function toBase64(buf: ArrayBuffer): string {
   return btoa(bin);
 }
 
-// ① CLOVA General OCR (V2). 이미지 바이트 → 텍스트 + 필드별 신뢰도.
-export async function clovaOcr(image: ArrayBuffer, format: string, env: Env): Promise<ClovaResult> {
-  if (!env.CLOVA_OCR_INVOKE_URL || !env.CLOVA_OCR_SECRET) {
-    throw new OcrError("CLOVA OCR 미설정 (CLOVA_OCR_INVOKE_URL / CLOVA_OCR_SECRET)", 503);
+// CLOVA General OCR는 요청당 최대 10페이지(초과 시 400 code 0011). 손보 시책안은 12+ 시상=12+p라
+// 초과가 흔하므로, PDF는 ≤10p 청크로 분할해 요청을 나눈 뒤 전 페이지 필드를 병합한다(F-049).
+const CLOVA_MAX_PAGES = 10;
+
+// PDF 바이트를 chunkSize 페이지 단위로 분할. ≤chunkSize면 원본 그대로 반환(회귀 무변경).
+// export: F-049 청크 로직 단위 테스트용.
+export async function splitPdf(pdf: ArrayBuffer, chunkSize: number): Promise<ArrayBuffer[]> {
+  let src: PDFDocument;
+  try {
+    src = await PDFDocument.load(pdf, { ignoreEncryption: true });
+  } catch {
+    // 파싱 불가 PDF는 분할 없이 원본 1건으로(하류 CLOVA가 판정). 손상 PDF에서 크래시 방지.
+    return [pdf];
   }
+  const total = src.getPageCount();
+  if (total <= chunkSize) return [pdf];
+  const chunks: ArrayBuffer[] = [];
+  for (let start = 0; start < total; start += chunkSize) {
+    const out = await PDFDocument.create();
+    const idxs: number[] = [];
+    for (let i = start; i < Math.min(start + chunkSize, total); i++) idxs.push(i);
+    const pages = await out.copyPages(src, idxs);
+    pages.forEach((p) => out.addPage(p));
+    const bytes = await out.save();
+    chunks.push(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer);
+  }
+  return chunks;
+}
+
+// CLOVA General OCR (V2) 단일 요청. 이미지 또는 ≤10p PDF 바이트 → 텍스트 + 필드별 신뢰도.
+// url/secret은 clovaOcr에서 미설정 가드 후 전달(타입 narrowing 전파).
+async function clovaOcrSingle(bytes: ArrayBuffer, format: string, url: string, secret: string): Promise<OcrField[]> {
   const body = {
     version: "V2",
     requestId: crypto.randomUUID(),
     timestamp: Date.now(),
-    images: [{ format: format.toLowerCase() === "jpg" ? "jpg" : format.toLowerCase(), name: "sichaek", data: toBase64(image) }],
+    images: [{ format: format.toLowerCase() === "jpg" ? "jpg" : format.toLowerCase(), name: "sichaek", data: toBase64(bytes) }],
   };
-  const res = await fetch(env.CLOVA_OCR_INVOKE_URL, {
+  const res = await fetch(url, {
     method: "POST",
-    headers: { "X-OCR-SECRET": env.CLOVA_OCR_SECRET, "Content-Type": "application/json" },
+    headers: { "X-OCR-SECRET": secret, "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
   if (!res.ok) throw new OcrError(`CLOVA OCR 오류 ${res.status}: ${(await res.text()).slice(0, 200)}`);
   const json = (await res.json()) as { images?: { fields?: { inferText: string; inferConfidence: number }[] }[] };
   // PDF는 페이지별 images[] 반환(F-046). 전 페이지 필드를 합쳐야 다중 페이지 시책안도 온전히 인식된다.
   const raw = (json.images ?? []).flatMap((im) => im.fields ?? []);
-  const fields: OcrField[] = raw.map((f) => ({ text: f.inferText, confidence: f.inferConfidence }));
+  return raw.map((f) => ({ text: f.inferText, confidence: f.inferConfidence }));
+}
+
+// ① CLOVA General OCR (V2). 이미지/PDF 바이트 → 텍스트 + 필드별 신뢰도.
+// PDF가 10p를 넘으면 ≤10p 청크로 분할해 순차 호출 후 필드 병합(F-049 손보 다중 시상 대응).
+export async function clovaOcr(image: ArrayBuffer, format: string, env: Env): Promise<ClovaResult> {
+  if (!env.CLOVA_OCR_INVOKE_URL || !env.CLOVA_OCR_SECRET) {
+    throw new OcrError("CLOVA OCR 미설정 (CLOVA_OCR_INVOKE_URL / CLOVA_OCR_SECRET)", 503);
+  }
+  const isPdf = format.toLowerCase() === "pdf";
+  const parts = isPdf ? await splitPdf(image, CLOVA_MAX_PAGES) : [image];
+  const fields: OcrField[] = [];
+  for (const part of parts) {
+    fields.push(...(await clovaOcrSingle(part, format, env.CLOVA_OCR_INVOKE_URL, env.CLOVA_OCR_SECRET)));
+  }
   const avgConfidence = fields.length ? fields.reduce((s, f) => s + f.confidence, 0) / fields.length : 0;
   return { text: fields.map((f) => f.text).join(" "), avgConfidence, fieldCount: fields.length, fields };
 }

@@ -15,19 +15,20 @@
     "d1:migrate:remote": "wrangler d1 migrations apply ga-settle-db --remote"
   },
   "dependencies": {
-    "hono": "^4.6.0",
-    "zod": "^3.23.0",
-    "drizzle-orm": "^0.36.0",
-    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
-    "@ga-settle/schema": "workspace:*",
     "@ga-settle/mapping": "workspace:*",
-    "@ga-settle/rules": "workspace:*"
+    "@ga-settle/rules": "workspace:*",
+    "@ga-settle/schema": "workspace:*",
+    "drizzle-orm": "^0.36.0",
+    "hono": "^4.6.0",
+    "pdf-lib": "^1.17.1",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
+    "zod": "^3.23.0"
   },
   "devDependencies": {
-    "wrangler": "^3.90.0",
-    "@cloudflare/workers-types": "^4.20241100.0",
     "@cloudflare/vitest-pool-workers": "^0.5.0",
+    "@cloudflare/workers-types": "^4.20241100.0",
+    "typescript": "^5.6.0",
     "vitest": "^2.1.0",
-    "typescript": "^5.6.0"
+    "wrangler": "^3.90.0"
   }
 }
