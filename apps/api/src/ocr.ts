@@ -24,9 +24,13 @@ export type StructuredRule = {
   payout: RuleField;       // 지급방식/배수
   retention: RuleField;    // 유지조건
 };
+// 납입기간·지급시점별 지급율 행 (F-052). 생보는 상품 납입기간(5년납/7년납)·지급시점(익월/13차월)마다
+// 지급율이 달라 단일 payout 필드로는 손실 → 배열로 각 조합을 별도 행으로 추출한다.
+export type PayoutRow = { payTerm: string | null; payTiming: string | null; rate: string | null };
 export type OcrExtractResult = {
   ocr: { avgConfidence: number; fieldCount: number; text: string };
   rule: StructuredRule;
+  payoutRows: PayoutRow[]; // 납입기간×지급시점별 지급율 (F-052, 없으면 빈 배열)
   lowConfidenceKeys: string[]; // 담당자 확인 대상(신뢰도 임계 미만 또는 미검출)
 };
 
@@ -147,8 +151,23 @@ function coerceField(v: unknown): RuleField {
   return { value: flattenValue(v), confidence: 0.5 };
 }
 
-// ② Upstage Solar: OCR 텍스트 → 시책룰 필드 구조화. LLM 신뢰도는 CLOVA 평균 신뢰도와 곱해 보정(과신 방지).
-export async function structureRule(ocrText: string, ocrAvgConfidence: number, env: Env): Promise<StructuredRule> {
+// LLM payoutRows[] 원소를 {payTerm, payTiming, rate} 문자열 행으로 정규화(F-052).
+// export: 파싱 견고성 단위 테스트용.
+export function coercePayoutRows(v: unknown): PayoutRow[] {
+  if (!Array.isArray(v)) return [];
+  return v
+    .map((e) => {
+      if (!e || typeof e !== "object") return null;
+      const o = e as Record<string, unknown>;
+      const row: PayoutRow = { payTerm: flattenValue(o.payTerm), payTiming: flattenValue(o.payTiming), rate: flattenValue(o.rate) };
+      // 셋 다 비면 무의미 행 → 제거.
+      return row.payTerm || row.payTiming || row.rate ? row : null;
+    })
+    .filter((r): r is PayoutRow => r !== null);
+}
+
+// ② Upstage Solar: OCR 텍스트 → 시책룰 필드 구조화 + 납입기간별 지급율 행. LLM 신뢰도는 CLOVA 평균과 곱해 보정.
+export async function structureRule(ocrText: string, ocrAvgConfidence: number, env: Env): Promise<{ rule: StructuredRule; payoutRows: PayoutRow[] }> {
   if (!env.UPSTAGE_API_KEY) throw new OcrError("Upstage 미설정 (UPSTAGE_API_KEY)", 503);
   const base = env.UPSTAGE_BASE_URL || "https://api.upstage.ai/v1";
   const model = env.UPSTAGE_MODEL || "solar-mini";
@@ -156,7 +175,10 @@ export async function structureRule(ocrText: string, ocrAvgConfidence: number, e
   const usr =
     "다음은 시책안 포스터 OCR 텍스트다. 아래 필드를 JSON으로 추출하라. 각 필드는 {value, confidence(0~1)}. " +
     "value는 반드시 문자열(string) 한 줄로 작성하고, 여러 값이면 ' · '로 이어 붙여라. 배열이나 중첩 객체를 value에 넣지 마라. " +
-    "필드: insurer(보험사), planType(시책유형), period(적용기간), targetProduct(대상상품), payout(지급방식/배수), retention(유지조건). 원문에 없으면 value:null.\n\nOCR:\n" +
+    "필드: insurer(보험사), planType(시책유형), period(적용기간), targetProduct(대상상품), payout(지급방식/배수), retention(유지조건). 원문에 없으면 value:null. " +
+    "추가로, 생명보험 시책은 상품의 납입기간(예 5년납/7년납)·지급시점(예 익월/13차월)마다 지급율이 다르다. " +
+    "이런 구분이 있으면 payoutRows 배열로 각 조합을 별도 행으로 추출하라. 각 원소는 {payTerm(납입기간 문자열, 예 \"5년납\"), payTiming(지급시점 문자열, 예 \"익월\"|\"13차월\"), rate(지급율/배수 문자열, 예 \"150%\"|\"0\")}. " +
+    "납입기간별 구분이 없으면 payoutRows는 빈 배열([])로 둬라.\n\nOCR:\n" +
     ocrText;
   const res = await fetch(`${base}/chat/completions`, {
     method: "POST",
@@ -174,18 +196,19 @@ export async function structureRule(ocrText: string, ocrAvgConfidence: number, e
     const blended = f.value == null ? 0 : Math.round(f.confidence * ocrAvgConfidence * 1000) / 1000;
     rule[k] = { value: f.value, confidence: blended };
   }
-  return rule;
+  return { rule, payoutRows: coercePayoutRows(parsed.payoutRows) };
 }
 
 // 파이프라인: 이미지 → CLOVA OCR → Upstage 구조화 → 저신뢰 필드 표시.
 export async function extractIncentivePlan(image: ArrayBuffer, format: string, env: Env): Promise<OcrExtractResult> {
   const ocr = await clovaOcr(image, format, env);
   if (!ocr.fieldCount) throw new OcrError("이미지에서 텍스트를 찾지 못했어요(빈 결과)", 422);
-  const rule = await structureRule(ocr.text, ocr.avgConfidence, env);
+  const { rule, payoutRows } = await structureRule(ocr.text, ocr.avgConfidence, env);
   const lowConfidenceKeys = RULE_KEYS.filter((k) => rule[k].value == null || rule[k].confidence < LOW_CONFIDENCE);
   return {
     ocr: { avgConfidence: Math.round(ocr.avgConfidence * 1000) / 1000, fieldCount: ocr.fieldCount, text: ocr.text },
     rule,
+    payoutRows,
     lowConfidenceKeys,
   };
 }
