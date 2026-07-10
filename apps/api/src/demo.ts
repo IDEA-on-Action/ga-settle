@@ -191,6 +191,28 @@ export const DEMO_HTML = `<!doctype html>
   <p class="note">* 이 랜딩 데모는 흐름 재현용 시뮬레이션입니다. 실제 CLOVA OCR + Upstage 구조화 엔진은 이미 연동되어 <b>/app 로그인 후</b> 실 시책안 이미지로 동작합니다(귀사 제공 포스터 실측: 한화손보 신뢰도 0.96 · DB손보 0.87, 정산 핵심값 정확 인식). 상용 API 할당량 보호를 위해 실 인식은 인증 사용자에게만 제공됩니다.</p>
 </div></section>
 
+<section class="demo" id="catalog"><div class="wrap">
+  <h2>30개 원수사의 제각각 시상안이, 하나의 표준 카탈로그로</h2>
+  <p class="sub">엑셀·이미지 포스터로 흩어져 오던 시상정의를 <b>무손실로 표준화</b>합니다. 담당자가 확정하면 정산 엔진 운영룰이 되고, 어떤 지급 건이든 <b>원본 시책안까지 되짚어</b> 감사에 답이 됩니다. 아래는 귀사 제공 자료로 실제 반영된 카탈로그입니다.</p>
+  <div class="stats" style="margin-top:0;margin-bottom:22px">
+    <div class="stat"><b>14,590</b><span>표준화된 시상정의</span></div>
+    <div class="stat"><b>30</b><span>원수사(생보 18 · 손보 12)</span></div>
+    <div class="stat"><b>6+</b><span>차원(상품·납기·지급시점·채널·조건·율)</span></div>
+    <div class="stat"><b>무손실</b><span>원본 이미지·엑셀까지 역추적</span></div>
+  </div>
+  <div class="ptabs" id="ctabs"></div>
+  <div class="tblwrap"><table id="ctable"></table></div>
+  <p class="note">* 시상정의는 <b>참조 카탈로그</b>(원수사가 준 정의 원형)입니다. 정산에 쓰려면 담당자가 검토·확정해 운영룰로 승격하며, 확정 전까지 지급 계산에 영향을 주지 않습니다.</p>
+  <div class="flow" style="margin-top:14px">
+    <span><b>원본</b>(엑셀·이미지 포스터)</span><span class="a">→</span>
+    <span>OCR/파싱 <b>무손실 카탈로그</b></span><span class="a">→</span>
+    <span><b>담당자 확정</b>(HITL)</span><span class="a">→</span>
+    <span><b>운영룰</b></span><span class="a">→</span>
+    <span><b>정산</b></span><span class="a">→</span>
+    <span><b>감사 역추적</b>(원본 시책안)</span>
+  </div>
+</div></section>
+
 <section id="feat"><div class="wrap">
   <h2>타협하지 않는 4가지 원칙</h2>
   <p class="sub">감사와 재현성을 위해, 시스템이 예외 없이 지키는 규칙입니다.</p>
@@ -418,6 +440,52 @@ var OCR=(function(){
   };
 })();
 OCR.init();
+
+// ---- 시상정의 카탈로그 데모 (F-044) ----
+// 귀사 제공 시상정의(생보/손보) 실 샘플. 실제 카탈로그 14,590건 중 대표 행.
+var CATALOG={
+  saengbo:{tab:{name:'생보',sub:'18개사 · 9,227건 · 8개월'},
+    head:['원수사','상품','납입기간','지급시점','채널','적용','상태'],
+    rows:[
+      ['삼성생명','밸런스/골든종신','납기무관','익월','FC','×1.2','운영룰'],
+      ['삼성생명','더행복/간편더사랑종신','5년납','익월','FC','×3.5','후보'],
+      ['한화생명','(무)시그니처종신','전 납기','13차월','FC','×2.0','후보'],
+      ['교보생명','교보변액적립연금','10년납','익월','법인','×1.8','후보'],
+      ['ABL생명','(무)우리WON더드림종신','5년납','익월','FC','×1.5','운영룰'],
+      ['신한라이프','신한통합건강보장','15년납 이상','15차월','FC','×2.5','후보'],
+      ['미래에셋생명','변액종신','7년납','13차월','FC','×2.2','후보'],
+    ]},
+  sonbo:{tab:{name:'손보',sub:'12개사 · 5,363건'},
+    head:['원수사','시상유형','대상','지급시점','실적조건','적용','상태'],
+    rows:[
+      ['DB손보','기본시상','인보험','익월','-','×1.5','운영룰'],
+      ['하나손보','주간 2주차','인보험','2차년','실적 10만↑','정액 40만','후보'],
+      ['MG손보','전략상품Ⅰ','원더플종합+슬림','2차년','실적 10만↑','정액 30만','후보'],
+      ['한화손보','프리미엄 건당(여성시대)','프리미엄 여성보험','건당','5만↑','정액 10만','후보'],
+      ['KB손해','전략상품Ⅷ','간편보종 1주차','2차년','실적 10만↑','정액 20만','후보'],
+      ['현대해상','전략상품Ⅲ','간편+두배암','2차년','실적 10만↑','정액 15만','후보'],
+      ['메리츠화재','전략상품Ⅵ','SI(간편)','2차년','실적 10만↑','정액 20만','후보'],
+    ]},
+};
+(function(){
+  var keys=['saengbo','sonbo'],cur='saengbo';
+  var Tel=document.getElementById('ctabs'),Bel=document.getElementById('ctable');
+  function render(){
+    Tel.innerHTML=keys.map(function(k){var c=CATALOG[k];return '<div class="ptab'+(k===cur?' active':'')+'" data-k="'+k+'"><b>'+c.tab.name+'</b><small>'+c.tab.sub+'</small></div>';}).join('');
+    Array.prototype.forEach.call(Tel.querySelectorAll('.ptab'),function(el){el.onclick=function(){cur=el.getAttribute('data-k');render();};});
+    var c=CATALOG[cur];
+    var th='<thead><tr>'+c.head.map(function(h){return '<th>'+h+'</th>';}).join('')+'</tr></thead>';
+    var tb='<tbody>'+c.rows.map(function(r){
+      return '<tr>'+r.map(function(v,i){
+        if(i===r.length-1){var ok=v==='운영룰';return '<td><span class="pill '+(ok?'ok':'ai')+'">'+v+'</span></td>';}
+        if(i===r.length-2)return '<td class="num">'+v+'</td>';
+        return '<td'+(i===0?' style="font-weight:600"':'')+'>'+v+'</td>';
+      }).join('')+'</tr>';
+    }).join('')+'</tbody>';
+    Bel.innerHTML=th+tb;
+  }
+  render();
+})();
 </script>
 </body>
 </html>`;
