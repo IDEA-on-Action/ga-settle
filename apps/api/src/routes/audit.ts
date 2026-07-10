@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { settlementLines, commissionRecords, uploads, incentiveRules, incentivePlanDefinitions, insurers } from "@ga-settle/schema";
 import type { Env } from "../types";
 import { getDb, decNum } from "../db";
@@ -64,7 +64,8 @@ auditRoutes.get("/api/audit/incentive-trace", async (c) => {
       out.imageAvailable = !!d.incentive_plan_definitions.planImageKey;
     }
     if (!out.rule) {
-      const promoted = await db.select({ id: incentiveRules.id }).from(incentiveRules).where(eq(incentiveRules.id, `rule-${definitionId}`)).get();
+      // F-050: 활성 룰만 promoted로 취급(soft-delete된 룰은 후보로 복원된 것).
+      const promoted = await db.select({ id: incentiveRules.id }).from(incentiveRules).where(and(eq(incentiveRules.id, `rule-${definitionId}`), eq(incentiveRules.active, true))).get();
       if (promoted) out.promotedRuleId = promoted.id;
     }
   }
