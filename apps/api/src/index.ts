@@ -17,13 +17,22 @@ import { incentivePlansRoutes } from "./routes/incentive-plans";
 import { incentivePlanDefinitionsRoutes } from "./routes/incentive-plan-definitions";
 import { auditRoutes } from "./routes/audit";
 import { DEMO_HTML } from "./demo";
+import { portalHome, portalOverview, portalStatus, portalDeliverables, portalProtected } from "./portal";
 
 export type { Env };
 
 export const app = new Hono<{ Bindings: Env }>();
 
-// 루트: 고객 데모용 랜딩/인터랙티브 페이지 (정식 SPA는 B-006).
-app.get("/", (c) => c.html(DEMO_HTML));
+// 루트: 고객 협업 포털 (F-054, IA docs/specs/portal-ia). 공개 레이어 서버 렌더.
+app.get("/", (c) => c.html(portalHome()));
+app.get("/overview", (c) => c.html(portalOverview()));
+app.get("/status", (c) => c.html(portalStatus()));
+app.get("/deliverables", (c) => c.html(portalDeliverables()));
+// 보호 영역(자료실·소통): 공개 콘텐츠 아님 → 로그인(/app) 유도 (설계 §8, 구현은 후속).
+app.get("/assets", (c) => c.html(portalProtected("assets")));
+app.get("/comms", (c) => c.html(portalProtected("comms")));
+// 데모 체험(기존 인터랙티브 랜딩)은 포털의 한 섹션으로 이동.
+app.get("/demo", (c) => c.html(DEMO_HTML));
 
 app.get("/health", (c) => c.json({ ok: true, env: c.env.ENV }));
 
