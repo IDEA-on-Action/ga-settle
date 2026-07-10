@@ -141,6 +141,7 @@ export const incentivePlanDefinitions = sqliteTable("incentive_plan_definitions"
 // 원수사(다중)·정산월은 nullable, 정산월은 OCR 적용기간에서 best-effort 파싱.
 export const incentivePlans = sqliteTable("incentive_plans", {
   id: text("id").primaryKey(),
+  category: text("category"),                                   // F-051 4대 대분류: sonbo_planner|sonbo_self|sengbo_fc|sengbo_corp (기존 행 nullable)
   insurerId: text("insurer_id").references(() => insurers.id),  // nullable (OCR 원수사 다중, 사후 보정)
   settlementMonth: text("settlement_month"),                    // nullable YYYY-MM (OCR 적용기간 자동파싱)
   fileName: text("file_name").notNull(),

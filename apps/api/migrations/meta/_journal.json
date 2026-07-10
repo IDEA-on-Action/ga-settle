@@ -36,6 +36,13 @@
       "when": 1783691159715,
       "tag": "0005_moaning_white_tiger",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1783693103100,
+      "tag": "0006_moaning_madame_hydra",
+      "breakpoints": true
     }
   ]
 }

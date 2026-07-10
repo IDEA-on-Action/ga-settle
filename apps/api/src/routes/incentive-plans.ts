@@ -15,6 +15,11 @@ export const incentivePlansRoutes = new Hono<{ Bindings: Env }>();
 
 const MAX_BYTES = 8 * 1024 * 1024; // 8MB
 
+// F-051 시책룰 4대 대분류. 업로드 시 담당자가 먼저 선택 → 대장 category에 기록.
+const PLAN_CATEGORIES = ["sonbo_planner", "sonbo_self", "sengbo_fc", "sengbo_corp"] as const;
+type PlanCategory = (typeof PLAN_CATEGORIES)[number];
+const isPlanCategory = (v: unknown): v is PlanCategory => typeof v === "string" && (PLAN_CATEGORIES as readonly string[]).includes(v);
+
 // OCR 적용기간 문자열에서 정산월(YYYY-MM) best-effort 파싱 (F-048).
 // "2026년 3월" / "2026-03" / "2026.3" 등 → "2026-03". 실패 시 null(수동 보정).
 function parseSettlementMonth(period: string | null | undefined): string | null {
@@ -33,6 +38,11 @@ incentivePlansRoutes.post("/api/incentive-plans/ocr", async (c) => {
   const form = await c.req.formData().catch(() => null);
   const file = form?.get("image");
   if (!(file instanceof File)) return c.json({ error: "파일이 필요해요 (multipart/form-data)" }, 400);
+  // F-051: 대분류 필수(4대 중 하나). 미선택/오값이면 400.
+  const category = form?.get("category");
+  if (!isPlanCategory(category)) {
+    return c.json({ error: "대분류를 선택하세요 (손보설계사시상/손보자체시상/생보FC시상/생보법인시상)" }, 400);
+  }
   const type = file.type || "";
   // 시책안은 이미지(PNG/JPG/WEBP) 또는 PDF(F-046). CLOVA General OCR V2가 format=pdf 네이티브 지원.
   const isPdf = type === "application/pdf";
@@ -52,6 +62,7 @@ incentivePlansRoutes.post("/api/incentive-plans/ocr", async (c) => {
   const now = new Date().toISOString();
   await db.insert(incentivePlans).values({
     id: crypto.randomUUID(),
+    category,
     insurerId: null,
     settlementMonth: null,
     fileName: file.name,
@@ -103,6 +114,7 @@ incentivePlansRoutes.get("/api/incentive-plans", async (c) => {
   const rows = await db
     .select({
       id: incentivePlans.id,
+      category: incentivePlans.category,
       insurerId: incentivePlans.insurerId,
       insurerName: insurers.name,
       settlementMonth: incentivePlans.settlementMonth,
