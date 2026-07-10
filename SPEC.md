@@ -475,50 +475,50 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 ### F-049 · CLOVA OCR 10페이지 초과 처리 (손보 다중 시상 PDF) 🔴
 - **REQ-070**: 10페이지를 넘는 시책안 PDF(손보 12+ 시상)도 OCR 인식이 되어야 한다
 - **Acceptance**:
-  - [ ] PDF 페이지 수 > 10이면 Worker에서 ≤10p 단위로 분할 → 각 청크 CLOVA 호출 → 필드 병합
-  - [ ] 12+p 손보 시책안 실 PDF로 200 응답 + 전 페이지 필드 인식(E2E 실측)
-  - [ ] 단일/≤10p PDF 회귀(기존 경로 무변경), 분할 실패/빈페이지 방어
-- **Status**: 📋 PLANNED
+  - [x] PDF 페이지 수 > 10이면 Worker에서 ≤10p 단위로 분할 → 각 청크 CLOVA 호출 → 필드 병합
+  - [x] 12+p 손보 시책안 실 PDF로 200 응답 + 전 페이지 필드 인식(E2E 실측)
+  - [x] 단일/≤10p PDF 회귀(기존 경로 무변경), 분할 실패/빈페이지 방어
+- **Status**: ✅ DONE
 - **Sprint**: S19
 - **Notes**: 260710 고객 피드백. 실측 근본원인: `apps/api/src/ocr.ts` `clovaOcr`가 PDF 전체를 1요청(base64)으로 전송 → CLOVA General OCR **10p/요청 한도**(400 code 0011 "No more than 10 pages"). 손보 5월 1·2주차 시책안이 12+ 시상=12+p라 첫 요청부터 실패. Worker에서 PDF 분할 필요(pdf-lib류, 신규 dep 시 번들 PoC). 성격: 🔴 Bug(우리가 포지셔닝한 손보 OCR이 실사용 불가).
 
 ### F-050 · 시책룰 삭제 시 시상정의 확정→후보 복원 🔴
 - **REQ-071**: 승격된 시책룰을 삭제하면 원본 시상정의가 "확정"에서 "후보"로 복원되어 재확정할 수 있어야 한다
 - **Acceptance**:
-  - [ ] 시책룰(rule-{defId}) 삭제 후 시상정의 목록에서 promoted=false로 복원
-  - [ ] soft-delete(active=false) 룰은 promoted로 집계되지 않음(active=true 필터)
-  - [ ] 회귀 테스트(승격→삭제→후보복원→재승격)
-- **Status**: 📋 PLANNED
+  - [x] 시책룰(rule-{defId}) 삭제 후 시상정의 목록에서 promoted=false로 복원
+  - [x] soft-delete(active=false) 룰은 promoted로 집계되지 않음(active=true 필터)
+  - [x] 회귀 테스트(승격→삭제→후보복원→재승격)
+- **Status**: ✅ DONE
 - **Sprint**: S19
 - **Notes**: 260710 고객 피드백. 실측 근본원인: `DELETE /api/rules/:id`는 soft-delete(`active=false, validTo`)인데 `incentive-plan-definitions.ts`의 `promoted` 판정 `EXISTS(SELECT 1 FROM incentive_rules WHERE id='rule-'||def.id)`가 **active 미필터** → 삭제해도 행이 남아 확정 유지. Fix: EXISTS에 `AND ir.active` 추가(~1줄). 성격: 🔴 Bug(소규모).
 
 ### F-051 · 시책룰 4대 대분류 + 업로드 시 대분류 선택
 - **REQ-072**: 시책안 업로드 시 4대 대분류(손보설계사시상/손보자체시상/생보FC시상/생보법인시상)를 먼저 선택하고 업로드한다
 - **Acceptance**:
-  - [ ] `incentive_plans`에 category 컬럼 추가(migration 0006) - sonbo_fc/sonbo_self/sengbo_fc/sengbo_corp
-  - [ ] 업로드 화면(IncentivePlanUpload)에 대분류 선택 필수 → POST /api/incentive-plans/ocr에 category 전달·저장
-  - [ ] 등록 대장(PlanUploadHistory)·목록 API에 대분류 표시/필터
-- **Status**: 📋 PLANNED
+  - [x] `incentive_plans`에 category 컬럼 추가(migration 0006) - sonbo_fc/sonbo_self/sengbo_fc/sengbo_corp
+  - [x] 업로드 화면(IncentivePlanUpload)에 대분류 선택 필수 → POST /api/incentive-plans/ocr에 category 전달·저장
+  - [x] 등록 대장(PlanUploadHistory)·목록 API에 대분류 표시/필터
+- **Status**: ✅ DONE
 - **Sprint**: S19
 - **Notes**: 260710 고객 피드백. 시책룰이 총 4개 대분류로 정의됨. F-048 등록 대장 확장(category 컬럼). 성격: Feature.
 
 ### F-052 · 생보 납입기간별 지급율 다중행 추출
 - **REQ-073**: 생보 시책안 OCR 시 상품의 납입기간별(5년납/7년납 등)·지급시점별(익월/13차월) 지급율이 각각 별도 행으로 추출·반영된다
 - **Acceptance**:
-  - [ ] OCR 구조화(`structureRule`)가 (납입기간×지급시점)별 지급율 다중행 산출
-  - [ ] 예: ABL생명 5년납→익월150%/13차월0, 7년납→익월250%/13차월100% 각 행 분리
-  - [ ] OCR 결과 화면·시상정의 매핑에 납입기간별 행 반영, 골든 회귀 통과
-- **Status**: 📋 PLANNED
+  - [x] OCR 구조화(`structureRule`)가 (납입기간×지급시점)별 지급율 다중행 산출
+  - [x] 예: ABL생명 5년납→익월150%/13차월0, 7년납→익월250%/13차월100% 각 행 분리
+  - [x] OCR 결과 화면·시상정의 매핑에 납입기간별 행 반영, 골든 회귀 통과
+- **Status**: ✅ DONE
 - **Sprint**: S19
 - **Notes**: 260710 고객 피드백. 실측 근본원인: `ocr.ts structureRule`이 단일 flat 6필드(payout 1개)만 추출 → 납입기간별 상이 지급율 손실. Upstage 구조화 프롬프트/출력스키마를 payoutRows[] 배열로 확장. 시상정의 카탈로그는 pay_term·pay_timing 컬럼 이미 보유(F-044). 성격: Improvement(추출 정확도).
 
 ### F-053 · 시책룰 등록 항목 확장 (실적인정·환수·예외·구간·브릿지)
 - **REQ-074**: 시책룰에 실적인정기분·환수기준(1·2차년도)·예외적용·구간시상·브릿지시상 항목을 등록할 수 있다
 - **Acceptance**:
-  - [ ] `conditionSchema`(zod)·룰 엔진(packages/rules)에 실적인정/환수/예외/구간/브릿지 필드 추가
-  - [ ] 시책룰 등록 UI(Rules)에 해당 항목 입력, GET/POST /api/rules 왕복
-  - [ ] 룰 엔진 변경이라 골든 회귀 테스트 필수 통과(불변식 #6)
-- **Status**: 📋 PLANNED
+  - [x] `conditionSchema`(zod)·룰 엔진(packages/rules)에 실적인정/환수/예외/구간/브릿지 필드 추가
+  - [x] 시책룰 등록 UI(Rules)에 해당 항목 입력, GET/POST /api/rules 왕복
+  - [x] 룰 엔진 변경이라 골든 회귀 테스트 필수 통과(불변식 #6)
+- **Status**: ✅ DONE
 - **Sprint**: S19
 - **Notes**: 260710 고객 피드백. 참조자료 `2026년3월_손보시책안...xlsx`(챗GPT 변환)의 컬럼(실적 인정 및 제외 기준·1차년도 환수·2차년도(13회차) 환수·구간)과 정확히 매핑. 구간시상=실적 브라켓별 차등, 브릿지시상=연속 유지 조건. 성격: Feature(중~대, 룰 엔진 확장). 우선순위 P2(FB5·FB2 후행).
 
@@ -566,4 +566,4 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 | 16 · 데모 피드백 SPA 결선(S16) | 후속 | F-045(시책룰↔시상정의 UX 브리지), F-046(시책안 PDF/이미지 OCR 업로드) | done |
 | 17 · 업로드 삭제(S17) | 후속 | F-047 (업로드 삭제 + 감사·마감차단·cascade) | done |
 | 18 · 시책안 등록 대장(S18) | 후속 | F-048 (incentive_plans 테이블 + 업로드 즉시 등록 + 목록 화면) | done |
-| 19 · 260710 시책 피드백 배치(S19) | 후속 | F-049(OCR 10p 분할)·F-050(삭제→복원)·F-051(4대 대분류)·F-052(납입기간별 지급율)·F-053(시책룰 항목 확장) | in_progress |
+| 19 · 260710 시책 피드백 배치(S19) | 후속 | F-049(OCR 10p 분할)·F-050(삭제→복원)·F-051(4대 대분류)·F-052(납입기간별 지급율)·F-053(시책룰 항목 확장) | done |
