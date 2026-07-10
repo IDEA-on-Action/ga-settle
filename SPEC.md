@@ -440,9 +440,10 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
   - [x] 시책안 PDF/이미지 업로드 → POST /api/incentive-plans/ocr 파이프라인 연결 + 추출 시책룰 후보·저신뢰 표시(`_pipeline/IncentivePlanUpload.tsx`)
   - [x] 시책룰 초안 생성 흐름: OCR 결과 화면에서 `/plan-definitions`(시상정의 확정→운영룰 승격 HITL) 링크로 연결
   - [x] **PDF 지원**: OCR 엔드포인트 mime 게이트 확장(application/pdf 허용) + CLOVA format=pdf passthrough + 다중페이지 images[] flatMap 보강. api 유형게이트 테스트 4(415/400/pdf통과/png회귀)
+  - [x] **실 CLOVA PDF OCR E2E 실측(2026-07-10)**: 실제 고객 시책안 PDF(`에이티에셋 3월 손보자체 시상.pdf`, 1p A4)로 실 CLOVA+Upstage 호출 → HTTP 200, format=pdf passthrough 정상(R2 `.pdf` 보관), OCR avgConf 0.942·293필드, 6개 시책룰 필드 전량 정확 추출·저신뢰 0건
 - **Status**: DONE
 - **Sprint**: S16
-- **Notes**: 2026-07-10 데모 통화 피드백 AI-2(🔴, 통화 00:49~01:17). OCR 엔진 POST /api/incentive-plans/ocr(F-043) 기구현 → 업로드 화면 진입점만 부재였음. 구현: (1) `apps/api/src/routes/incentive-plans.ts` mime 게이트를 image+application/pdf로 확장, ext/에러문구 반영 (2) `apps/api/src/ocr.ts` clovaOcr가 전 페이지 필드 flatMap(다중페이지 PDF) (3) `apps/web/src/screens/Upload.tsx` 파일유형 토글 (4) `_pipeline/IncentivePlanUpload.tsx` 신규(OCR 업로드→후보 렌더→확정 링크). 고객 문의답변 Q2 직결. **⚠️ 검증 잔여(Production Smoke)**: 유형 게이트는 단위테스트 통과했으나 **실 CLOVA PDF OCR E2E(외부 유료 API)는 미실측** - 실 시책안 PDF로 라이브 데모에서 1건 확인 필요(다중페이지 정확도 포함). 성격: Feature(UI 진입점 + PDF 백엔드).
+- **Notes**: 2026-07-10 데모 통화 피드백 AI-2(🔴, 통화 00:49~01:17). OCR 엔진 POST /api/incentive-plans/ocr(F-043) 기구현 → 업로드 화면 진입점만 부재였음. 구현: (1) `apps/api/src/routes/incentive-plans.ts` mime 게이트를 image+application/pdf로 확장, ext/에러문구 반영 (2) `apps/api/src/ocr.ts` clovaOcr가 전 페이지 필드 flatMap(다중페이지 PDF) (3) `apps/web/src/screens/Upload.tsx` 파일유형 토글 (4) `_pipeline/IncentivePlanUpload.tsx` 신규(OCR 업로드→후보 렌더→확정 링크). 고객 문의답변 Q2 직결. **✅ 실 PDF OCR 실측 완료(2026-07-10)**: 로컬 wrangler dev + prod 동일 CLOVA/Upstage 키로 실 고객 시책안 PDF 호출 → 200, format=pdf 정상, avgConf 0.942/293필드, insurer(9개)·planType(월초P)·period(2026년 3월)·targetProduct(장기보장성 인보험)·payout(500/300/200/100%)·retention(미유지 1~25회 환수) 전량 정확·저신뢰 0. 성격: Feature(UI 진입점 + PDF 백엔드).
 
 ### F-047 · 업로드 내역 삭제 기능 (데모 피드백 AI-4)
 - **REQ-066**: 업로드 목록에서 업로드 파일을 삭제할 수 있고, 삭제 시 처리자·시각이 감사 로그에 기록된다
