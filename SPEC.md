@@ -462,15 +462,15 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 - **REQ-068**: 시책안 PDF/이미지를 업로드하면 파일 자체가 대장 레코드로 영속화되어(원수사·정산월·파일명·업로더·OCR결과·R2키·해시), 누가 언제 무엇을 올렸는지 조회할 수 있다
 - **REQ-069**: 등록된 시책안은 R2 원본과 연결되어 감사 근거로 역추적된다 (F-043/F-044 감사 체인 보강)
 - **Acceptance**:
-  - [ ] `incentive_plans` 테이블(migration 0005) - insurer_id·settlement_month nullable + file_name·r2_key·sha256·content_type·byte_size·ocr_status·ocr_avg_confidence·ocr_field_count·low_confidence_count·created_by·created_at. sha256 unique(멱등)
-  - [ ] **업로드 즉시 등록**(사용자 결정): `POST /api/incentive-plans/ocr`가 R2 put 직후 대장 레코드 생성(OCR 이전, status=pending) → OCR 성공 시 ocr_status(ok/low_confidence)+신뢰도+필드수 갱신·정산월 자동파싱, OCR 실패 시 status=failed. 확정자(created_by) 인증사용자 자동
-  - [ ] **원수사·월 태깅**(사용자 결정): 원수사 nullable(OCR 원수사 다중), 정산월은 OCR 적용기간에서 best-effort 파싱(예: "2026년 3월"→"2026-03")
-  - [ ] `GET /api/incentive-plans` 목록(원수사명 조인·?q·?limit·?offset+total, `{items,total}`) - 파일명·원수사·월·OCR상태·신뢰도·업로더·시각
-  - [ ] **목록 화면**(사용자 결정): 업로드 화면 '시책안 문서(OCR)' 탭 하단에 '시책안 등록 내역' 섹션(`_pipeline/PlanUploadHistory.tsx`) - 엑셀 UploadHistory 대칭. OCR 성공 시 목록 invalidate
-  - [ ] 인가: 전역 /api/* 인증 게이트(미인증 401). 목록/등록 모두 게이트 뒤
-- **Status**: 🔧 IN_PROGRESS
+  - [x] `incentive_plans` 테이블(migration 0005) - insurer_id·settlement_month nullable + file_name·r2_key·sha256·content_type·byte_size·ocr_status·ocr_avg_confidence·ocr_field_count·low_confidence_count·created_by·created_at. sha256 unique(멱등)
+  - [x] **업로드 즉시 등록**(사용자 결정): `POST /api/incentive-plans/ocr`가 R2 put 직후 대장 레코드 생성(OCR 이전, status=pending) → OCR 성공 시 ocr_status(ok/low_confidence)+신뢰도+필드수 갱신·정산월 자동파싱, OCR 실패 시 status=failed. 확정자(created_by) 인증사용자 자동
+  - [x] **원수사·월 태깅**(사용자 결정): 원수사 nullable(OCR 원수사 다중), 정산월은 OCR 적용기간에서 best-effort 파싱(예: "2026년 3월"→"2026-03")
+  - [x] `GET /api/incentive-plans` 목록(원수사명 조인·?q·?limit·?offset+total, `{items,total}`) - 파일명·원수사·월·OCR상태·신뢰도·업로더·시각
+  - [x] **목록 화면**(사용자 결정): 업로드 화면 '시책안 문서(OCR)' 탭 하단에 '시책안 등록 내역' 섹션(`_pipeline/PlanUploadHistory.tsx`) - 엑셀 UploadHistory 대칭. OCR 성공 시 목록 invalidate
+  - [x] 인가: 전역 /api/* 인증 게이트(미인증 401). 목록/등록 모두 게이트 뒤
+- **Status**: DONE
 - **Sprint**: S18
-- **Notes**: 2026-07-10 세션. F-046 시책안 OCR 업로드가 OCR 추출만 하고 파일 레코드 영속화·조회 대장이 없던 비대칭(엑셀은 uploads 테이블+UploadHistory 존재) 해소. **핵심: 시상정의(incentive_plan_definitions, 확정 카탈로그) ≠ incentive_plans(업로드 대장)**. 대장은 "업로드 사실"의 감사 기록, R2 원본 역추적 뿌리. 인터뷰 결정 3건: 생성=업로드 즉시(실패건도 추적), 태깅=nullable+월 자동파싱, 목록=업로드 화면 내 섹션. 성격: Feature.
+- **Notes**: 2026-07-10 세션. F-046 시책안 OCR 업로드가 OCR 추출만 하고 파일 레코드 영속화·조회 대장이 없던 비대칭(엑셀은 uploads 테이블+UploadHistory 존재) 해소. **핵심: 시상정의(incentive_plan_definitions, 확정 카탈로그) ≠ incentive_plans(업로드 대장)**. 대장은 "업로드 사실"의 감사 기록, R2 원본 역추적 뿌리. 인터뷰 결정 3건: 생성=업로드 즉시(실패건도 추적), 태깅=nullable+월 자동파싱, 목록=업로드 화면 내 섹션. 구현: `packages/schema`(incentive_plans, migration 0005) + `routes/incentive-plans.ts`(업로드 즉시 등록+GET 목록+parseSettlementMonth) + `_pipeline/PlanUploadHistory.tsx`(신규) + `Upload.tsx`/`IncentivePlanUpload.tsx` 결선. 테스트 3(업로드 즉시 등록·sha 멱등·{items,total}+401), 전체 93 green. **실 CLOVA PDF OCR E2E 실측(2026-07-10)**: 실 고객 시책안 PDF 업로드→대장 1건·정상·정산월 2026-03 자동파싱·신뢰도 94.2%·293필드. PR #52 squash merge → main → **prod 배포(version 75cb4644, remote D1 0005 적용)**. prod 스모크: /health 200·GET /api/incentive-plans 401 게이트·/app 200. 성격: Feature.
 
 ## §3. Backlog (F-item 승격 대기)
 
@@ -515,4 +515,4 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 | 15 · 시상정의 카탈로그(S15) | 후속 | F-044 (전용 테이블 14,590건[생보9,227+손보5,363] + OCR결선 + 운영룰 확정 UI + 감사 소명) | done |
 | 16 · 데모 피드백 SPA 결선(S16) | 후속 | F-045(시책룰↔시상정의 UX 브리지), F-046(시책안 PDF/이미지 OCR 업로드) | done |
 | 17 · 업로드 삭제(S17) | 후속 | F-047 (업로드 삭제 + 감사·마감차단·cascade) | done |
-| 18 · 시책안 등록 대장(S18) | 후속 | F-048 (incentive_plans 테이블 + 업로드 즉시 등록 + 목록 화면) | in_progress |
+| 18 · 시책안 등록 대장(S18) | 후속 | F-048 (incentive_plans 테이블 + 업로드 즉시 등록 + 목록 화면) | done |
