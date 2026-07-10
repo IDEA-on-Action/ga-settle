@@ -53,6 +53,7 @@ pnpm -F api d1:migrate:local           # 로컬 D1에 마이그레이션 적용 
 - POST /api/incentive-plans/ocr - 시책안 이미지(multipart) → CLOVA OCR + Upstage 구조화 → 시책룰 필드 후보 + 저신뢰 표시 + R2 원본 보관(SHA-256 멱등). 하이브리드 엔진, blended 신뢰도(LLM×OCR평균, 임계 0.85). 인증 필수 (F-043)
 - GET /api/incentive-plan-definitions · /summary - 시상정의 카탈로그(원수사가 준 정의 원형, 무손실 16열). ?insurerId·?month·?q+페이지. incentive_rules(정산엔진)와 분리, 정의는 참조/후보 (F-044)
 - POST /api/incentive-plan-definitions - 담당자 확정 시상정의 write(OCR→정의 결선). planImageKey(F-043 OCR 원본)로 역추적, source_type=ocr, 확정자 자동+감사 (F-044)
+- POST /api/incentive-plan-definitions/promote - 선택 정의를 정산 엔진 운영룰(incentive_rules)로 확정 승격(HITL). rule-{defId} 결정적·idempotent, condition/action 매핑. 목록에 promoted 플래그. UI: /app/plan-definitions (F-044)
 - POST /api/rules · GET /api/rules · DELETE /api/rules/:id - 시책 룰 CRUD(선언형 조건+액션) (F-010)
 - POST /api/rules/simulate - 룰 변경 지급액 diff 미리보기(실데이터 무영향) (F-012)
 - POST /api/family/detect · /:id/confirm · /:id/release · GET /api/family - 가족계약 감지 HITL. 확정자(confirmedBy)는 인증 사용자 자동 (F-011/F-038). GET은 {items,total} 페이지네이션(?limit/?offset, F-042)

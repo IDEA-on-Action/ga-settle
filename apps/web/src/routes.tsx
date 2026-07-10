@@ -5,6 +5,7 @@ import {
   Sparkles,
   Layers,
   SlidersHorizontal,
+  ClipboardCheck,
   Users,
   CalendarCheck,
   GitCompare,
@@ -20,6 +21,7 @@ import UploadScreen from "./screens/Upload";
 import MappingReview from "./screens/MappingReview";
 import MappingAdmin from "./screens/MappingAdmin";
 import Rules from "./screens/Rules";
+import PlanDefinitions from "./screens/PlanDefinitions";
 import Family from "./screens/Family";
 import Runs from "./screens/Runs";
 import Reconciliation from "./screens/Reconciliation";
@@ -99,6 +101,14 @@ export const routes: RouteDef[] = [
     group: "rules",
     icon: SlidersHorizontal,
     Component: Rules,
+  },
+  {
+    path: "/plan-definitions",
+    label: "시상정의 확정",
+    subtitle: "원수사 시상정의 카탈로그 → 운영룰 확정(HITL)",
+    group: "rules",
+    icon: ClipboardCheck,
+    Component: PlanDefinitions,
   },
   {
     path: "/family",

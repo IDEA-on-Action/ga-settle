@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { and, desc, eq, like, or, sql } from "drizzle-orm";
-import { incentivePlanDefinitions, insurers } from "@ga-settle/schema";
+import { and, desc, eq, inArray, like, or, sql } from "drizzle-orm";
+import { incentivePlanDefinitions, incentiveRules, insurers } from "@ga-settle/schema";
 import type { Env } from "../types";
 import { getDb, writeAudit } from "../db";
 import { authUser } from "../auth";
@@ -10,6 +10,13 @@ import { pageParams } from "../pagination";
 // 시상정의 카탈로그 조회 (F-044). 원수사가 준 시상 정의 원형(무손실).
 // incentive_rules(정산 엔진)와 분리 - 정의는 참조/후보. /api/* 인증 게이트 뒤.
 export const incentivePlanDefinitionsRoutes = new Hono<{ Bindings: Env }>();
+
+// D1은 쿼리당 바운드 변수 100개 제한 → drizzle .values([...])는 행수×컬럼수 변수 생성.
+// 컬럼수 기준으로 안전 청크(≤90 변수/쿼리)해 다중 insert.
+async function insertChunked<R>(run: (rows: R[]) => Promise<unknown>, rows: R[], cols: number): Promise<void> {
+  const per = Math.max(1, Math.floor(90 / cols));
+  for (let i = 0; i < rows.length; i += per) await run(rows.slice(i, i + per));
+}
 
 // GET /api/incentive-plan-definitions?insurerId=&month=&q=&limit=&offset=
 incentivePlanDefinitionsRoutes.get("/api/incentive-plan-definitions", async (c) => {
@@ -45,15 +52,18 @@ incentivePlanDefinitionsRoutes.get("/api/incentive-plan-definitions", async (c) 
       payTiming: incentivePlanDefinitions.payTiming,
       channel: incentivePlanDefinitions.channel,
       branch: incentivePlanDefinitions.branch,
+      cond1: incentivePlanDefinitions.cond1,
       rateType: incentivePlanDefinitions.rateType,
       rateValue: incentivePlanDefinitions.rateValue,
       note: incentivePlanDefinitions.note,
       sourceType: incentivePlanDefinitions.sourceType,
+      // 이 정의가 이미 운영룰로 승격됐는지(rule-{defId} 존재). 0/1.
+      promoted: sql<number>`EXISTS(SELECT 1 FROM incentive_rules ir WHERE ir.id = 'rule-' || incentive_plan_definitions.id)`,
     })
     .from(incentivePlanDefinitions)
     .leftJoin(insurers, eq(incentivePlanDefinitions.insurerId, insurers.id))
     .where(where)
-    .orderBy(desc(incentivePlanDefinitions.baseMonth), incentivePlanDefinitions.insurerId)
+    .orderBy(desc(incentivePlanDefinitions.baseMonth), incentivePlanDefinitions.insurerId, incentivePlanDefinitions.id)
     .limit(limit)
     .offset(offset);
 
@@ -131,7 +141,8 @@ incentivePlanDefinitionsRoutes.post("/api/incentive-plan-definitions", async (c)
     createdBy: requester,
     createdAt: now,
   }));
-  await db.insert(incentivePlanDefinitions).values(values);
+  // incentivePlanDefinitions 20컬럼 → D1 100변수 한도 위해 청크 insert.
+  await insertChunked((rows) => db.insert(incentivePlanDefinitions).values(rows), values, 20);
   await writeAudit(db, {
     actor: requester,
     action: "incentive_plan_def.create",
@@ -152,4 +163,59 @@ incentivePlanDefinitionsRoutes.get("/api/incentive-plan-definitions/summary", as
     .orderBy(desc(incentivePlanDefinitions.baseMonth));
   const total = byMonth.reduce((s, r) => s + Number(r.n), 0);
   return c.json({ total, byMonth: byMonth.map((r) => ({ baseMonth: r.baseMonth, count: Number(r.n) })) });
+});
+
+// POST /api/incentive-plan-definitions/promote - 선택 정의를 정산 엔진 운영룰(incentive_rules)로 확정 승격.
+// 담당자 HITL(불변식 #3). 룰 id=rule-{defId}로 결정적 → 재승격 idempotent(이미 있으면 skip).
+const promoteSchema = z.object({ definitionIds: z.array(z.string().min(1)).min(1).max(200) });
+function monthEndDay(ym: string): number {
+  const y = Number(ym.slice(0, 4)), m = Number(ym.slice(4, 6));
+  return new Date(y, m, 0).getDate();
+}
+
+incentivePlanDefinitionsRoutes.post("/api/incentive-plan-definitions/promote", async (c) => {
+  const b = promoteSchema.safeParse(await c.req.json().catch(() => null));
+  if (!b.success) return c.json({ error: "승격 입력 검증 실패", detail: b.error.flatten() }, 400);
+  const db = getDb(c.env);
+  const user = await authUser(c.req.raw, db, c.env.SESSION_SECRET);
+  if (!user) return c.json({ error: "인증이 필요해요" }, 401);
+  const requester = user.email;
+
+  const defs = await db.select().from(incentivePlanDefinitions).where(inArray(incentivePlanDefinitions.id, b.data.definitionIds)).all();
+  const foundIds = new Set(defs.map((d) => d.id));
+  const notFound = b.data.definitionIds.filter((id) => !foundIds.has(id));
+
+  // 이미 승격된 룰 조회(idempotent skip).
+  const ruleIds = defs.map((d) => `rule-${d.id}`);
+  const existing = ruleIds.length
+    ? new Set((await db.select({ id: incentiveRules.id }).from(incentiveRules).where(inArray(incentiveRules.id, ruleIds)).all()).map((r) => r.id))
+    : new Set<string>();
+
+  const now = new Date().toISOString();
+  const toInsert = defs
+    .filter((d) => !existing.has(`rule-${d.id}`))
+    .map((d) => {
+      const ym = d.baseMonth;
+      const from = `${ym.slice(0, 4)}-${ym.slice(4, 6)}-01`;
+      const to = `${ym.slice(0, 4)}-${ym.slice(4, 6)}-${String(monthEndDay(ym)).padStart(2, "0")}`;
+      const condition = {
+        condition: { period: { from, to }, insurerIds: [d.insurerId], productPatterns: d.product ? [d.product] : [] },
+        overlapPolicy: "exclusive" as const,
+        _source: { definitionId: d.id, payTerm: d.payTerm, payTiming: d.payTiming, channel: d.channel, branch: d.branch, cond1: d.cond1, cond2: d.cond2, cond3: d.cond3 },
+      };
+      const action = d.rateType === "rate" ? { kind: "rate", rate: d.rateValue } : { kind: "fixed", amount: d.rateValue };
+      const name = `[정의] ${d.product}${d.payTiming ? ` · ${d.payTiming}` : ""}${d.cond1 ? ` · ${d.cond1}` : ""}`.slice(0, 200);
+      return {
+        id: `rule-${d.id}`, name, conditionJson: JSON.stringify(condition), actionJson: JSON.stringify(action),
+        priority: 0, validFrom: from, validTo: to, active: true, createdBy: requester, createdAt: now,
+      };
+    });
+
+  // incentiveRules 10컬럼 → D1 100변수 한도 위해 청크 insert.
+  if (toInsert.length) await insertChunked((rows) => db.insert(incentiveRules).values(rows), toInsert, 10);
+  await writeAudit(db, {
+    actor: requester, action: "incentive_rule.promote", entity: "incentive_rules",
+    summary: { requested: b.data.definitionIds.length, promoted: toInsert.length, skipped: existing.size, notFound: notFound.length },
+  });
+  return c.json({ promoted: toInsert.length, skipped: existing.size, notFound, ruleIds: toInsert.map((r) => r.id) }, 201);
 });
