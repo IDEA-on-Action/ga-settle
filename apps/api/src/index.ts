@@ -13,6 +13,7 @@ import { authRoutes } from "./routes/auth";
 import { payslipsRoutes } from "./routes/payslips";
 import { statsRoutes } from "./routes/stats";
 import { insurersRoutes } from "./routes/insurers";
+import { incentivePlansRoutes } from "./routes/incentive-plans";
 import { DEMO_HTML } from "./demo";
 
 export type { Env };
@@ -46,6 +47,7 @@ app.route("/", authRoutes);    // F-017 계정/세션 인증/RBAC 스코프
 app.route("/", payslipsRoutes); // F-018 지급 내역서/출력물
 app.route("/", statsRoutes);   // F-019 통계/집계
 app.route("/", insurersRoutes); // F-026 원수사 마스터 CRUD
+app.route("/", incentivePlansRoutes); // F-043 시책안 OCR 인식
 
 // SPA 서빙 (B-006 단일 오리진, run_worker_first=true라 모든 요청이 Worker 경유).
 // 루트=랜딩(위 app.get("/")), /api·/health는 위에서 처리. 그 외(/app, /app/*, /assets/*)는:

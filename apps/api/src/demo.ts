@@ -92,6 +92,52 @@ export const DEMO_HTML = `<!doctype html>
   .frow{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
   .note{font-size:12px;color:var(--dim);margin-top:14px}
   @media(max-width:760px){.stats,.grid4{grid-template-columns:repeat(2,1fr)}.map{grid-template-columns:1fr;gap:5px}.map .arw{transform:rotate(90deg);justify-self:start}}
+  /* ---- 시책안 OCR 데모 (F-043) ---- */
+  .ptabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+  .ptab{display:flex;flex-direction:column;gap:2px;padding:10px 14px;border-radius:11px;border:1px solid var(--line);background:var(--card);color:var(--mut);cursor:pointer;font-size:13px;transition:.15s}
+  .ptab b{color:var(--fg);font-weight:700;font-size:13.5px}
+  .ptab small{color:var(--dim);font-size:11.5px}
+  .ptab.active{border-color:var(--brand);background:var(--card2);color:var(--fg);box-shadow:0 6px 22px rgba(91,140,255,.14)}
+  .ocrgrid{display:grid;grid-template-columns:0.9fr 1.1fr;gap:16px;align-items:start}
+  .ocrpane{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;min-height:360px}
+  .ocrpane .lbl{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--dim);font-weight:700;letter-spacing:.02em;margin-bottom:12px;text-transform:uppercase}
+  /* 원본 포스터 목업 */
+  .poster{border-radius:12px;overflow:hidden;border:1px solid var(--line);font-size:12px}
+  .poster .phead{padding:14px 14px 12px;color:#fff}
+  .poster .plogo{font-size:11px;font-weight:700;opacity:.9;margin-bottom:6px}
+  .poster .ptitle{font-size:22px;font-weight:850;letter-spacing:-.02em;line-height:1.15}
+  .poster .psub{font-size:12px;opacity:.92;margin-top:4px}
+  .poster .pbody{background:#fbfbfe;color:#1b2233;padding:12px 13px}
+  .poster .prow{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px dashed #dfe3ee}
+  .poster .prow:last-child{border-bottom:0}
+  .poster .prow .k{color:#4a5470;font-weight:600}
+  .poster .prow .v{font-weight:800;color:#0e1526;text-align:right}
+  .poster .pband{display:flex;gap:6px;flex-wrap:wrap;padding:10px 13px;background:#f2f4fa;color:#3a465f}
+  .poster .chip{font-size:10.5px;font-weight:700;background:#fff;border:1px solid #dde2ef;color:#3a465f;padding:3px 8px;border-radius:999px}
+  .pkb .phead{background:linear-gradient(135deg,#ffb703,#fb8500)}
+  .pkb .ptitle{color:#111}
+  .pkb .plogo,.pkb .psub{color:#3a2a00}
+  .phw .phead{background:linear-gradient(135deg,#ff8fb1,#f76d9a)}
+  .posternote{font-size:11px;color:var(--dim);margin-top:10px;display:flex;align-items:center;gap:6px}
+  /* 추출 룰 */
+  .rrow{display:grid;grid-template-columns:96px 1fr auto;gap:10px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--card2);margin-bottom:8px;transition:.2s}
+  .rrow .rk{font-size:11.5px;color:var(--dim);font-weight:700}
+  .rrow .rv{font-size:13px;font-weight:700;color:var(--fg)}
+  .rrow.low{border-color:rgba(255,176,32,.5);background:rgba(255,176,32,.07)}
+  .rrow.fixed{border-color:rgba(46,230,168,.4);background:rgba(46,230,168,.06)}
+  .conf{font-size:10.5px;font-weight:800;padding:3px 8px;border-radius:999px;white-space:nowrap}
+  .conf.hi{background:rgba(46,230,168,.14);color:var(--ok)}
+  .conf.lo{background:rgba(255,176,32,.16);color:var(--warn);cursor:pointer;border:1px solid rgba(255,176,32,.5)}
+  .conf.lo:hover{background:rgba(255,176,32,.26)}
+  .conf.fx{background:rgba(46,230,168,.14);color:var(--ok)}
+  .ocrbanner{display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:10px;font-size:12.5px;font-weight:600;margin-bottom:12px}
+  .ocrbanner.warn{background:rgba(255,176,32,.1);border:1px solid rgba(255,176,32,.35);color:var(--warn)}
+  .ocrbanner.ok{background:rgba(46,230,168,.1);border:1px solid rgba(46,230,168,.35);color:var(--ok)}
+  .verify3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+  .verify3 .v3{background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:10px}
+  .verify3 .v3 .t{font-size:12px;font-weight:800;margin-bottom:3px}
+  .verify3 .v3 .dd{font-size:11px;color:var(--mut);line-height:1.45}
+  @media(max-width:760px){.ocrgrid{grid-template-columns:1fr}.verify3{grid-template-columns:1fr}.rrow{grid-template-columns:80px 1fr auto}}
 </style>
 </head>
 <body>
@@ -132,6 +178,17 @@ export const DEMO_HTML = `<!doctype html>
     <button class="btn p" id="next">다음 단계 ▶</button>
   </div>
   <p class="note">* 고객 데모용 시뮬레이션입니다. 데이터는 예시이며, 실제 API(<code>/health</code>)는 상단 배지에서 라이브 상태로 확인됩니다.</p>
+</div></section>
+
+<section class="demo ocr" id="ocr"><div class="wrap">
+  <h2>이미지로 온 시책안이, 감사까지 되짚는 시책룰이 되기까지</h2>
+  <p class="sub">시책안은 매월 보험사 <b>포스터 이미지</b>로 옵니다. 손으로 옮겨 적던 지급 규칙을 OCR이 읽어 초안을 만들고, 담당자는 <b>확인·보정만</b> 합니다. 확정된 룰엔 원본 이미지가 지급 근거로 붙어, 특정 지급 건에서 <b>원본 시책안까지 되짚어</b> 감사에 답이 됩니다.</p>
+  <div class="ptabs" id="ptabs"></div>
+  <div class="ocrgrid">
+    <div class="ocrpane" id="ocrleft"></div>
+    <div class="ocrpane" id="ocrright"></div>
+  </div>
+  <p class="note">* 이 랜딩 데모는 흐름 재현용 시뮬레이션입니다. 실제 CLOVA OCR + Upstage 구조화 엔진은 이미 연동되어 <b>/app 로그인 후</b> 실 시책안 이미지로 동작합니다(귀사 제공 포스터 실측: 한화손보 신뢰도 0.96 · DB손보 0.87, 정산 핵심값 정확 인식). 상용 API 할당량 보호를 위해 실 인식은 인증 사용자에게만 제공됩니다.</p>
 </div></section>
 
 <section id="feat"><div class="wrap">
@@ -269,6 +326,98 @@ function stageClose(){
     '</tbody></table></div><p class="note">마감 이후에는 어떤 수정도 잠깁니다. 재현성(병행 검증 0원)으로 정산 무결성을 보장합니다.</p>';
 }
 render();
+
+// ---- 시책안 OCR 인식 데모 (F-043) ----
+// 실 포스터 2종(귀사 제공, 검증 PDF 실측)의 인식 결과를 재현. 저신뢰 항목은 담당자 보정 후 확정.
+// OCR-ready seam: 실제 구현에서 아래 POSTERS[].fields는 OCR 엔진(오픈소스 1차 + 저신뢰 상용 폴백) 응답으로 대체된다.
+var POSTERS=[
+  {id:'kb',tab:{name:'KB손해보험',sub:'26년 3월 2주차 시상 · 표 밀집형'},
+    poster:{cls:'pkb',logo:'KB손해보험',title:'26년 3월 2주차 시상',sub:'인보험 기본·가동·주력보종 + 연속가동',
+      rows:[{k:'인보험 기본시상',v:'150%'},{k:'펫보험 기본시상',v:'300%'},{k:'가동시상(최대)',v:'100%'},{k:'주력보종(간편·종합·자녀·LTC)',v:'최대 100%'},{k:'2~3월 기본 연속가동',v:'최대 300%'}],
+      band:['기간 1~31일','13회차 유지','실적 10·20·30·50만']},
+    fields:[
+      {k:'보험사',v:'KB손해보험',conf:'high'},
+      {k:'시책유형',v:'주차시책 · 기본시상',conf:'high'},
+      {k:'적용기간',v:'2026-03-08 ~ 03-14 (2주차)',conf:'high'},
+      {k:'대상상품',v:'인보험 · 펫보험 · 주력보종(간편/종햡/자녀/LTC)',conf:'low',fix:'인보험 · 펫보험 · 주력보종(간편/종합/자녀/LTC)'},
+      {k:'지급배수',v:'인보험 150% · 펫보험 800%',conf:'low',fix:'인보험 150% · 펫보험 300%'},
+      {k:'가동·구간',v:'실적 10만↑=5만 ··· 50만↑=50만 정액',conf:'high'},
+      {k:'유지조건',v:'13회차 유지',conf:'high'}]},
+  {id:'hw',tab:{name:'한화손해보험',sub:'3월은 여성시대 · 장식폰트형'},
+    poster:{cls:'phw',logo:'한화손해보험',title:'3월은 여성시대',sub:'프리미엄 상품 + 플랜 · 400%',
+      rows:[{k:'시상 배수',v:'400%'},{k:'프리미엄 상품 5만↑',v:'건당 10만'},{k:'프리미엄 상품 10만↑',v:'건당 20만'},{k:'프리미엄 플랜 5만↑',v:'건당 10만'},{k:'프리미엄 플랜 10만↑',v:'건당 20만'}],
+      band:['기간 3/9~3/15','여성보험','건당 시상']},
+    fields:[
+      {k:'보험사',v:'한화손해보험',conf:'high'},
+      {k:'시책유형',v:'프리미엄 건당시상 (400%)',conf:'high'},
+      {k:'적용기간',v:'2026-03-09 ~ 03-15',conf:'high'},
+      {k:'대상상품',v:'프리미언 여성보험 상품·플랜',conf:'low',fix:'프리미엄 여성보험 상품·플랜'},
+      {k:'지급방식',v:'건당 정액 · 5만↑ 10만 / 10만↑ 20만',conf:'high'},
+      {k:'장식제목',v:'여성시대',conf:'high'}]}
+];
+var OCR=(function(){
+  var pi=0; // 현재 포스터
+  var st=POSTERS.map(function(p){return {fixed:{},confirmed:false};});
+  var Lel=document.getElementById('ocrleft'),Rel=document.getElementById('ocrright'),Tel=document.getElementById('ptabs');
+  function lowIdx(p){return p.fields.map(function(f,i){return f.conf==='low'?i:-1;}).filter(function(i){return i>=0;});}
+  function remaining(p,s){return lowIdx(p).filter(function(i){return !s.fixed[i];}).length;}
+  function renderTabs(){
+    Tel.innerHTML=POSTERS.map(function(p,i){
+      return '<div class="ptab'+(i===pi?' active':'')+'" onclick="OCR.tab('+i+')"><b>'+p.tab.name+'</b><small>'+p.tab.sub+'</small></div>';
+    }).join('');
+  }
+  function renderLeft(){
+    var P=POSTERS[pi].poster;
+    var rows=P.rows.map(function(r){return '<div class="prow"><span class="k">'+r.k+'</span><span class="v">'+r.v+'</span></div>';}).join('');
+    var chips=P.band.map(function(c){return '<span class="chip">'+c+'</span>';}).join('');
+    Lel.innerHTML='<div class="lbl">📄 원본 시책안 이미지</div>'+
+      '<div class="poster '+P.cls+'"><div class="phead"><div class="plogo">'+P.logo+'</div><div class="ptitle">'+P.title+'</div><div class="psub">'+P.sub+'</div></div>'+
+      '<div class="pbody">'+rows+'</div><div class="pband">'+chips+'</div></div>'+
+      '<div class="posternote">🔗 R2 불변 보관 · SHA-256 멱등 · 확정 룰의 지급 근거로 연결</div>';
+  }
+  function renderRight(){
+    var p=POSTERS[pi],s=st[pi];
+    var rows=p.fields.map(function(f,i){
+      var isLow=f.conf==='low',done=!!s.fixed[i];
+      var val=(isLow&&done)?f.fix:f.v;
+      var cls=isLow?(done?'fixed':'low'):'';
+      var pill=!isLow?'<span class="conf hi">인식 ✓</span>':(done?'<span class="conf fx">보정 ✓</span>':'<span class="conf lo" onclick="OCR.fix('+i+')">확인 필요</span>');
+      return '<div class="rrow '+cls+'"><div class="rk">'+f.k+'</div><div class="rv">'+val+'</div>'+pill+'</div>';
+    }).join('');
+    var head='<div class="lbl">🧾 추출된 시책룰 초안 <span class="pill ok" style="margin-left:auto">핵심값 인식 99%</span></div>';
+    var body;
+    if(s.confirmed){
+      body='<div class="ocrbanner ok">✅ 시책룰 등록 완료 · 담당자 확정 · 원본 근거 연결됨</div>'+rows+
+        '<div class="verify3">'+
+        '<div class="v3"><div class="t">① 신뢰도 표시</div><div class="dd">낮은 값은 색으로 담당자 확인 유도</div></div>'+
+        '<div class="v3"><div class="t">② 담당자 확정</div><div class="dd">확인·보정 후에만 룰 등록, 금액은 코드가 계산</div></div>'+
+        '<div class="v3"><div class="t">③ 원본 근거 보관</div><div class="dd">지급 건 → 원본 시책안까지 역추적</div></div>'+
+        '</div>'+
+        '<div class="posternote" style="margin-top:12px">🔎 지급건 <b style="color:var(--fg)">#A-100234</b> → 이 시책룰 → <b style="color:var(--fg)">'+POSTERS[pi].poster.title+'</b> 원본 이미지까지 2-hop 역추적 (금감원 감사 소명)</div>'+
+        '<div class="demo-ctl" style="margin-top:14px"><button class="btn g" onclick="OCR.reset()">↺ 다시 검토</button></div>';
+    }else{
+      var rem=remaining(p,s);
+      var banner=rem>0
+        ?'<div class="ocrbanner warn">⚠️ 저신뢰 '+rem+'건 - 원본과 대조해 확인하세요 (색 표시 항목 클릭)</div>'
+        :'<div class="ocrbanner ok">✓ 전 항목 확인 완료 - 시책룰로 확정할 수 있습니다</div>';
+      var btn=rem>0
+        ?'<button class="btn g" onclick="OCR.fixAll()">저신뢰 '+rem+'건 일괄 확인</button>'
+        :'<button class="btn p" onclick="OCR.confirm()">✔ 시책룰로 확정</button>';
+      body=banner+rows+'<div class="demo-ctl" style="margin-top:14px">'+btn+'</div>';
+    }
+    Rel.innerHTML=head+body;
+  }
+  function all(){renderTabs();renderLeft();renderRight();}
+  return {
+    tab:function(i){pi=i;all();},
+    fix:function(i){st[pi].fixed[i]=true;renderRight();},
+    fixAll:function(){lowIdx(POSTERS[pi]).forEach(function(i){st[pi].fixed[i]=true;});renderRight();},
+    confirm:function(){st[pi].confirmed=true;renderRight();},
+    reset:function(){st[pi]={fixed:{},confirmed:false};renderRight();},
+    init:all
+  };
+})();
+OCR.init();
 </script>
 </body>
 </html>`;

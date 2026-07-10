@@ -23,6 +23,13 @@ export type Env = {
   // OTP 강제 스위치. "true"/"1"일 때만 @도메인 계정 비번 로그인 차단(OTP 전용).
   // 미설정(기본 off)이면 임시 비번 로그인 허용 - 이메일 발송 인프라 준비 전까지의 대체 흐름.
   OTP_ENFORCED?: string;
+  // OCR 시책안 인식 (F-043). 하이브리드: CLOVA General OCR(텍스트 추출) + Upstage Solar(룰 필드 구조화).
+  // 미설정 시 해당 기능만 503 degrade - 나머지 파이프라인 무영향.
+  CLOVA_OCR_INVOKE_URL?: string; // Naver CLOVA General OCR APIGW invoke URL (secret)
+  CLOVA_OCR_SECRET?: string;     // X-OCR-SECRET (secret)
+  UPSTAGE_API_KEY?: string;      // Upstage Solar Bearer 키 (secret)
+  UPSTAGE_BASE_URL?: string;     // 기본 https://api.upstage.ai/v1
+  UPSTAGE_MODEL?: string;        // 기본 solar-mini
   // 정적 자산(SPA) 바인딩 - apps/web/dist를 같은 오리진(ata.minu.best)에서 서빙 (B-006 단일 오리진).
   ASSETS: Fetcher;
 };
