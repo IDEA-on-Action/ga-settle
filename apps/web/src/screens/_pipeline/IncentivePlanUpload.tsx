@@ -5,10 +5,16 @@ import { FileText } from "lucide-react";
 import { apiFetch, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { PLAN_CATEGORIES, type PlanCategoryCode } from "./planCategories";
 
 interface RuleField {
   value: string | null;
   confidence: number;
+}
+interface PayoutRow {
+  payTerm: string | null;
+  payTiming: string | null;
+  rate: string | null;
 }
 interface OcrResult {
   planId?: string;
@@ -17,6 +23,7 @@ interface OcrResult {
   idempotentReuse: boolean;
   ocr: { avgConfidence: number; fieldCount: number };
   rule: Record<string, RuleField>;
+  payoutRows?: PayoutRow[];
   lowConfidenceKeys: string[];
 }
 
@@ -40,14 +47,17 @@ const ACCEPT = ".png,.jpg,.jpeg,.webp,.pdf,image/png,image/jpeg,image/webp,appli
 export function IncentivePlanUpload() {
   const qc = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
+  const [category, setCategory] = useState<PlanCategoryCode | "">("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
 
   const ocrMutation = useMutation({
     mutationFn: async () => {
       if (!file) throw new Error("파일을 선택하세요");
+      if (!category) throw new Error("대분류를 선택하세요");
       const form = new FormData();
       form.append("image", file);
+      form.append("category", category); // F-051 대분류 필수
       return apiFetch<OcrResult>("/api/incentive-plans/ocr", { method: "POST", body: form });
     },
     // OCR 실패도 업로드 즉시 대장에 기록되므로(F-048), 성공/실패 모두 등록 내역을 갱신한다.
@@ -63,7 +73,7 @@ export function IncentivePlanUpload() {
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!file) return;
+    if (!file || !category) return;
     setError(null);
     ocrMutation.mutate();
   }
@@ -75,6 +85,26 @@ export function IncentivePlanUpload() {
       <Card>
         <CardContent className="pt-6">
           <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+            {/* F-051: 4대 대분류 먼저 선택 후 업로드 */}
+            <div className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold text-axis-text-secondary">대분류 <span className="text-axis-text-error">*</span></span>
+              <div className="grid grid-cols-2 gap-1.5">
+                {PLAN_CATEGORIES.map((cat) => (
+                  <button
+                    key={cat.code}
+                    type="button"
+                    onClick={() => setCategory(cat.code)}
+                    className={`rounded-md border px-3 py-2 text-xs font-medium transition-colors ${
+                      category === cat.code
+                        ? "border-axis-border-focus bg-axis-surface-info text-axis-text-info"
+                        : "border-axis-border-secondary text-axis-text-secondary hover:bg-axis-surface-secondary/40"
+                    }`}
+                  >
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div
               onClick={() => fileInputRef.current?.click()}
               className="flex cursor-pointer flex-col items-center gap-2 rounded-lg border-[1.5px] border-dashed border-axis-border-secondary p-8 text-center"
@@ -102,7 +132,7 @@ export function IncentivePlanUpload() {
                 {error}
               </div>
             )}
-            <Button type="submit" disabled={!file || ocrMutation.isPending} className="self-start">
+            <Button type="submit" disabled={!file || !category || ocrMutation.isPending} className="self-start">
               {ocrMutation.isPending ? "OCR 처리 중..." : "OCR로 시책룰 후보 추출"}
             </Button>
           </form>
@@ -138,6 +168,25 @@ export function IncentivePlanUpload() {
                   );
                 })}
               </div>
+              {result.payoutRows && result.payoutRows.length > 0 && (
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-xs font-semibold text-axis-text-secondary">납입기간별 지급율</span>
+                  <div className="overflow-hidden rounded-md border border-axis-border-default">
+                    <div className="grid grid-cols-[1fr_1fr_1fr] bg-axis-surface-secondary/40 px-2 py-1 text-[10px] font-semibold text-axis-text-tertiary">
+                      <span>납입기간</span>
+                      <span>지급시점</span>
+                      <span className="text-right">지급율</span>
+                    </div>
+                    {result.payoutRows.map((r, i) => (
+                      <div key={i} className="grid grid-cols-[1fr_1fr_1fr] border-t border-axis-border-default px-2 py-1 text-xs">
+                        <span className="text-axis-text-secondary">{r.payTerm ?? "-"}</span>
+                        <span className="text-axis-text-secondary">{r.payTiming ?? "-"}</span>
+                        <span className="text-right font-medium text-axis-text-primary">{r.rate ?? "-"}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               <Link
                 to="/plan-definitions"
                 className="inline-flex w-fit items-center gap-1.5 rounded-md bg-axis-surface-info px-3 py-1.5 text-xs font-semibold text-axis-text-info hover:opacity-90"

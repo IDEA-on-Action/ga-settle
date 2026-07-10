@@ -57,8 +57,10 @@ incentivePlanDefinitionsRoutes.get("/api/incentive-plan-definitions", async (c) 
       rateValue: incentivePlanDefinitions.rateValue,
       note: incentivePlanDefinitions.note,
       sourceType: incentivePlanDefinitions.sourceType,
-      // 이 정의가 이미 운영룰로 승격됐는지(rule-{defId} 존재). 0/1.
-      promoted: sql<number>`EXISTS(SELECT 1 FROM incentive_rules ir WHERE ir.id = 'rule-' || incentive_plan_definitions.id)`,
+      // 이 정의가 이미 운영룰로 승격됐는지(rule-{defId}가 활성 상태로 존재). 0/1.
+      // F-050: DELETE /api/rules/:id는 soft-delete(active=false)라 active 필터 필수 -
+      // 미필터 시 삭제된 룰도 promoted로 잡혀 시상정의가 "확정"에 고착(후보 복원 불가).
+      promoted: sql<number>`EXISTS(SELECT 1 FROM incentive_rules ir WHERE ir.id = 'rule-' || incentive_plan_definitions.id AND ir.active = 1)`,
     })
     .from(incentivePlanDefinitions)
     .leftJoin(insurers, eq(incentivePlanDefinitions.insurerId, insurers.id))
@@ -201,15 +203,28 @@ incentivePlanDefinitionsRoutes.post("/api/incentive-plan-definitions/promote", a
   const foundIds = new Set(defs.map((d) => d.id));
   const notFound = b.data.definitionIds.filter((id) => !foundIds.has(id));
 
-  // 이미 승격된 룰 조회(idempotent skip).
+  // 이미 승격된 룰 조회(active 구분). F-050: soft-delete(active=false)된 룰은
+  // "후보로 복원"된 상태이므로 재승격 시 재활성해야 한다(과거엔 존재만으로 skip → 재확정 불가).
   const ruleIds = defs.map((d) => `rule-${d.id}`);
-  const existing = ruleIds.length
-    ? new Set((await db.select({ id: incentiveRules.id }).from(incentiveRules).where(inArray(incentiveRules.id, ruleIds)).all()).map((r) => r.id))
-    : new Set<string>();
+  const existingRows = ruleIds.length
+    ? await db.select({ id: incentiveRules.id, active: incentiveRules.active }).from(incentiveRules).where(inArray(incentiveRules.id, ruleIds)).all()
+    : [];
+  const activeSet = new Set(existingRows.filter((r) => r.active).map((r) => r.id));   // 이미 활성 → skip(idempotent)
+  const inactiveSet = new Set(existingRows.filter((r) => !r.active).map((r) => r.id)); // soft-delete됨 → 재활성
 
   const now = new Date().toISOString();
+  const monthEnd = (ym: string) => `${ym.slice(0, 4)}-${ym.slice(4, 6)}-${String(monthEndDay(ym)).padStart(2, "0")}`;
+
+  // 삭제됐던 룰 재활성(F-050 재확정 경로).
+  const toReactivate = defs.filter((d) => inactiveSet.has(`rule-${d.id}`));
+  for (const d of toReactivate) {
+    await db.update(incentiveRules)
+      .set({ active: true, validTo: monthEnd(d.baseMonth), createdBy: requester, createdAt: now })
+      .where(eq(incentiveRules.id, `rule-${d.id}`));
+  }
+
   const toInsert = defs
-    .filter((d) => !existing.has(`rule-${d.id}`))
+    .filter((d) => !activeSet.has(`rule-${d.id}`) && !inactiveSet.has(`rule-${d.id}`))
     .map((d) => {
       const ym = d.baseMonth;
       const from = `${ym.slice(0, 4)}-${ym.slice(4, 6)}-01`;
@@ -229,9 +244,13 @@ incentivePlanDefinitionsRoutes.post("/api/incentive-plan-definitions/promote", a
 
   // incentiveRules 10컬럼 → D1 100변수 한도 위해 청크 insert.
   if (toInsert.length) await insertChunked((rows) => db.insert(incentiveRules).values(rows), toInsert, 10);
+  const promotedCount = toInsert.length + toReactivate.length;
   await writeAudit(db, {
     actor: requester, action: "incentive_rule.promote", entity: "incentive_rules",
-    summary: { requested: b.data.definitionIds.length, promoted: toInsert.length, skipped: existing.size, notFound: notFound.length },
+    summary: { requested: b.data.definitionIds.length, inserted: toInsert.length, reactivated: toReactivate.length, skipped: activeSet.size, notFound: notFound.length },
   });
-  return c.json({ promoted: toInsert.length, skipped: existing.size, notFound, ruleIds: toInsert.map((r) => r.id) }, 201);
+  return c.json({
+    promoted: promotedCount, reactivated: toReactivate.length, skipped: activeSet.size, notFound,
+    ruleIds: [...toInsert.map((r) => r.id), ...toReactivate.map((d) => `rule-${d.id}`)],
+  }, 201);
 });

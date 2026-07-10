@@ -5,9 +5,10 @@ import { authHeader, aget } from "./helpers";
 // F-046: 시책안 업로드가 이미지에 더해 PDF도 받는지 파일 유형 게이트를 검증한다.
 // OCR 엔진(CLOVA/Upstage)은 외부 상용 API라 테스트 env에서 미설정 → 유형 게이트 통과 후
 // 503(미설정)/502(상류)/422(빈결과)/200 중 하나. 어느 경로든 "415가 아니다"가 PDF 허용의 증거.
-function ocrForm(bytes: Uint8Array, type: string, filename: string) {
+function ocrForm(bytes: Uint8Array, type: string, filename: string, category = "sonbo_self") {
   const fd = new FormData();
   fd.set("image", new File([bytes], filename, { type }));
+  if (category) fd.set("category", category); // F-051 대분류 필수
   return fd;
 }
 const post = async (body: FormData) =>
@@ -68,6 +69,33 @@ describe("시책안 등록 대장 (F-048)", () => {
     const first = list.items[0]?.sha256;
     const dupes = list.items.filter((r) => r.sha256 === first).length;
     expect(dupes).toBe(1);
+  });
+
+  it("대분류(category) 미선택은 400 (F-051)", async () => {
+    const res = await post(ocrForm(new Uint8Array([0x25, 0x50, 0x44, 0x46]), "application/pdf", "nocat.pdf", ""));
+    expect(res.status).toBe(400);
+  });
+
+  it("대분류가 대장에 저장·조회된다 (F-051)", async () => {
+    const filename = `cat-${Date.now()}.pdf`;
+    await post(ocrForm(new Uint8Array([0x25, 0x50, 0x44, 0x46]), "application/pdf", filename, "sengbo_fc"));
+    const list = (await (await aget("/api/incentive-plans?limit=100")).json()) as {
+      items: { fileName: string; category: string | null }[];
+    };
+    expect(list.items.find((r) => r.fileName === filename)?.category).toBe("sengbo_fc");
+  });
+
+  it("같은 파일 재업로드 시 대분류는 최신 선택으로 갱신 (F-051 upsert)", async () => {
+    const bytes = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x99, 0x88]);
+    const fn = `recat-${Date.now()}.pdf`;
+    await post(ocrForm(bytes, "application/pdf", fn, "sonbo_planner"));
+    await post(ocrForm(bytes, "application/pdf", fn, "sengbo_corp")); // 재업로드, 다른 대분류
+    const list = (await (await aget("/api/incentive-plans?limit=100")).json()) as {
+      items: { fileName: string; category: string | null; sha256: string }[];
+    };
+    const rows = list.items.filter((r) => r.fileName === fn);
+    expect(rows).toHaveLength(1); // sha 멱등 - 1건
+    expect(rows[0]!.category).toBe("sengbo_corp"); // 최신 대분류로 갱신
   });
 
   it("목록은 {items,total} 형태 + 인증 필요", async () => {

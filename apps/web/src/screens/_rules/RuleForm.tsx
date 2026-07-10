@@ -27,9 +27,17 @@ export function RuleForm({ onSubmit, onCancel, isSubmitting }: RuleFormProps) {
   const [minPremium, setMinPremium] = useState("");
   const [maxPremium, setMaxPremium] = useState("");
   const [excludeFamilyContracts, setExcludeFamilyContracts] = useState(false);
-  const [actionKind, setActionKind] = useState<"rate" | "fixed">("rate");
+  const [actionKind, setActionKind] = useState<"rate" | "fixed" | "tiered">("rate");
   const [ratePercent, setRatePercent] = useState("");
   const [fixedAmount, setFixedAmount] = useState("");
+  // 구간시상(F-053): 실적 구간별 지급률
+  const [tiers, setTiers] = useState<{ min: string; max: string; rate: string }[]>([{ min: "", max: "", rate: "" }]);
+  // 등록 항목(F-053): 실적인정·환수(1·2차)·예외·브릿지
+  const [performanceRecognition, setPerformanceRecognition] = useState("");
+  const [clawbackYear1, setClawbackYear1] = useState("");
+  const [clawbackYear2, setClawbackYear2] = useState("");
+  const [exceptions, setExceptions] = useState("");
+  const [bridge, setBridge] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   function splitCsv(v: string): string[] | undefined {
@@ -63,14 +71,37 @@ export function RuleForm({ onSubmit, onCancel, isSubmitting }: RuleFormProps) {
         return;
       }
       action = { kind: "rate", rate: rate / 100 };
-    } else {
+    } else if (actionKind === "fixed") {
       const amount = Number(fixedAmount);
       if (!fixedAmount.trim() || Number.isNaN(amount)) {
         setError("고정액을 입력해 주세요");
         return;
       }
       action = { kind: "fixed", amount };
+    } else {
+      // 구간시상: 유효 구간(rate 입력된 행)만 채택. 보험료 구간별 지급률(%).
+      const parsed = tiers
+        .filter((t) => t.rate.trim() && !Number.isNaN(Number(t.rate)))
+        .map((t) => ({
+          minPremium: t.min.trim() ? Number(t.min) : undefined,
+          maxPremium: t.max.trim() ? Number(t.max) : undefined,
+          rate: Number(t.rate) / 100,
+        }));
+      if (parsed.length === 0) {
+        setError("구간시상은 최소 1개 구간(지급률)이 필요해요");
+        return;
+      }
+      action = { kind: "tiered", tiers: parsed };
     }
+
+    const termsObj = {
+      performanceRecognition: performanceRecognition.trim() || undefined,
+      clawbackYear1: clawbackYear1.trim() || undefined,
+      clawbackYear2: clawbackYear2.trim() || undefined,
+      exceptions: exceptions.trim() || undefined,
+      bridge: bridge.trim() || undefined,
+    };
+    const hasTerms = Object.values(termsObj).some(Boolean);
 
     const input: RuleCreateInput = {
       name: name.trim(),
@@ -85,6 +116,7 @@ export function RuleForm({ onSubmit, onCancel, isSubmitting }: RuleFormProps) {
         excludeFamilyContracts: excludeFamilyContracts || undefined,
       },
       action,
+      ...(hasTerms ? { terms: termsObj } : {}),
     };
 
     try {
@@ -170,33 +202,72 @@ export function RuleForm({ onSubmit, onCancel, isSubmitting }: RuleFormProps) {
       <div className="flex flex-col gap-2 rounded-md border border-axis-border-default p-3">
         <Label>액션</Label>
         <div className="flex items-center gap-3">
-          <Select value={actionKind} onValueChange={(v) => setActionKind(v as "rate" | "fixed")}>
+          <Select value={actionKind} onValueChange={(v) => setActionKind(v as "rate" | "fixed" | "tiered")}>
             <SelectTrigger className="w-40">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="rate">지급률 (%)</SelectItem>
               <SelectItem value="fixed">고정액 (원)</SelectItem>
+              <SelectItem value="tiered">구간시상 (구간별 %)</SelectItem>
             </SelectContent>
           </Select>
-          {actionKind === "rate" ? (
-            <Input
-              type="number"
-              step="0.1"
-              value={ratePercent}
-              onChange={(e) => setRatePercent(e.target.value)}
-              placeholder="예: 12"
-              className="w-32"
-            />
-          ) : (
-            <Input
-              type="number"
-              value={fixedAmount}
-              onChange={(e) => setFixedAmount(e.target.value)}
-              placeholder="예: 50000"
-              className="w-32"
-            />
+          {actionKind === "rate" && (
+            <Input type="number" step="0.1" value={ratePercent} onChange={(e) => setRatePercent(e.target.value)} placeholder="예: 12" className="w-32" />
           )}
+          {actionKind === "fixed" && (
+            <Input type="number" value={fixedAmount} onChange={(e) => setFixedAmount(e.target.value)} placeholder="예: 50000" className="w-32" />
+          )}
+        </div>
+        {actionKind === "tiered" && (
+          <div className="flex flex-col gap-2">
+            <div className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 text-[11px] font-semibold text-axis-text-tertiary">
+              <span>최소 보험료</span><span>최대 보험료</span><span>지급률 (%)</span><span></span>
+            </div>
+            {tiers.map((t, i) => (
+              <div key={i} className="grid grid-cols-[1fr_1fr_1fr_auto] items-center gap-2">
+                <Input type="number" value={t.min} placeholder="비우면 하한없음"
+                  onChange={(e) => setTiers((prev) => prev.map((x, j) => (j === i ? { ...x, min: e.target.value } : x)))} />
+                <Input type="number" value={t.max} placeholder="비우면 상한없음"
+                  onChange={(e) => setTiers((prev) => prev.map((x, j) => (j === i ? { ...x, max: e.target.value } : x)))} />
+                <Input type="number" step="0.1" value={t.rate} placeholder="예: 50"
+                  onChange={(e) => setTiers((prev) => prev.map((x, j) => (j === i ? { ...x, rate: e.target.value } : x)))} />
+                <Button type="button" variant="ghost" size="sm" disabled={tiers.length === 1}
+                  onClick={() => setTiers((prev) => prev.filter((_, j) => j !== i))}>삭제</Button>
+              </div>
+            ))}
+            <Button type="button" variant="outline" size="sm" className="self-start"
+              onClick={() => setTiers((prev) => [...prev, { min: "", max: "", rate: "" }])}>구간 추가</Button>
+          </div>
+        )}
+      </div>
+
+      {/* F-053 등록 항목: 실적인정·환수(1·2차년도)·예외·브릿지 (선언형, 정산 자동계산 아닌 담당자 근거) */}
+      <div className="flex flex-col gap-3 rounded-md border border-axis-border-default p-3">
+        <Label>시책룰 등록 항목 (선택)</Label>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-xs text-axis-text-tertiary">실적인정기분</span>
+          <Input value={performanceRecognition} onChange={(e) => setPerformanceRecognition(e.target.value)} placeholder="예: 당월 취소·철회 차감, 자기계약 제외" />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs text-axis-text-tertiary">1차년도 환수기준</span>
+            <Input value={clawbackYear1} onChange={(e) => setClawbackYear1(e.target.value)} placeholder="예: 1회100%/6회60%/12회10%" />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs text-axis-text-tertiary">2차년도(13회차+) 환수기준</span>
+            <Input value={clawbackYear2} onChange={(e) => setClawbackYear2(e.target.value)} placeholder="예: 13회차 이후 환수율" />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs text-axis-text-tertiary">예외적용</span>
+            <Input value={exceptions} onChange={(e) => setExceptions(e.target.value)} placeholder="예: 금소법 위법계약 회차 불문 100%" />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs text-axis-text-tertiary">브릿지시상</span>
+            <Input value={bridge} onChange={(e) => setBridge(e.target.value)} placeholder="예: 25·26회차 유지 시" />
+          </div>
         </div>
       </div>
 

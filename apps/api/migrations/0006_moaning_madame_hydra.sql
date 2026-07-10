@@ -1,0 +1,1 @@
+ALTER TABLE `incentive_plans` ADD `category` text;

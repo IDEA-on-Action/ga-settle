@@ -42,6 +42,26 @@ describe("F-010 시책 룰 CRUD + 평가 통합", () => {
     expect((await post("/api/rules", { name: "x", priority: 1, overlapPolicy: "bad", condition: {}, action: {} })).status).toBe(400);
   });
 
+  it("등록 항목(terms) + 구간시상(tiered) 왕복 (F-053)", async () => {
+    const body = {
+      name: "손보 구간시상", priority: 5, overlapPolicy: "exclusive",
+      condition: { period: { from: "2026-03-01", to: "2026-03-31" }, insurerIds: ["ins1"] },
+      action: { kind: "tiered", tiers: [{ maxPremium: 300000, rate: 0.5 }, { minPremium: 300001, rate: 0.9 }] },
+      terms: {
+        performanceRecognition: "당월 취소·철회 차감, 자기계약 제외",
+        clawbackYear1: "1회100%/6회60%/12회10%",
+        clawbackYear2: "13회차 이후 환수율 별도",
+        exceptions: "금소법 위법계약 회차 불문 100%",
+        bridge: "25·26회차 유지 시 브릿지",
+      },
+    };
+    expect((await post("/api/rules", body)).status).toBe(201);
+    const listed = (await getJson("/api/rules")) as { action: { kind: string }; terms?: { clawbackYear1?: string } }[];
+    const r = listed.find((x) => x.action.kind === "tiered");
+    expect(r).toBeTruthy();
+    expect(r!.terms?.clawbackYear1).toBe("1회100%/6회60%/12회10%");
+  });
+
   it("시뮬레이션: 현재 vs 제안 룰 diff, 실데이터 불변 (F-012 REQ-021)", async () => {
     await post("/api/rules", ruleBody); // 현재 룰(rate 0.12)
     const before = ((await getJson("/api/rules")) as unknown[]).length;

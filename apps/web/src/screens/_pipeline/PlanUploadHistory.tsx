@@ -1,9 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch, ApiError } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { planCategoryLabel } from "./planCategories";
 
 interface PlanRow {
   id: string;
+  category: string | null;
   insurerId: string | null;
   insurerName: string | null;
   settlementMonth: string | null;
@@ -68,6 +70,7 @@ export function PlanUploadHistory() {
             <div className="flex min-w-0 flex-1 flex-col gap-0.5">
               <div className="flex items-center gap-2">
                 <span className="truncate text-sm font-medium">{p.fileName}</span>
+                <span className="shrink-0 rounded bg-axis-surface-secondary px-1.5 py-0.5 text-[10px] font-semibold text-axis-text-secondary">{planCategoryLabel(p.category)}</span>
                 <OcrBadge status={p.ocrStatus} />
               </div>
               <span className="text-xs text-axis-text-tertiary">
