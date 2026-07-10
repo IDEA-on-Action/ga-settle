@@ -421,6 +421,38 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 - **Sprint**: S14
 - **Notes**: [[B-012]] "스키마 확장" 부분 분리 승격(사용자 결정: 전용 테이블 신설). 기존 F-043 후속 데이터 반영에서 incentive_rules에 lossy 적재했던 것을 전용 카탈로그로 이관 - 납입기간·지급시점(익월/13차월/구간/연속/가동)·채널(FC/법인)·지점·조건을 1급 컬럼으로. rate_type: 적용률<100=rate(보험료×배수)/≥100=fixed(정액). 임포터 `scripts/import-sisang-saengbo.mjs`(def-sib-{월}-{행} 결정적 id, DELETE 헤더 idempotent). 정의↔운영룰 도메인 분리로 정산 엔진 무영향. **OCR 결선**: F-043 OCR(추출·후보) → 담당자 확정 → POST 정의 write(HITL, 불변식 #3 준수). wrangler dev E2E(한화 포스터 OCR→planImageKey→확정 3건→역추적 key 일치·감사로그 확인). **손보 구조화**: `scripts/import-sisang-sonbo.mjs`(158 그룹 unpivot, def-sonbo-{월}-{행}-{col} id). **정의→운영룰 UI**: `apps/web/src/screens/PlanDefinitions.tsx` + POST promote(routes/incentive-plan-definitions.ts). **감사 소명**: `apps/web/src/screens/Audit.tsx` + `routes/audit.ts`(incentive-trace) + `.../:id/image`(R2 스트림). **D1 함정**: 쿼리당 바운드 변수 100개 한도 → 배치 insert를 컬럼수 기준 청크(≤90). **B-012 전 항목 완료**(OCR 실연동 F-043 + 스키마 확장·OCR결선·손보 구조화·운영룰 확정 UI·감사 소명 F-044). 상세 `docs/specs/req-ocr-sichaek/data-import-log.md`.
 
+### F-045 · 시책룰 목록 화면 표시 수정 (데모 피드백 AI-1)
+- **REQ-063**: 담당자가 시상정의를 확정(운영룰 승격)하면, 시책룰 목록 화면에서 등록된 룰을 조회·확인할 수 있다
+- **Acceptance**:
+  - [ ] 시상정의 확정(promote) 직후 시책룰 메뉴에서 등록된 incentive_rules 목록이 화면에 표시된다
+  - [ ] 룰 0건일 때 빈 상태 안내 문구 노출, 로딩·에러 상태 처리
+  - [ ] 메뉴 노출·라우팅·조회 API(GET /api/rules) 결선 점검
+- **Status**: PLANNED
+- **Sprint**: S16
+- **Notes**: 2026-07-10 에이티에셋 데모 통화(김혜경 차장) 피드백 AI-1(🔴). 데이터는 DB 반영되나 SPA 시책룰 목록 화면 미표시(통화 00:36~00:46). 백엔드 GET /api/rules(F-010) + promote→incentive_rules(F-044) 기구현 → SPA 결선/화면만 부재. [[B-006]] SPA 잔여 결선 성격. 성격: Bug(화면 미표시).
+
+### F-046 · 시책안 PDF/이미지 업로드 경로 (데모 피드백 AI-2)
+- **REQ-064**: 업로드 화면에서 파일 유형(① 원수사 지급·명세 엑셀 ② 시책안 PDF/이미지)을 구분해 업로드할 수 있다
+- **REQ-065**: 시책안 PDF/이미지 업로드 건은 OCR→시책룰 초안 생성 파이프라인으로 이어진다
+- **Acceptance**:
+  - [ ] 업로드 화면에 파일 유형 구분 UI(지급명세 엑셀 / 시책안 문서) 추가
+  - [ ] 시책안 PDF/이미지 업로드 시 업로드 목록에 표시되고 POST /api/incentive-plans/ocr 파이프라인으로 연결
+  - [ ] 시책룰 초안 생성 흐름(F-043 OCR → F-044 정의 write)으로 이어진다
+- **Status**: PLANNED
+- **Sprint**: S16
+- **Notes**: 2026-07-10 데모 통화 피드백 AI-2(🔴, 통화 00:49~01:17). OCR 엔진 POST /api/incentive-plans/ocr(F-043) 기구현 → 업로드 화면 진입점만 부재(현재 원수사 엑셀만). 고객 문의답변 Q2와 직결(완료 시 답변·데모 시연 일치). 성격: Feature(UI 진입점).
+
+### F-047 · 업로드 내역 삭제 기능 (데모 피드백 AI-4)
+- **REQ-066**: 업로드 목록에서 업로드 파일을 삭제할 수 있고, 삭제 시 처리자·시각이 감사 로그에 기록된다
+- **REQ-067**: 마감(잠금)된 정산월에 속한 업로드는 삭제가 차단되고 안내된다
+- **Acceptance**:
+  - [ ] 업로드 목록에서 삭제 기능(DELETE 엔드포인트 + UI) 추가
+  - [ ] 삭제 시 처리자·시각 audit_logs 기록(불변식 #4 준수)
+  - [ ] 마감된 정산월 소속 업로드 삭제 차단 + 안내(불변식 #2 이중 잠금)
+- **Status**: PLANNED
+- **Sprint**: S17
+- **Notes**: 2026-07-10 데모 통화 피드백 AI-4(🟡, 통화 01:50~01:55, 제공 확약). 업로드 DELETE 엔드포인트 부재 → 신규. 마감잠금(F-016 이중잠금)·감사로그(불변식 #4) 규약 준수. AI-3(대시보드 7월 테스트 파일 정리)은 본 기능 완료 시 화면서 처리 가능. 성격: Feature.
+
 ## §3. Backlog (F-item 승격 대기)
 
 | ID | 한 줄 | 승격 기준 충족? | 우선 |
@@ -462,3 +494,5 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 | 13 · 브라우저 E2E(S13) | 후속 | F-030 | done |
 | 14 · 시책안 OCR(S14) | 후속 | F-043 (데모 + CLOVA/Upstage 실 연동, 정식은 [[B-012]]) | done |
 | 15 · 시상정의 카탈로그(S15) | 후속 | F-044 (전용 테이블 14,590건[생보9,227+손보5,363] + OCR결선 + 운영룰 확정 UI + 감사 소명) | done |
+| 16 · 데모 피드백 SPA 결선(S16) | 후속 | F-045, F-046 (시책룰 목록 화면·시책안 업로드 경로) | planned |
+| 17 · 업로드 삭제(S17) | 후속 | F-047 (업로드 삭제 + 감사·마감차단) | planned |
