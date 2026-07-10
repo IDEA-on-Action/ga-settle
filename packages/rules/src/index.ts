@@ -13,9 +13,23 @@ export type RuleCondition = {
   excludeFamilyContracts?: boolean;              // F-011 연계
 };
 
+// 구간시상 구간 (F-053): 실적(보험료) 구간별 차등 지급. rate|amount 중 하나.
+export type RuleTier = { minPremium?: number; maxPremium?: number; rate?: number; amount?: number };
+
 export type RuleAction =
   | { kind: "rate"; rate: number }               // 지급률 (0-1)
-  | { kind: "fixed"; amount: number };           // 고정액 (원)
+  | { kind: "fixed"; amount: number }            // 고정액 (원)
+  | { kind: "tiered"; tiers: RuleTier[] };       // 구간시상: 실적 구간별 차등 (F-053)
+
+// 시책룰 등록 항목 확장 (F-053). 선언형 메타 - 평가(evaluate)에 개입하지 않고
+// 담당자 판단·환수 처리(별도 정산 단계)·감사 근거로 기록/표시된다(불변식 #3 준수).
+export type RuleTerms = {
+  performanceRecognition?: string;               // 실적인정기분 (인정/제외 기준)
+  clawbackYear1?: string;                        // 1차년도 환수기준 (회차별 환수율)
+  clawbackYear2?: string;                        // 2차년도(13회차 이후) 환수기준
+  exceptions?: string;                           // 예외적용
+  bridge?: string;                               // 브릿지시상 (연속 유지 조건)
+};
 
 export type IncentiveRule = {
   id: string;
@@ -24,6 +38,7 @@ export type IncentiveRule = {
   overlapPolicy: "exclusive" | "stack";          // 중복 적용 정책
   condition: RuleCondition;
   action: RuleAction;
+  terms?: RuleTerms;                             // F-053 등록 항목(선언형, 평가 비개입)
 };
 
 export type CommissionInput = {
@@ -61,7 +76,14 @@ export function ruleMatches(rule: IncentiveRule, rec: CommissionInput): boolean 
 }
 
 function amountOf(action: RuleAction, premium: number): number {
-  return action.kind === "rate" ? Math.round(premium * action.rate) : action.amount;
+  if (action.kind === "rate") return Math.round(premium * action.rate);
+  if (action.kind === "fixed") return action.amount;
+  // tiered(구간시상): 실적(보험료)이 속한 첫 구간 적용. 매칭 없으면 0.
+  const t = action.tiers.find(
+    (t) => (t.minPremium == null || premium >= t.minPremium) && (t.maxPremium == null || premium <= t.maxPremium),
+  );
+  if (!t) return 0;
+  return t.rate != null ? Math.round(premium * t.rate) : t.amount ?? 0;
 }
 
 /**
@@ -76,9 +98,12 @@ export function evaluate(records: CommissionInput[], rules: IncentiveRule[]): In
     for (const rule of sorted) {
       if (!ruleMatches(rule, rec)) continue;
       const amount = amountOf(rule.action, rec.premium);
-      const basis = rule.action.kind === "rate"
-        ? `${rule.name}: 보험료 ${rec.premium} x ${rule.action.rate} = ${amount}`
-        : `${rule.name}: 고정 ${amount}`;
+      const basis =
+        rule.action.kind === "rate"
+          ? `${rule.name}: 보험료 ${rec.premium} x ${rule.action.rate} = ${amount}`
+          : rule.action.kind === "fixed"
+            ? `${rule.name}: 고정 ${amount}`
+            : `${rule.name}: 구간시상 보험료 ${rec.premium} → ${amount}`;
       lines.push({ recordId: rec.recordId, ruleId: rule.id, amount, basis });
       if (rule.overlapPolicy === "exclusive") break; // 최우선 배타 룰이 하위 룰 차단
     }

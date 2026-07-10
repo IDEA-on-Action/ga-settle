@@ -20,9 +20,23 @@ function conditionChips(rule: IncentiveRule): string[] {
 }
 
 function actionLabel(rule: IncentiveRule): string {
-  return rule.action.kind === "rate"
-    ? `지급률 ${(rule.action.rate * 100).toFixed(1)}%`
-    : `고정액 ₩${rule.action.amount.toLocaleString()}`;
+  const a = rule.action;
+  if (a.kind === "rate") return `지급률 ${(a.rate * 100).toFixed(1)}%`;
+  if (a.kind === "fixed") return `고정액 ₩${a.amount.toLocaleString()}`;
+  return `구간시상 ${a.tiers.length}구간`; // F-053
+}
+
+// F-053 등록 항목 → 표시용 [라벨, 값] 목록.
+function termRows(rule: IncentiveRule): [string, string][] {
+  const t = rule.terms;
+  if (!t) return [];
+  const rows: [string, string][] = [];
+  if (t.performanceRecognition) rows.push(["실적인정", t.performanceRecognition]);
+  if (t.clawbackYear1) rows.push(["1차환수", t.clawbackYear1]);
+  if (t.clawbackYear2) rows.push(["2차환수", t.clawbackYear2]);
+  if (t.exceptions) rows.push(["예외", t.exceptions]);
+  if (t.bridge) rows.push(["브릿지", t.bridge]);
+  return rows;
 }
 
 interface RuleCardProps {
@@ -73,6 +87,16 @@ export function RuleCard({ rule, onDelete, isDeleting }: RuleCardProps) {
           {actionLabel(rule)}
         </span>
       </div>
+      {termRows(rule).length > 0 && (
+        <div className="flex flex-col gap-0.5 rounded-md bg-axis-surface-secondary/40 px-2 py-1.5">
+          {termRows(rule).map(([label, value]) => (
+            <div key={label} className="flex gap-2 text-[11px]">
+              <span className="w-16 shrink-0 font-semibold text-axis-text-tertiary">{label}</span>
+              <span className="text-axis-text-secondary">{value}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

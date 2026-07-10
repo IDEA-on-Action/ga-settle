@@ -11,8 +11,9 @@ export const rulesRoutes = new Hono<{ Bindings: Env }>();
 
 type RuleRow = typeof incentiveRules.$inferSelect;
 function toRule(row: RuleRow): IncentiveRule {
-  const { condition, overlapPolicy } = JSON.parse(row.conditionJson) as Pick<IncentiveRule, "condition" | "overlapPolicy">;
-  return { id: row.id, name: row.name, priority: row.priority, overlapPolicy, condition, action: JSON.parse(row.actionJson) };
+  // F-053: terms(등록 항목)도 conditionJson에 함께 보관 → 왕복.
+  const { condition, overlapPolicy, terms } = JSON.parse(row.conditionJson) as Pick<IncentiveRule, "condition" | "overlapPolicy" | "terms">;
+  return { id: row.id, name: row.name, priority: row.priority, overlapPolicy, condition, action: JSON.parse(row.actionJson), ...(terms ? { terms } : {}) };
 }
 
 // F-013 정산 배치가 활성 룰을 로드해 evaluate()에 넘긴다.
@@ -29,16 +30,32 @@ const conditionSchema = z.object({
   performanceBand: z.object({ minPremium: z.number().optional(), maxPremium: z.number().optional() }).optional(),
   excludeFamilyContracts: z.boolean().optional(),
 });
+const tierSchema = z.object({
+  minPremium: z.number().optional(),
+  maxPremium: z.number().optional(),
+  rate: z.number().optional(),
+  amount: z.number().optional(),
+});
 const actionSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("rate"), rate: z.number() }),
   z.object({ kind: z.literal("fixed"), amount: z.number() }),
+  z.object({ kind: z.literal("tiered"), tiers: z.array(tierSchema).min(1) }), // 구간시상 (F-053)
 ]);
+// F-053 시책룰 등록 항목: 실적인정·환수(1·2차년도)·예외·브릿지 (선언형 메타).
+const termsSchema = z.object({
+  performanceRecognition: z.string().optional(),
+  clawbackYear1: z.string().optional(),
+  clawbackYear2: z.string().optional(),
+  exceptions: z.string().optional(),
+  bridge: z.string().optional(),
+});
 const ruleInput = z.object({
   name: z.string().min(1),
   priority: z.number().int(),
   overlapPolicy: z.enum(["exclusive", "stack"]),
   condition: conditionSchema,
   action: actionSchema,
+  terms: termsSchema.optional(),
 });
 
 rulesRoutes.post("/api/rules", async (c) => {
@@ -48,7 +65,7 @@ rulesRoutes.post("/api/rules", async (c) => {
   const now = new Date().toISOString();
   await getDb(c.env).insert(incentiveRules).values({
     id, name: b.data.name, priority: b.data.priority,
-    conditionJson: JSON.stringify({ condition: b.data.condition, overlapPolicy: b.data.overlapPolicy }),
+    conditionJson: JSON.stringify({ condition: b.data.condition, overlapPolicy: b.data.overlapPolicy, ...(b.data.terms ? { terms: b.data.terms } : {}) }),
     actionJson: JSON.stringify(b.data.action),
     validFrom: now, active: true, createdBy: "system", createdAt: now,
   });

@@ -23,6 +23,17 @@ describe("시책 룰 평가기 (F-010, case table)", () => {
     expect(lines[0]!.amount).toBe(50000);
   });
 
+  it("구간시상(tiered): 실적 구간별 차등 지급 (F-053)", () => {
+    const tiered = rule({
+      action: { kind: "tiered", tiers: [{ maxPremium: 100000, rate: 0.1 }, { minPremium: 100001, rate: 0.2 }] },
+    });
+    expect(evaluate([rec({ premium: 50000 })], [tiered])[0]!.amount).toBe(5000);   // 하위 구간 10%
+    expect(evaluate([rec({ premium: 200000 })], [tiered])[0]!.amount).toBe(40000); // 상위 구간 20%
+    // 어느 구간에도 안 맞으면 0
+    const gap = rule({ action: { kind: "tiered", tiers: [{ minPremium: 500000, rate: 0.3 }] } });
+    expect(evaluate([rec({ premium: 100000 })], [gap])[0]!.amount).toBe(0);
+  });
+
   it("stack: 여러 룰 누적", () => {
     const lines = evaluate([rec()], [
       rule({ id: "A", priority: 10, action: { kind: "rate", rate: 0.1 } }),
