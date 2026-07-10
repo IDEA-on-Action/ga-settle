@@ -34,7 +34,9 @@ pnpm -F api d1:migrate:local           # 로컬 D1에 마이그레이션 적용 
 
 ## API 엔드포인트 (구현 시 여기 갱신)
 
-- GET / - 고객 데모 랜딩/인터랙티브 페이지 (정식 SPA는 B-006)
+- GET / · /overview · /status · /deliverables - 고객 협업 포털 공개 레이어(서버 렌더, F-054). 라이프사이클(계약·개발·검수·운영)·개요·진행현황(마일스톤)·산출물 목록. IA: docs/specs/portal-ia
+- GET /assets · /comms - 포털 보호 영역(자료실·소통) → 로그인(/app) 유도 (설계 §8, 상세 구현 후속)
+- GET /demo - 고객 데모 랜딩/인터랙티브 페이지 (구 루트, F-054로 /demo 이동). 정식 SPA는 B-006
 - GET /health - 헬스체크
 - POST /api/insurers · GET /api/insurers · GET/PATCH/DELETE /api/insurers/:id - 원수사 마스터 CRUD(삭제는 참조 있으면 409) (F-032)
 - POST /api/uploads - 엑셀 업로드(멀티파트). SHA-256 멱등(중복 409), R2 불변 보관, Queue 발행, 202+{uploadId,jobId} (F-003)
