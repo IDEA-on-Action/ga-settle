@@ -100,7 +100,11 @@ incentivePlanDefinitionsRoutes.post("/api/incentive-plan-definitions", async (c)
   if (!insurer) return c.json({ error: `없는 원수사예요: ${b.data.insurerId}` }, 400);
 
   // 확정자(createdBy)는 클라이언트 입력이 아닌 인증 사용자(F-038, 감사 무결성).
-  const requester = (await authUser(c.req.raw, db, c.env.SESSION_SECRET))?.email ?? "system";
+  // 전역 /api/* 게이트가 이미 인증을 강제하지만, 감사 필수 write라 핸들러에서도 명시적으로 확인
+  // (defense-in-depth: 폴백으로 "system" 오기록 방지, 확정자는 반드시 실제 사용자).
+  const user = await authUser(c.req.raw, db, c.env.SESSION_SECRET);
+  if (!user) return c.json({ error: "인증이 필요해요" }, 401);
+  const requester = user.email;
   const sourceType = b.data.planImageKey ? "ocr" : "manual";
   const now = new Date().toISOString();
   const batch = crypto.randomUUID().slice(0, 8);
