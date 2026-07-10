@@ -448,12 +448,13 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 - **REQ-066**: 업로드 목록에서 업로드 파일을 삭제할 수 있고, 삭제 시 처리자·시각이 감사 로그에 기록된다
 - **REQ-067**: 마감(잠금)된 정산월에 속한 업로드는 삭제가 차단되고 안내된다
 - **Acceptance**:
-  - [ ] 업로드 목록에서 삭제 기능(DELETE 엔드포인트 + UI) 추가
-  - [ ] 삭제 시 처리자·시각 audit_logs 기록(불변식 #4 준수)
-  - [ ] 마감된 정산월 소속 업로드 삭제 차단 + 안내(불변식 #2 이중 잠금)
-- **Status**: PLANNED
+  - [x] 업로드 내역 목록에서 삭제 기능(`DELETE /api/uploads/:id` 신규 + `_pipeline/UploadHistory.tsx` UI, 2단계 확인)
+  - [x] 삭제 시 처리자(authUser)·시각 audit_logs 기록(`upload.delete`, 삭제 카운트 summary, 불변식 #4)
+  - [x] 마감된 정산월 소속 업로드 삭제 차단(409) + 안내(불변식 #2, API+D1 트리거 이중)
+  - [x] cascade: 원장(commission_records)·파생 정산라인(settlement_lines)·검증오류·jobs·R2 원본 연쇄 삭제, 삭제 카운트 응답
+- **Status**: DONE
 - **Sprint**: S17
-- **Notes**: 2026-07-10 데모 통화 피드백 AI-4(🟡, 통화 01:50~01:55, 제공 확약). 업로드 DELETE 엔드포인트 부재 → 신규. 마감잠금(F-016 이중잠금)·감사로그(불변식 #4) 규약 준수. AI-3(대시보드 7월 테스트 파일 정리)은 본 기능 완료 시 화면서 처리 가능. 성격: Feature.
+- **Notes**: 2026-07-10 데모 통화 피드백 AI-4(🟡, 통화 01:50~01:55, 제공 확약). **정책(사용자 결정)**: 마감만 차단 + 나머지 cascade. 마감(closed run 존재) 월은 409, 그 외는 파생 정산라인→원장→검증오류→jobs→업로드→R2까지 연쇄(비마감이라 D1 트리거 미발동, settlement_lines 청크삭제 D1 100변수 한도). 구현: `apps/api/src/routes/uploads.ts`(DELETE 핸들러 + actorOf) + `apps/web/src/screens/_pipeline/UploadHistory.tsx`(신규, GET /api/uploads 목록 + 2단계 삭제 확인 + 삭제 카운트) + `Upload.tsx` 결선. 테스트 3(404·마감409보존·cascade+감사). AI-3(테스트 데이터)는 이제 화면에서 삭제 가능. 성격: Feature.
 
 ## §3. Backlog (F-item 승격 대기)
 
@@ -497,4 +498,4 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 | 14 · 시책안 OCR(S14) | 후속 | F-043 (데모 + CLOVA/Upstage 실 연동, 정식은 [[B-012]]) | done |
 | 15 · 시상정의 카탈로그(S15) | 후속 | F-044 (전용 테이블 14,590건[생보9,227+손보5,363] + OCR결선 + 운영룰 확정 UI + 감사 소명) | done |
 | 16 · 데모 피드백 SPA 결선(S16) | 후속 | F-045(시책룰↔시상정의 UX 브리지), F-046(시책안 PDF/이미지 OCR 업로드) | done |
-| 17 · 업로드 삭제(S17) | 후속 | F-047 (업로드 삭제 + 감사·마감차단) | planned |
+| 17 · 업로드 삭제(S17) | 후속 | F-047 (업로드 삭제 + 감사·마감차단·cascade) | done |

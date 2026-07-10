@@ -1,14 +1,18 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { and, desc, eq, like, or, sql } from "drizzle-orm";
-import { uploads, jobs, insurers, uploadErrors, commissionRecords } from "@ga-settle/schema";
+import { and, desc, eq, inArray, like, or, sql } from "drizzle-orm";
+import { uploads, jobs, insurers, uploadErrors, commissionRecords, settlementRuns, settlementLines } from "@ga-settle/schema";
 import type { StagedRow } from "@ga-settle/mapping";
 import type { Env } from "../types";
-import { getDb, sha256Hex, encField } from "../db";
+import { getDb, sha256Hex, encField, writeAudit } from "../db";
+import { authUser } from "../auth";
 import { pageParams } from "../pagination";
 
 // 업로드 파이프라인 (F-003): 해시 멱등 -> R2 불변 -> Queue -> jobs 진행률.
 export const uploadsRoutes = new Hono<{ Bindings: Env }>();
+
+const actorOf = async (c: { req: { raw: Request }; env: Env }, db: ReturnType<typeof getDb>) =>
+  (await authUser(c.req.raw, db, c.env.SESSION_SECRET))?.id ?? "system";
 
 const MAX_UPLOAD_BYTES = 50 * 1024 * 1024; // 50MB (수만 행 엑셀 여유분, 메모리 보호)
 const uploadMeta = z.object({
@@ -181,4 +185,48 @@ uploadsRoutes.post("/api/uploads/:id/approve", async (c) => {
   }
 
   return c.json({ committed: recs.length, status: "approved" });
+});
+
+// DELETE /api/uploads/:id (F-047): 업로드 삭제.
+// 정책: 마감(closed run)된 정산월의 업로드는 차단(불변식 #2, API+D1 트리거 이중). 그 외는
+// 파생 정산라인 → 원장 → 검증오류 → jobs → 업로드 → R2 원본까지 cascade. 삭제도 audit_logs 동반(불변식 #4).
+uploadsRoutes.delete("/api/uploads/:id", async (c) => {
+  const db = getDb(c.env);
+  const id = c.req.param("id");
+  const up = await db.select().from(uploads).where(eq(uploads.id, id)).get();
+  if (!up) return c.json({ error: "없는 업로드예요" }, 404);
+
+  // 불변식 #2: 해당 정산월에 마감된 run이 있으면 삭제 불가. (마감 run 종속 라인은 트리거도 차단)
+  const closed = await db
+    .select({ id: settlementRuns.id })
+    .from(settlementRuns)
+    .where(and(eq(settlementRuns.settlementMonth, up.settlementMonth), eq(settlementRuns.status, "closed")))
+    .limit(1)
+    .get();
+  if (closed) return c.json({ error: "마감된 정산월의 업로드는 삭제할 수 없어요", settlementMonth: up.settlementMonth }, 409);
+
+  // cascade: 이 업로드의 원장 id 수집 → 파생 정산라인(미마감 run 소속) 청크 삭제(D1 변수 100 한도).
+  const recIds = (await db.select({ id: commissionRecords.id }).from(commissionRecords).where(eq(commissionRecords.uploadId, id)).all()).map((r) => r.id);
+  let deletedLines = 0;
+  for (let i = 0; i < recIds.length; i += 90) {
+    const res = await db.delete(settlementLines).where(inArray(settlementLines.commissionRecordId, recIds.slice(i, i + 90)));
+    deletedLines += res.meta.changes ?? 0;
+  }
+  const delRec = await db.delete(commissionRecords).where(eq(commissionRecords.uploadId, id));
+  const delErr = await db.delete(uploadErrors).where(eq(uploadErrors.uploadId, id));
+  const delJob = await db.delete(jobs).where(and(eq(jobs.kind, "parse-upload"), eq(jobs.refId, id)));
+  await db.delete(uploads).where(eq(uploads.id, id));
+  // R2 원본 제거 - 같은 파일 재업로드 시 해시 멱등 충돌 방지.
+  await c.env.UPLOADS.delete(up.r2Key).catch(() => {});
+
+  const deleted = {
+    settlementMonth: up.settlementMonth,
+    insurerId: up.insurerId,
+    commissionRecords: delRec.meta.changes ?? 0,
+    settlementLines: deletedLines,
+    uploadErrors: delErr.meta.changes ?? 0,
+    jobs: delJob.meta.changes ?? 0,
+  };
+  await writeAudit(db, { actor: await actorOf(c, db), action: "upload.delete", entity: "uploads", entityId: id, summary: deleted });
+  return c.json({ ok: true, id, deleted });
 });
