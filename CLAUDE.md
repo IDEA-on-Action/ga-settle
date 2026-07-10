@@ -39,6 +39,7 @@ pnpm -F api d1:migrate:local           # 로컬 D1에 마이그레이션 적용 
 - POST /api/insurers · GET /api/insurers · GET/PATCH/DELETE /api/insurers/:id - 원수사 마스터 CRUD(삭제는 참조 있으면 409) (F-032)
 - POST /api/uploads - 엑셀 업로드(멀티파트). SHA-256 멱등(중복 409), R2 불변 보관, Queue 발행, 202+{uploadId,jobId} (F-003)
 - GET /api/uploads - 최근 업로드 목록(id,원수사명,정산월,상태,카운트) 선택기용, 민감정보 제외. ?q·?limit·?offset+total 검색/페이지 (F-036/F-042)
+- DELETE /api/uploads/:id - 업로드 삭제. 마감(closed run)된 정산월은 409 차단(불변식 #2, API+D1 트리거), 그 외는 원장·정산라인·검증오류·jobs·R2 원본 cascade + 감사로그(upload.delete). UI: 업로드 내역 목록 2단계 확인 (F-047)
 - GET /api/jobs/:id - 파싱 진행률 폴링 (F-003)
 - GET /api/uploads/:id - 업로드 상태 조회 (F-003)
 - GET /api/uploads/:id/mapping - 파싱 후 columnMap + 검증 카운트 (F-005 어댑터, F-008 결선)
