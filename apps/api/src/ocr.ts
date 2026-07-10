@@ -63,7 +63,8 @@ export async function clovaOcr(image: ArrayBuffer, format: string, env: Env): Pr
   });
   if (!res.ok) throw new OcrError(`CLOVA OCR 오류 ${res.status}: ${(await res.text()).slice(0, 200)}`);
   const json = (await res.json()) as { images?: { fields?: { inferText: string; inferConfidence: number }[] }[] };
-  const raw = json.images?.[0]?.fields ?? [];
+  // PDF는 페이지별 images[] 반환(F-046). 전 페이지 필드를 합쳐야 다중 페이지 시책안도 온전히 인식된다.
+  const raw = (json.images ?? []).flatMap((im) => im.fields ?? []);
   const fields: OcrField[] = raw.map((f) => ({ text: f.inferText, confidence: f.inferConfidence }));
   const avgConfidence = fields.length ? fields.reduce((s, f) => s + f.confidence, 0) / fields.length : 0;
   return { text: fields.map((f) => f.text).join(" "), avgConfidence, fieldCount: fields.length, fields };

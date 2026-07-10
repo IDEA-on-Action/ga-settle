@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RuleCard } from "./_rules/RuleCard";
 import { RuleForm } from "./_rules/RuleForm";
 import { SimulatePanel } from "./_rules/SimulatePanel";
+import { DefinitionBridge } from "./_rules/DefinitionBridge";
 import type { IncentiveRule, RuleCreateInput } from "./_rules/types";
 
 /**
@@ -70,7 +71,9 @@ export default function Rules() {
             </p>
           )}
           {!rulesQuery.isLoading && !rulesQuery.isError && rules.length === 0 && (
-            <p className="p-6 text-sm text-axis-text-tertiary">등록된 룰이 없어요. "새 룰"로 첫 룰을 만들어 보세요.</p>
+            <p className="p-6 text-sm text-axis-text-tertiary">
+              등록된 운영룰이 없어요. "새 룰"로 직접 만들거나, 오른쪽 안내에서 시상정의를 운영룰로 승격해 보세요.
+            </p>
           )}
           {listError && <p className="px-4 pt-3 text-sm text-axis-text-error">{listError}</p>}
 
@@ -88,6 +91,7 @@ export default function Rules() {
       </Card>
 
       <div className="flex flex-col gap-3.5">
+        <DefinitionBridge operationalRuleCount={rules.length} />
         <SimulatePanel currentRules={rules} />
         <Card className="p-4">
           <div className="mb-2 text-sm font-semibold text-axis-text-primary">평가기 규약</div>
