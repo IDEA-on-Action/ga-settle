@@ -135,6 +135,28 @@ export const incentivePlanDefinitions = sqliteTable("incentive_plan_definitions"
   createdAt: text("created_at").notNull(),
 }, (t) => ({ idxDefInsurerMonth: index("idx_def_insurer_month").on(t.insurerId, t.baseMonth) }));
 
+// 시책안 등록 대장 (F-048): 업로드된 시책안 PDF/이미지 파일의 영속 레코드.
+// 시상정의(incentive_plan_definitions, 확정 카탈로그)와 분리 - 이건 "업로드 사실"의 감사 기록이고
+// R2 원본(r2_key) 역추적의 뿌리. 업로드 즉시 생성(OCR 이전 status=pending), OCR 결과로 갱신.
+// 원수사(다중)·정산월은 nullable, 정산월은 OCR 적용기간에서 best-effort 파싱.
+export const incentivePlans = sqliteTable("incentive_plans", {
+  id: text("id").primaryKey(),
+  insurerId: text("insurer_id").references(() => insurers.id),  // nullable (OCR 원수사 다중, 사후 보정)
+  settlementMonth: text("settlement_month"),                    // nullable YYYY-MM (OCR 적용기간 자동파싱)
+  fileName: text("file_name").notNull(),
+  r2Key: text("r2_key").notNull(),                              // incentive-plans/{sha}.{ext}
+  sha256: text("sha256").notNull(),
+  contentType: text("content_type").notNull(),
+  byteSize: integer("byte_size").notNull(),
+  ocrStatus: text("ocr_status").notNull(),                      // pending|ok|low_confidence|failed
+  ocrAvgConfidence: real("ocr_avg_confidence"),
+  ocrFieldCount: integer("ocr_field_count"),
+  lowConfidenceCount: integer("low_confidence_count"),
+  createdBy: text("created_by").notNull(),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at"),
+}, (t) => ({ uqIncentivePlansSha: uniqueIndex("uq_incentive_plans_sha").on(t.sha256) }));
+
 // 가족계약 후보: 자동 확정 경로 없음 - 확정은 실무자(HITL)만 (F-011)
 export const familyFlags = sqliteTable("family_flags", {
   id: text("id").primaryKey(),
