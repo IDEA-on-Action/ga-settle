@@ -165,6 +165,22 @@ incentivePlanDefinitionsRoutes.get("/api/incentive-plan-definitions/summary", as
   return c.json({ total, byMonth: byMonth.map((r) => ({ baseMonth: r.baseMonth, count: Number(r.n) })) });
 });
 
+// GET /api/incentive-plan-definitions/:id/image - 원본 시책안 이미지 스트림(감사 소명, F-044).
+// OCR 출처(planImageKey 있음)만. xlsx 출처는 404.
+incentivePlanDefinitionsRoutes.get("/api/incentive-plan-definitions/:id/image", async (c) => {
+  const row = await getDb(c.env)
+    .select({ key: incentivePlanDefinitions.planImageKey })
+    .from(incentivePlanDefinitions)
+    .where(eq(incentivePlanDefinitions.id, c.req.param("id")))
+    .get();
+  if (!row?.key) return c.json({ error: "원본 이미지가 없어요(엑셀 출처이거나 미연결)" }, 404);
+  const obj = await c.env.UPLOADS.get(row.key);
+  if (!obj) return c.json({ error: "원본 이미지를 찾을 수 없어요" }, 404);
+  return new Response(obj.body, {
+    headers: { "Content-Type": obj.httpMetadata?.contentType ?? "image/png", "Cache-Control": "private, max-age=300" },
+  });
+});
+
 // POST /api/incentive-plan-definitions/promote - 선택 정의를 정산 엔진 운영룰(incentive_rules)로 확정 승격.
 // 담당자 HITL(불변식 #3). 룰 id=rule-{defId}로 결정적 → 재승격 idempotent(이미 있으면 skip).
 const promoteSchema = z.object({ definitionIds: z.array(z.string().min(1)).min(1).max(200) });

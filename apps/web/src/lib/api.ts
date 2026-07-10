@@ -76,3 +76,13 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
   if (!contentType.includes("application/json")) return undefined as T;
   return (await res.json()) as T;
 }
+
+/** 인증 헤더를 붙여 바이너리(이미지 등)를 Blob으로 받는다. <img> 태그는 Bearer를 못 붙이므로 blob→objectURL 용도. */
+export async function apiFetchBlob(path: string): Promise<Blob> {
+  const headers = new Headers();
+  const auth = getStoredAuth();
+  if (auth?.token) headers.set("Authorization", `Bearer ${auth.token}`);
+  const res = await fetch(`${API_BASE}${path}`, { headers });
+  if (!res.ok) throw new ApiError(messageFromBody(await safeJson(res), `로드 실패 (${res.status})`), res.status, null);
+  return res.blob();
+}

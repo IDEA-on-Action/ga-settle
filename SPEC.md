@@ -415,9 +415,10 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
   - [x] **OCR→정의 write 결선**: POST /api/incentive-plan-definitions - 담당자 확정 행을 planImageKey(F-043 OCR 원본 R2 키) 연결해 저장(source_type=ocr), 확정자(createdBy) 인증사용자 자동·감사로그. 역추적: 정의→plan_image_key→원본 이미지
   - [x] **손보 318열 구조화**: wide 매트릭스(158 시상유형 그룹×2컬럼) unpivot → 5,363건(로컬+prod). 시상유형→cond1, 대상상품/기준→cond2, 실적기준→cond3, 지급시점(익월/2차년/익익월/익분기)→pay_timing, 지급율=rate/지급액=fixed. 총 정의 14,590(생보 9,227+손보 5,363)
   - [x] **정의→운영룰 확정 UI**: SPA `/app/plan-definitions`(시상정의 확정) - 원수사·월·검색 필터, 목록에 승격상태(promoted) 배지, 체크박스 선택 → POST /api/incentive-plan-definitions/promote(정의→incentive_rules, rule-{defId} 결정적·idempotent, condition/action 매핑, 감사). Playwright E2E(선택→확정→배지 후보→운영룰 전환)
+  - [x] **감사 소명 화면**: SPA `/app/audit`(감사 소명) - 지급건/운영룰/시상정의 앵커 → GET /api/audit/incentive-trace(지급건→실적원본[upload+row]→운영룰→시상정의→원본 시책안 체인) + GET .../:id/image(R2 원본 이미지 인증 스트림, blob→objectURL 인라인 표시). REQ-060 충족. Playwright E2E(OCR 정의 트레이스→실 포스터 인라인 렌더)
 - **Status**: DONE
 - **Sprint**: S14
-- **Notes**: [[B-012]] "스키마 확장" 부분 분리 승격(사용자 결정: 전용 테이블 신설). 기존 F-043 후속 데이터 반영에서 incentive_rules에 lossy 적재했던 것을 전용 카탈로그로 이관 - 납입기간·지급시점(익월/13차월/구간/연속/가동)·채널(FC/법인)·지점·조건을 1급 컬럼으로. rate_type: 적용률<100=rate(보험료×배수)/≥100=fixed(정액). 임포터 `scripts/import-sisang-saengbo.mjs`(def-sib-{월}-{행} 결정적 id, DELETE 헤더 idempotent). 정의↔운영룰 도메인 분리로 정산 엔진 무영향. **OCR 결선**: F-043 OCR(추출·후보) → 담당자 확정 → POST 정의 write(HITL, 불변식 #3 준수). wrangler dev E2E(한화 포스터 OCR→planImageKey→확정 3건→역추적 key 일치·감사로그 확인). **손보 구조화**: `scripts/import-sisang-sonbo.mjs`(158 그룹 unpivot, def-sonbo-{월}-{행}-{col} id). **정의→운영룰 UI**: `apps/web/src/screens/PlanDefinitions.tsx` + POST promote(routes/incentive-plan-definitions.ts). **D1 함정**: 쿼리당 바운드 변수 100개 한도 → 배치 insert를 컬럼수 기준 청크(≤90). **잔여 B-012**: 감사 소명 화면(지급건→원본 시책안 UI). 상세 `docs/specs/req-ocr-sichaek/data-import-log.md`.
+- **Notes**: [[B-012]] "스키마 확장" 부분 분리 승격(사용자 결정: 전용 테이블 신설). 기존 F-043 후속 데이터 반영에서 incentive_rules에 lossy 적재했던 것을 전용 카탈로그로 이관 - 납입기간·지급시점(익월/13차월/구간/연속/가동)·채널(FC/법인)·지점·조건을 1급 컬럼으로. rate_type: 적용률<100=rate(보험료×배수)/≥100=fixed(정액). 임포터 `scripts/import-sisang-saengbo.mjs`(def-sib-{월}-{행} 결정적 id, DELETE 헤더 idempotent). 정의↔운영룰 도메인 분리로 정산 엔진 무영향. **OCR 결선**: F-043 OCR(추출·후보) → 담당자 확정 → POST 정의 write(HITL, 불변식 #3 준수). wrangler dev E2E(한화 포스터 OCR→planImageKey→확정 3건→역추적 key 일치·감사로그 확인). **손보 구조화**: `scripts/import-sisang-sonbo.mjs`(158 그룹 unpivot, def-sonbo-{월}-{행}-{col} id). **정의→운영룰 UI**: `apps/web/src/screens/PlanDefinitions.tsx` + POST promote(routes/incentive-plan-definitions.ts). **감사 소명**: `apps/web/src/screens/Audit.tsx` + `routes/audit.ts`(incentive-trace) + `.../:id/image`(R2 스트림). **D1 함정**: 쿼리당 바운드 변수 100개 한도 → 배치 insert를 컬럼수 기준 청크(≤90). **B-012 전 항목 완료**(OCR 실연동 F-043 + 스키마 확장·OCR결선·손보 구조화·운영룰 확정 UI·감사 소명 F-044). 상세 `docs/specs/req-ocr-sichaek/data-import-log.md`.
 
 ## §3. Backlog (F-item 승격 대기)
 
@@ -434,7 +435,7 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 | B-009 | 토큰 폐기(token_version) + 비번 해시 PBKDF2/argon2 강화 | 다수 파일 | mid |
 | B-010 | 실제 ATA 로고 파일 임베드(현재 SVG 재현) | 관찰가능 | low |
 | B-011 | 원수사 코드 체계 실제 값으로 조정(현재 영문 슬러그) | 데이터 | low |
-| B-012 | OCR 시책안 정식 구현 잔여 - 감사 소명 화면(지급건→원본 시책안 역추적 UI) (스키마 확장·OCR→정의 write·손보 318열 구조화·정의→운영룰 확정 UI는 F-044로 완료) | 다수 파일 | mid |
+| ~~B-012~~ | ~~OCR 시책안 정식 구현~~ -> F-043(OCR 실연동)+F-044(스키마 확장·OCR결선·손보 구조화·운영룰 확정 UI·감사 소명)로 전량 완료 | 완료 | - |
 
 > 프로덕션: `https://ata.minu.best` 배포·운영 중. admin=sinclairseo@gmail.com(비번). @atasset.co.kr=OTP. 주요 원수사 26곳 등록. 상세 next-task는 세션 Task 목록(#1~#7) 참조.
 

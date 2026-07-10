@@ -6,6 +6,7 @@ import {
   Layers,
   SlidersHorizontal,
   ClipboardCheck,
+  ShieldCheck,
   Users,
   CalendarCheck,
   GitCompare,
@@ -22,6 +23,7 @@ import MappingReview from "./screens/MappingReview";
 import MappingAdmin from "./screens/MappingAdmin";
 import Rules from "./screens/Rules";
 import PlanDefinitions from "./screens/PlanDefinitions";
+import Audit from "./screens/Audit";
 import Family from "./screens/Family";
 import Runs from "./screens/Runs";
 import Reconciliation from "./screens/Reconciliation";
@@ -157,6 +159,14 @@ export const routes: RouteDef[] = [
     group: "admin",
     icon: Building2,
     Component: Org,
+  },
+  {
+    path: "/audit",
+    label: "감사 소명",
+    subtitle: "지급건 → 운영룰 → 시상정의 → 원본 시책안 역추적",
+    group: "admin",
+    icon: ShieldCheck,
+    Component: Audit,
   },
   {
     path: "/guide",
