@@ -452,6 +452,7 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
   - [x] 삭제 시 처리자(authUser)·시각 audit_logs 기록(`upload.delete`, 삭제 카운트 summary, 불변식 #4)
   - [x] 마감된 정산월 소속 업로드 삭제 차단(409) + 안내(불변식 #2, API+D1 트리거 이중)
   - [x] cascade: 원장(commission_records)·파생 정산라인(settlement_lines)·검증오류·jobs·R2 원본 연쇄 삭제, 삭제 카운트 응답
+  - [x] 인가: 전역 /api/* 인증 게이트(미인증 401) + 파괴적 cascade라 admin 역할 요구(비관리자 403). tenant 스코프는 [[B-008]]
 - **Status**: DONE
 - **Sprint**: S17
 - **Notes**: 2026-07-10 데모 통화 피드백 AI-4(🟡, 통화 01:50~01:55, 제공 확약). **정책(사용자 결정)**: 마감만 차단 + 나머지 cascade. 마감(closed run 존재) 월은 409, 그 외는 파생 정산라인→원장→검증오류→jobs→업로드→R2까지 연쇄(비마감이라 D1 트리거 미발동, settlement_lines 청크삭제 D1 100변수 한도). 구현: `apps/api/src/routes/uploads.ts`(DELETE 핸들러 + actorOf) + `apps/web/src/screens/_pipeline/UploadHistory.tsx`(신규, GET /api/uploads 목록 + 2단계 삭제 확인 + 삭제 카운트) + `Upload.tsx` 결선. 테스트 3(404·마감409보존·cascade+감사). AI-3(테스트 데이터)는 이제 화면에서 삭제 가능. 성격: Feature.

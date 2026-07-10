@@ -11,9 +11,6 @@ import { pageParams } from "../pagination";
 // 업로드 파이프라인 (F-003): 해시 멱등 -> R2 불변 -> Queue -> jobs 진행률.
 export const uploadsRoutes = new Hono<{ Bindings: Env }>();
 
-const actorOf = async (c: { req: { raw: Request }; env: Env }, db: ReturnType<typeof getDb>) =>
-  (await authUser(c.req.raw, db, c.env.SESSION_SECRET))?.id ?? "system";
-
 const MAX_UPLOAD_BYTES = 50 * 1024 * 1024; // 50MB (수만 행 엑셀 여유분, 메모리 보호)
 const uploadMeta = z.object({
   insurerId: z.string().min(1),
@@ -192,6 +189,11 @@ uploadsRoutes.post("/api/uploads/:id/approve", async (c) => {
 // 파생 정산라인 → 원장 → 검증오류 → jobs → 업로드 → R2 원본까지 cascade. 삭제도 audit_logs 동반(불변식 #4).
 uploadsRoutes.delete("/api/uploads/:id", async (c) => {
   const db = getDb(c.env);
+  // 전역 /api/* 게이트가 인증을 강제(미인증 401)하나, 파괴적 cascade라 admin 역할까지 요구(방어 심층).
+  // 엔드포인트별 원수사/조직 tenant 스코프는 [[B-008]] 세분화 RBAC로 이연.
+  const user = await authUser(c.req.raw, db, c.env.SESSION_SECRET);
+  if (!user) return c.json({ error: "인증이 필요해요" }, 401);
+  if (user.role !== "admin") return c.json({ error: "업로드 삭제는 관리자만 가능해요" }, 403);
   const id = c.req.param("id");
   const up = await db.select().from(uploads).where(eq(uploads.id, id)).get();
   if (!up) return c.json({ error: "없는 업로드예요" }, 404);
@@ -227,6 +229,6 @@ uploadsRoutes.delete("/api/uploads/:id", async (c) => {
     uploadErrors: delErr.meta.changes ?? 0,
     jobs: delJob.meta.changes ?? 0,
   };
-  await writeAudit(db, { actor: await actorOf(c, db), action: "upload.delete", entity: "uploads", entityId: id, summary: deleted });
+  await writeAudit(db, { actor: user.id, action: "upload.delete", entity: "uploads", entityId: id, summary: deleted });
   return c.json({ ok: true, id, deleted });
 });

@@ -1,13 +1,26 @@
 import { env, SELF } from "cloudflare:test";
 import { describe, it, expect } from "vitest";
 import { eq } from "drizzle-orm";
-import { uploads, insurers, commissionRecords, uploadErrors, settlementRuns, auditLogs } from "@ga-settle/schema";
+import { uploads, insurers, commissionRecords, uploadErrors, settlementRuns, auditLogs, users } from "@ga-settle/schema";
 import { getDb } from "../src/db";
+import { hashPassword, signToken } from "../src/auth";
 import { authHeader } from "./helpers";
 
 // F-047: 업로드 삭제. 마감(closed run) 월은 차단, 그 외는 원장·검증오류까지 cascade + 감사로그.
+// 파괴적 cascade라 admin 역할 요구(전역 인증 게이트 + per-route role).
 const del = async (id: string) =>
   SELF.fetch(`https://x/api/uploads/${id}`, { method: "DELETE", headers: await authHeader() });
+
+async function staffHeader() {
+  await getDb(env)
+    .insert(users)
+    .values({
+      id: "test-staff", email: "staff@test.local", name: "스탭", role: "staff",
+      passwordHash: await hashPassword("pw", env.SESSION_SECRET), active: true, createdAt: "2026-07-07",
+    })
+    .onConflictDoNothing();
+  return { authorization: `Bearer ${await signToken("test-staff", env.SESSION_SECRET)}` };
+}
 
 async function seedUpload(id: string, month: string) {
   const db = getDb(env);
@@ -20,6 +33,18 @@ async function seedUpload(id: string, month: string) {
 }
 
 describe("DELETE /api/uploads/:id (F-047)", () => {
+  it("미인증은 401 (전역 게이트)", async () => {
+    const res = await SELF.fetch("https://x/api/uploads/whatever", { method: "DELETE" });
+    expect(res.status).toBe(401);
+  });
+
+  it("비관리자(staff)는 403 + 업로드 보존", async () => {
+    await seedUpload("u-staff", "2026-10");
+    const res = await SELF.fetch("https://x/api/uploads/u-staff", { method: "DELETE", headers: await staffHeader() });
+    expect(res.status).toBe(403);
+    expect(await getDb(env).select().from(uploads).where(eq(uploads.id, "u-staff")).get()).toBeTruthy();
+  });
+
   it("없는 업로드는 404", async () => {
     expect((await del("nope")).status).toBe(404);
   });
