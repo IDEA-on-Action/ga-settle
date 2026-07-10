@@ -73,7 +73,11 @@ incentivePlansRoutes.post("/api/incentive-plans/ocr", async (c) => {
     ocrStatus: "pending",
     createdBy: user.id,
     createdAt: now,
-  }).onConflictDoNothing();
+  }).onConflictDoUpdate({
+    // 같은 파일 재업로드(sha 멱등): created_by/at은 보존하되 대분류는 최신 선택으로 갱신(F-051).
+    target: incentivePlans.sha256,
+    set: { category, updatedAt: now },
+  });
 
   try {
     const result = await extractIncentivePlan(bytes, ext, c.env);

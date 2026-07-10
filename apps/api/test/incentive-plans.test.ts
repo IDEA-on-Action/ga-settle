@@ -85,6 +85,19 @@ describe("시책안 등록 대장 (F-048)", () => {
     expect(list.items.find((r) => r.fileName === filename)?.category).toBe("sengbo_fc");
   });
 
+  it("같은 파일 재업로드 시 대분류는 최신 선택으로 갱신 (F-051 upsert)", async () => {
+    const bytes = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x99, 0x88]);
+    const fn = `recat-${Date.now()}.pdf`;
+    await post(ocrForm(bytes, "application/pdf", fn, "sonbo_planner"));
+    await post(ocrForm(bytes, "application/pdf", fn, "sengbo_corp")); // 재업로드, 다른 대분류
+    const list = (await (await aget("/api/incentive-plans?limit=100")).json()) as {
+      items: { fileName: string; category: string | null; sha256: string }[];
+    };
+    const rows = list.items.filter((r) => r.fileName === fn);
+    expect(rows).toHaveLength(1); // sha 멱등 - 1건
+    expect(rows[0]!.category).toBe("sengbo_corp"); // 최신 대분류로 갱신
+  });
+
   it("목록은 {items,total} 형태 + 인증 필요", async () => {
     const res = await aget("/api/incentive-plans");
     expect(res.status).toBe(200);
