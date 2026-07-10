@@ -424,23 +424,25 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 ### F-045 · 시책룰 목록 화면 표시 수정 (데모 피드백 AI-1)
 - **REQ-063**: 담당자가 시상정의를 확정(운영룰 승격)하면, 시책룰 목록 화면에서 등록된 룰을 조회·확인할 수 있다
 - **Acceptance**:
-  - [ ] 시상정의 확정(promote) 직후 시책룰 메뉴에서 등록된 incentive_rules 목록이 화면에 표시된다
-  - [ ] 룰 0건일 때 빈 상태 안내 문구 노출, 로딩·에러 상태 처리
-  - [ ] 메뉴 노출·라우팅·조회 API(GET /api/rules) 결선 점검
-- **Status**: PLANNED
+  - [x] 시책룰 목록이 등록된 incentive_rules를 정상 조회·표시(실측: seed 2건 렌더, 형태 일치 확인) + promote 룰도 동일 경로 표시
+  - [x] 룰 0건일 때 빈 상태 안내 보강(운영룰/시상정의 승격 두 경로 안내), 로딩·에러 상태 처리
+  - [x] 메뉴 노출·라우팅(routes.tsx `/rules` 등록)·조회 API(GET /api/rules) 결선 점검
+  - [x] **시책룰↔시상정의 UX 브리지**: `_rules/DefinitionBridge.tsx` - 시상정의 카탈로그(14,590) 카운트 표시 + `/plan-definitions` 승격 링크. 고객 오인("확정했는데 시책룰에 안 보임") 갭 해소
+- **Status**: DONE
 - **Sprint**: S16
-- **Notes**: 2026-07-10 에이티에셋 데모 통화(김혜경 차장) 피드백 AI-1(🔴). 데이터는 DB 반영되나 SPA 시책룰 목록 화면 미표시(통화 00:36~00:46). 백엔드 GET /api/rules(F-010) + promote→incentive_rules(F-044) 기구현 → SPA 결선/화면만 부재. [[B-006]] SPA 잔여 결선 성격. 성격: Bug(화면 미표시).
+- **Notes**: 2026-07-10 에이티에셋 데모 통화(김혜경 차장) 피드백 AI-1(🔴). **근본원인(실측)**: 렌더 버그 아님 - incentive_rules 총 2건(seed, 형태 정상 렌더)·promote된 rule-* 0건인데 시상정의 카탈로그는 14,590건. F-044 도메인 분리(정의=참조/후보, 운영룰=HITL promote 파생)로 고객 확정 정의가 시책룰에 안 뜨는 **워크플로우/UX 갭**. **결정**: HITL 불변식(#3) 유지 + 시책룰 화면에 UX 브리지(사용자 선택). 백엔드 GET /api/rules(F-010) + promote(F-044)는 무변경. 파일: `apps/web/src/screens/_rules/DefinitionBridge.tsx`(신규) + `Rules.tsx`(결선·빈상태). 성격: UX 갭(초기 판정 Bug 정정).
 
 ### F-046 · 시책안 PDF/이미지 업로드 경로 (데모 피드백 AI-2)
 - **REQ-064**: 업로드 화면에서 파일 유형(① 원수사 지급·명세 엑셀 ② 시책안 PDF/이미지)을 구분해 업로드할 수 있다
 - **REQ-065**: 시책안 PDF/이미지 업로드 건은 OCR→시책룰 초안 생성 파이프라인으로 이어진다
 - **Acceptance**:
-  - [ ] 업로드 화면에 파일 유형 구분 UI(지급명세 엑셀 / 시책안 문서) 추가
-  - [ ] 시책안 PDF/이미지 업로드 시 업로드 목록에 표시되고 POST /api/incentive-plans/ocr 파이프라인으로 연결
-  - [ ] 시책룰 초안 생성 흐름(F-043 OCR → F-044 정의 write)으로 이어진다
-- **Status**: PLANNED
+  - [x] 업로드 화면에 파일 유형 토글(지급명세 엑셀 / 시책안 문서 OCR) 추가 - `Upload.tsx`
+  - [x] 시책안 PDF/이미지 업로드 → POST /api/incentive-plans/ocr 파이프라인 연결 + 추출 시책룰 후보·저신뢰 표시(`_pipeline/IncentivePlanUpload.tsx`)
+  - [x] 시책룰 초안 생성 흐름: OCR 결과 화면에서 `/plan-definitions`(시상정의 확정→운영룰 승격 HITL) 링크로 연결
+  - [x] **PDF 지원**: OCR 엔드포인트 mime 게이트 확장(application/pdf 허용) + CLOVA format=pdf passthrough + 다중페이지 images[] flatMap 보강. api 유형게이트 테스트 4(415/400/pdf통과/png회귀)
+- **Status**: DONE
 - **Sprint**: S16
-- **Notes**: 2026-07-10 데모 통화 피드백 AI-2(🔴, 통화 00:49~01:17). OCR 엔진 POST /api/incentive-plans/ocr(F-043) 기구현 → 업로드 화면 진입점만 부재(현재 원수사 엑셀만). 고객 문의답변 Q2와 직결(완료 시 답변·데모 시연 일치). 성격: Feature(UI 진입점).
+- **Notes**: 2026-07-10 데모 통화 피드백 AI-2(🔴, 통화 00:49~01:17). OCR 엔진 POST /api/incentive-plans/ocr(F-043) 기구현 → 업로드 화면 진입점만 부재였음. 구현: (1) `apps/api/src/routes/incentive-plans.ts` mime 게이트를 image+application/pdf로 확장, ext/에러문구 반영 (2) `apps/api/src/ocr.ts` clovaOcr가 전 페이지 필드 flatMap(다중페이지 PDF) (3) `apps/web/src/screens/Upload.tsx` 파일유형 토글 (4) `_pipeline/IncentivePlanUpload.tsx` 신규(OCR 업로드→후보 렌더→확정 링크). 고객 문의답변 Q2 직결. **⚠️ 검증 잔여(Production Smoke)**: 유형 게이트는 단위테스트 통과했으나 **실 CLOVA PDF OCR E2E(외부 유료 API)는 미실측** - 실 시책안 PDF로 라이브 데모에서 1건 확인 필요(다중페이지 정확도 포함). 성격: Feature(UI 진입점 + PDF 백엔드).
 
 ### F-047 · 업로드 내역 삭제 기능 (데모 피드백 AI-4)
 - **REQ-066**: 업로드 목록에서 업로드 파일을 삭제할 수 있고, 삭제 시 처리자·시각이 감사 로그에 기록된다
@@ -494,5 +496,5 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 | 13 · 브라우저 E2E(S13) | 후속 | F-030 | done |
 | 14 · 시책안 OCR(S14) | 후속 | F-043 (데모 + CLOVA/Upstage 실 연동, 정식은 [[B-012]]) | done |
 | 15 · 시상정의 카탈로그(S15) | 후속 | F-044 (전용 테이블 14,590건[생보9,227+손보5,363] + OCR결선 + 운영룰 확정 UI + 감사 소명) | done |
-| 16 · 데모 피드백 SPA 결선(S16) | 후속 | F-045, F-046 (시책룰 목록 화면·시책안 업로드 경로) | planned |
+| 16 · 데모 피드백 SPA 결선(S16) | 후속 | F-045(시책룰↔시상정의 UX 브리지), F-046(시책안 PDF/이미지 OCR 업로드) | done |
 | 17 · 업로드 삭제(S17) | 후속 | F-047 (업로드 삭제 + 감사·마감차단) | planned |

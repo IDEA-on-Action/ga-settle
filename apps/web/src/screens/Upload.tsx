@@ -1,15 +1,18 @@
 import { useCallback, useRef, useState, type DragEvent, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { UploadCloud } from "lucide-react";
+import { FileSpreadsheet, FileText, UploadCloud } from "lucide-react";
 import { apiFetch, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { InsurerSelect } from "@/components/pickers/EntitySelects";
+import { IncentivePlanUpload } from "./_pipeline/IncentivePlanUpload";
 import type { JobDetail, UploadAcceptedResponse, UploadDetail, UploadDuplicateBody } from "./_pipeline/types";
 import { currentMonth, formatNumber, ProgressBar, StatusBadge } from "./_pipeline/shared";
+
+type UploadKind = "excel" | "plan";
 
 /**
  * 업로드 (F-026): 엑셀 업로드 -> 파싱 진행률 폴링 -> 업로드 상태.
@@ -25,6 +28,7 @@ interface SessionUpload {
 }
 
 export default function UploadScreen() {
+  const [kind, setKind] = useState<UploadKind>("excel");
   const [insurerId, setInsurerId] = useState("");
   const [settlementMonth, setSettlementMonth] = useState(currentMonth());
   const [file, setFile] = useState<File | null>(null);
@@ -76,6 +80,32 @@ export default function UploadScreen() {
 
   return (
     <div className="flex max-w-[1200px] flex-col gap-5">
+      <div className="inline-flex w-fit rounded-lg border border-axis-border-default bg-axis-surface-secondary/40 p-1">
+        <button
+          type="button"
+          onClick={() => setKind("excel")}
+          className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+            kind === "excel" ? "bg-axis-surface-primary text-axis-text-primary shadow-sm" : "text-axis-text-tertiary"
+          }`}
+        >
+          <FileSpreadsheet className="size-4" />
+          지급명세 엑셀
+        </button>
+        <button
+          type="button"
+          onClick={() => setKind("plan")}
+          className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+            kind === "plan" ? "bg-axis-surface-primary text-axis-text-primary shadow-sm" : "text-axis-text-tertiary"
+          }`}
+        >
+          <FileText className="size-4" />
+          시책안 문서 (OCR)
+        </button>
+      </div>
+
+      {kind === "plan" && <IncentivePlanUpload />}
+
+      {kind === "excel" && (
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
           <CardContent className="pt-6">
@@ -149,6 +179,7 @@ export default function UploadScreen() {
           </CardContent>
         </Card>
       </div>
+      )}
     </div>
   );
 }
