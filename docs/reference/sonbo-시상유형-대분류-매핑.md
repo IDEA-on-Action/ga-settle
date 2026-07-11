@@ -5,6 +5,7 @@
 **작성자:** 생각과 행동 (IDEA on Action)
 **상태:** ✅ 적용 중 (SPEC F-058, prod 배포)
 **구현:** `apps/api/src/routes/incentive-plan-definitions.ts` (`PLANNER_COND1`)
+**관련:** 생보는 별도 규칙(channel 파생) → `docs/reference/sengbo-대분류-매핑.md`
 
 ---
 
