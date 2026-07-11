@@ -18,13 +18,19 @@ async function insertChunked<R>(run: (rows: R[]) => Promise<unknown>, rows: R[],
   for (let i = 0; i < rows.length; i += per) await run(rows.slice(i, i + per));
 }
 
-// 시책안 4대 대분류 → 시상정의 필터(F-056). 생보는 channel로 정확히 파생되나,
-// 손보 시상정의는 원본 xlsx가 설계사/자체를 구분하지 않아(channel=null) '손보 전체'로만 필터한다.
-// (사용자 결정: 파생 3-way. 손보 설계사/자체 세분화는 원본 데이터 확보 시 후속.)
+// 시책안 4대 대분류 → 시상정의 필터(F-056/F-057). 생보는 channel로 정확히 파생.
+// 손보 xlsx는 설계사/자체 미구분(channel=null)이라 sonbo=손보 전체.
+// 손보 설계사/자체(F-057)는 **시책안 대분류로 연결**: OCR로 확정한 시상정의는 원본 시책안 업로드의
+// category를 상속한다(plan_image_key = incentive_plans.r2_key). xlsx 손보(plan_image_key 없음)는
+// 이 세분화에 안 잡히고 sonbo 전체에만 포함된다.
+const linkedCategory = (cat: string) =>
+  sql`EXISTS(SELECT 1 FROM incentive_plans ip WHERE ip.r2_key = incentive_plan_definitions.plan_image_key AND ip.category = ${cat})`;
 const CATEGORY_FILTER: Record<string, () => ReturnType<typeof and>> = {
   sengbo_fc: () => and(eq(incentivePlanDefinitions.lineType, "생보"), eq(incentivePlanDefinitions.channel, "FC")),
   sengbo_corp: () => and(eq(incentivePlanDefinitions.lineType, "생보"), eq(incentivePlanDefinitions.channel, "법인")),
   sonbo: () => eq(incentivePlanDefinitions.lineType, "손보"),
+  sonbo_planner: () => and(eq(incentivePlanDefinitions.lineType, "손보"), linkedCategory("sonbo_planner")),
+  sonbo_self: () => and(eq(incentivePlanDefinitions.lineType, "손보"), linkedCategory("sonbo_self")),
 };
 
 // GET /api/incentive-plan-definitions?insurerId=&month=&category=&q=&limit=&offset=
