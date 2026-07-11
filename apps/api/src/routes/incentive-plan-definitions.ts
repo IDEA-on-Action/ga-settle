@@ -18,17 +18,29 @@ async function insertChunked<R>(run: (rows: R[]) => Promise<unknown>, rows: R[],
   for (let i = 0; i < rows.length; i += per) await run(rows.slice(i, i + per));
 }
 
-// GET /api/incentive-plan-definitions?insurerId=&month=&q=&limit=&offset=
+// 시책안 4대 대분류 → 시상정의 필터(F-056). 생보는 channel로 정확히 파생되나,
+// 손보 시상정의는 원본 xlsx가 설계사/자체를 구분하지 않아(channel=null) '손보 전체'로만 필터한다.
+// (사용자 결정: 파생 3-way. 손보 설계사/자체 세분화는 원본 데이터 확보 시 후속.)
+const CATEGORY_FILTER: Record<string, () => ReturnType<typeof and>> = {
+  sengbo_fc: () => and(eq(incentivePlanDefinitions.lineType, "생보"), eq(incentivePlanDefinitions.channel, "FC")),
+  sengbo_corp: () => and(eq(incentivePlanDefinitions.lineType, "생보"), eq(incentivePlanDefinitions.channel, "법인")),
+  sonbo: () => eq(incentivePlanDefinitions.lineType, "손보"),
+};
+
+// GET /api/incentive-plan-definitions?insurerId=&month=&category=&q=&limit=&offset=
 incentivePlanDefinitionsRoutes.get("/api/incentive-plan-definitions", async (c) => {
   const { q, limit, offset } = pageParams(c);
   const sp = new URL(c.req.url).searchParams;
   const insurerId = (sp.get("insurerId") ?? "").trim();
   const month = (sp.get("month") ?? "").trim(); // 기준월 YYYYMM
+  const category = (sp.get("category") ?? "").trim(); // sengbo_fc|sengbo_corp|sonbo (F-056)
   const db = getDb(c.env);
 
   const conds = [];
   if (insurerId) conds.push(eq(incentivePlanDefinitions.insurerId, insurerId));
   if (month) conds.push(eq(incentivePlanDefinitions.baseMonth, month));
+  const catCond = category ? CATEGORY_FILTER[category]?.() : undefined;
+  if (catCond) conds.push(catCond);
   if (q)
     conds.push(
       or(

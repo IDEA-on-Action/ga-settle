@@ -547,6 +547,16 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 - **Sprint**: S21
 - **Notes**: 2026-07-11. 사용자 요청("데모·도움말 현행성 점검 + 루틴 스킬화"). content currency: OK, 전체 113 api tests green. PR #57 → prod fb94fb8c. **유지보수**: 신규 기능 배포 시 `content-currency-check.sh` `FEATURE_KW`에 키워드 1줄 추가. 가이드 문구 수정 시 `pnpm -F web guide:pdf` 재생성 필수. 단일 소스=`guide.ts`(Guide·HelpPanel·Tour·PDF 공용). ⚠️ 데모 루트(`/`) HTML은 CF 엣지 캐시되므로 배포 후 하드 리프레시/캐시 만료까지 구버전 보일 수 있음(내용은 정상 배포).
 
+### F-056 · 시책안 대분류별 시상정의 필터
+- **REQ-078**: 시상정의 확정 화면에서 시책안 4대 대분류(생보FC·생보법인·손보)로 목록을 필터링할 수 있다
+- **Acceptance**:
+  - [x] GET /api/incentive-plan-definitions에 ?category 필터(파생: sengbo_fc=생보+FC, sengbo_corp=생보+법인, sonbo=손보 전체)
+  - [x] PlanDefinitions 화면 대분류 셀렉터(전체/생보FC/생보법인/손보) + insurerId·month·q와 병행
+  - [x] 실데이터 검증: 생보FC 5,470·생보법인 3,749·손보 5,366 / 테스트 5
+- **Status**: ✅ DONE
+- **Sprint**: S22
+- **Notes**: 2026-07-11. 사용자 요청. **데이터 제약(실측)**: 대분류(category)는 incentive_plans(업로드)에 있고 시상정의는 별도 테이블 → line_type+channel로 파생. **생보는 channel로 FC/법인 정확 분리되나 손보 xlsx는 channel=null이라 설계사/자체 미구분**(전부 5,363건 손보 한 덩어리). 사용자 결정: **파생 3-way**(손보 세분화는 원본 데이터 확보 시 후속). 스키마 변경 없음. 구현: `routes/incentive-plan-definitions.ts` CATEGORY_FILTER + `screens/PlanDefinitions.tsx` 셀렉터. E2E(UI 손보 선택→5,366·전 행 손보 확인). PR 예정 → 배포.
+
 ## §3. Backlog (F-item 승격 대기)
 
 | ID | 한 줄 | 승격 기준 충족? | 우선 |
@@ -594,3 +604,4 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 | 19 · 260710 시책 피드백 배치(S19) | 후속 | F-049(OCR 10p 분할)·F-050(삭제→복원)·F-051(4대 대분류)·F-052(납입기간별 지급율)·F-053(시책룰 항목 확장) | done |
 | 20 · 고객 협업 포털 IA 설계(S20) | 후속 | F-054 (계약~운영 라이프사이클 IA 설계 + 공개 레이어 구현·배포, P1) | done |
 | 21 · 데모·도움말 현행성 점검 스킬(S21) | 후속 | F-055 (demo-guide-audit 스킬 + 최근 기능 반영, 배포 fb94fb8c) | done |
+| 22 · 시책안 대분류 시상정의 필터(S22) | 후속 | F-056 (파생 3-way 필터, 생보FC/생보법인/손보) | done |
