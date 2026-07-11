@@ -565,7 +565,7 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
   - [x] 테스트 7(설계사/자체 링크 분리) + 실데이터 검증(OCR 손보 정의 3건을 sonbo_planner 연결 시 손보설계사=3)
 - **Status**: ✅ DONE
 - **Sprint**: S22
-- **Notes**: 2026-07-11. 사용자 요청("손보 설계사/자체 구분은 시책안 대분류로 연결"). F-056 파생 3-way 손보 한계(xlsx channel=null) 보완. **연결 경로**: OCR로 확정한 시상정의는 원본 시책안(incentive_plans)의 category 상속(plan_image_key=r2_key). 새 컬럼/마이그레이션 없이 EXISTS 조인. **적용 범위**: F-051 이후 대분류 붙여 업로드→OCR 확정한 손보 시상정의부터 분류(xlsx 손보·과거 OCR분은 미연결이라 손보 전체에만). 구현: routes/incentive-plan-definitions.ts linkedCategory + PlanDefinitions.tsx 옵션 2개.
+- **Notes**: 2026-07-11. 사용자 요청("손보 설계사/자체 구분은 시책안 대분류로 연결"). F-056 파생 3-way 손보 한계(xlsx channel=null) 보완. **연결 경로**: OCR로 확정한 시상정의는 원본 시책안(incentive_plans)의 category 상속(plan_image_key=r2_key). 새 컬럼/마이그레이션 없이 EXISTS 조인. **적용 범위**: F-051 이후 대분류 붙여 업로드→OCR 확정한 손보 시상정의부터 분류(xlsx 손보·과거 OCR분은 미연결이라 손보 전체에만). 구현: routes/incentive-plan-definitions.ts linkedCategory + PlanDefinitions.tsx 옵션 2개. **소급 분류 결정(2026-07-11, 사용자)**: 기존 손보 시상정의 5,363건(전부 `AT에셋_시상정의(손보).xlsx` 단일 파일 출처)에 설계사/자체 신호가 없음을 실측 확인(cond1은 시상유형=월간가동·주간·기본·브릿지·추가·주력상품; 전 필드 '자체'/'설계사' 키워드 0건). 원수사·상품만으로 소급 분류 불가(한 원수사가 둘 다 보유) → **소급 보류·전방 축적** 결정. 향후 신뢰할 분류 근거(시상유형 매핑/원수사 매핑/원본 재제공)가 생기면 재개.
 
 ## §3. Backlog (F-item 승격 대기)
 
