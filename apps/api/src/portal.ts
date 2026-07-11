@@ -131,7 +131,7 @@ function topnav(active: Nav): string {
   const link = (href: string, key: Nav, label: string, locked = false) =>
     `<a class="navlink ${active === key ? "on" : ""}" href="${href}">${label}${locked ? ' <span class="lk">🔒</span>' : ""}</a>`;
   return `<header><div class="wrap"><nav class="nav">
-    <a class="logo" href="/"><svg class="mark" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#29c7ff"/><stop offset="1" stop-color="#0a72e8"/></linearGradient></defs><rect width="64" height="64" rx="14" fill="#0a0e1a"/><path d="M8 48 Q20 8 31 44 Q43 8 56 48" fill="none" stroke="url(#lg)" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span>ATA<small style="display:block">생각과 행동 협업 포털</small></span></a>
+    <a class="logo" href="/portal"><svg class="mark" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#29c7ff"/><stop offset="1" stop-color="#0a72e8"/></linearGradient></defs><rect width="64" height="64" rx="14" fill="#0a0e1a"/><path d="M8 48 Q20 8 31 44 Q43 8 56 48" fill="none" stroke="url(#lg)" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span>ATA<small style="display:block">생각과 행동 협업 포털</small></span></a>
     <span class="sp"></span>
     ${link("/overview", "overview", "개요")}
     ${link("/status", "status", "진행 현황")}

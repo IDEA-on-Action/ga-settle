@@ -5,8 +5,14 @@ import { describe, it, expect } from "vitest";
 const get = (path: string) => SELF.fetch(`https://x${path}`);
 
 describe("고객 협업 포털 (F-054)", () => {
-  it("루트 / 는 포털 홈(공개, 200) - 라이프사이클 4단계 표시", async () => {
+  it("루트 / 는 데모 랜딩(사용자 요청 원복, 200)", async () => {
     const res = await get("/");
+    expect(res.status).toBe(200);
+    expect((await res.text()).length).toBeGreaterThan(1000);
+  });
+
+  it("포털 홈은 /portal (공개, 200) - 라이프사이클 4단계 표시", async () => {
+    const res = await get("/portal");
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain("협업 포털");
