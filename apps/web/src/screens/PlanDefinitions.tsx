@@ -38,6 +38,7 @@ export default function PlanDefinitions() {
   const qc = useQueryClient();
   const [insurerId, setInsurerId] = useState("");
   const [month, setMonth] = useState("");
+  const [category, setCategory] = useState(""); // 시책안 4대 대분류 필터 (F-056)
   const [q, setQ] = useState("");
   const [offset, setOffset] = useState(0);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -46,10 +47,11 @@ export default function PlanDefinitions() {
   const params = new URLSearchParams({ limit: String(LIMIT), offset: String(offset) });
   if (insurerId) params.set("insurerId", insurerId);
   if (month) params.set("month", month);
+  if (category) params.set("category", category);
   if (q) params.set("q", q);
 
   const listQuery = useQuery({
-    queryKey: ["plan-definitions", insurerId, month, q, offset],
+    queryKey: ["plan-definitions", insurerId, month, category, q, offset],
     queryFn: () => apiFetch<DefList>(`/api/incentive-plan-definitions?${params.toString()}`),
   });
   const items = listQuery.data?.items ?? [];
@@ -102,6 +104,18 @@ export default function PlanDefinitions() {
         <CardContent className="p-4">
           {/* 필터 */}
           <div className="mb-3 flex flex-wrap items-center gap-2">
+            {/* F-056: 시책안 4대 대분류 필터. 손보는 원본이 설계사/자체 미구분이라 '손보 전체'. */}
+            <select
+              value={category}
+              onChange={(e) => onFilter(() => setCategory(e.target.value))}
+              className="h-9 w-40 rounded-md border border-axis-border-default bg-axis-surface-primary px-3 text-sm text-axis-text-primary"
+              aria-label="시책안 대분류"
+            >
+              <option value="">대분류 전체</option>
+              <option value="sengbo_fc">생보FC시상</option>
+              <option value="sengbo_corp">생보법인시상</option>
+              <option value="sonbo">손보시상</option>
+            </select>
             <InsurerSelect value={insurerId} onChange={(v) => onFilter(() => setInsurerId(v))} className="w-52" />
             <Input
               value={month}
