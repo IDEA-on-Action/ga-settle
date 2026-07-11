@@ -59,7 +59,7 @@ pnpm -F api d1:migrate:local           # 로컬 D1에 마이그레이션 적용 
 - POST /api/erp/agents - ERP 설계사+소속 일괄 등록 (F-009)
 - POST /api/incentive-plans/ocr - 시책안 이미지/PDF(multipart, category 대분류 필수) → R2 원본 보관(SHA-256 멱등) → 업로드 즉시 incentive_plans 대장 등록(F-048, 대분류 저장 F-051) → CLOVA OCR(10p 초과 PDF는 ≤10p 청크 분할·병합 F-049) + Upstage 구조화 → 시책룰 필드 후보 + 저신뢰 표시. OCR 결과로 대장 갱신(ocr_status/신뢰도/정산월 자동파싱), 실패도 status=failed로 기록. category 미선택/오값 400. 하이브리드 엔진, blended 신뢰도(LLM×OCR평균, 임계 0.85). 인증 필수 (F-043/F-046/F-048/F-049/F-051)
 - GET /api/incentive-plans - 시책안 등록 대장 목록(파일명·원수사·정산월·OCR상태·신뢰도·업로더·시각). 원수사명 조인, ?q·?limit·?offset+total, `{items,total}`. UI: 업로드 화면 '시책안 문서(OCR)' 탭 '시책안 등록 내역' 섹션 (F-048)
-- GET /api/incentive-plan-definitions · /summary - 시상정의 카탈로그(원수사가 준 정의 원형, 무손실 16열). ?insurerId·?month·?q·?category(대분류 필터: sengbo_fc/sengbo_corp/sonbo 파생 F-056 + sonbo_planner/sonbo_self는 plan_image_key→incentive_plans.category 연결 F-057)+페이지. incentive_rules(정산엔진)와 분리, 정의는 참조/후보 (F-044/F-056/F-057)
+- GET /api/incentive-plan-definitions · /summary - 시상정의 카탈로그(원수사가 준 정의 원형, 무손실 16열). ?insurerId·?month·?q·?category(대분류 필터 F-056/057/058: 생보 파생, 손보설계사/자체=OCR 링크 우선+xlsx 시상유형 소급)+페이지. incentive_rules(정산엔진)와 분리, 정의는 참조/후보 (F-044/F-056/F-057/F-058)
 - POST /api/incentive-plan-definitions - 담당자 확정 시상정의 write(OCR→정의 결선). planImageKey(F-043 OCR 원본)로 역추적, source_type=ocr, 확정자 자동+감사 (F-044)
 - POST /api/incentive-plan-definitions/promote - 선택 정의를 정산 엔진 운영룰(incentive_rules)로 확정 승격(HITL). rule-{defId} 결정적·idempotent, condition/action 매핑. 목록에 promoted 플래그. UI: /app/plan-definitions (F-044)
 - GET /api/incentive-plan-definitions/:id/image - 원본 시책안 이미지 R2 스트림(OCR 출처만, 인증). 감사 소명 (F-044)

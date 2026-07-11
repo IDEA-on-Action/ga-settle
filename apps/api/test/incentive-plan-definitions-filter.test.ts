@@ -7,14 +7,16 @@ import { agetJson } from "./helpers";
 // F-056/F-057: 시책안 4대 대분류로 시상정의 필터. 생보는 channel로 파생(FC/법인), 손보 xlsx는 전체.
 // F-057: 손보 설계사/자체는 시책안 대분류로 연결(plan_image_key = incentive_plans.r2_key → category).
 const rows = [
-  { id: "d-sfc-1", lineType: "생보", channel: "FC", key: null },
-  { id: "d-sfc-2", lineType: "생보", channel: "FC", key: null },
-  { id: "d-scorp-1", lineType: "생보", channel: "법인", key: null },
-  { id: "d-sonbo-1", lineType: "손보", channel: null, key: null }, // xlsx, 미연결
-  { id: "d-sonbo-2", lineType: "손보", channel: null, key: null },
-  { id: "d-sonbo-3", lineType: "손보", channel: null, key: null },
-  { id: "d-sonbo-planner", lineType: "손보", channel: null, key: "incentive-plans/planner.pdf" }, // OCR, 시책안=설계사
-  { id: "d-sonbo-self", lineType: "손보", channel: null, key: "incentive-plans/self.pdf" }, // OCR, 시책안=자체
+  { id: "d-sfc-1", lineType: "생보", channel: "FC", key: null, cond1: null },
+  { id: "d-sfc-2", lineType: "생보", channel: "FC", key: null, cond1: null },
+  { id: "d-scorp-1", lineType: "생보", channel: "법인", key: null, cond1: null },
+  // xlsx 손보 소급(F-058): cond1 시상유형 규칙. 설계사=가동·주간·기본·연속·브릿지, 자체=그 외.
+  { id: "d-sonbo-gadong", lineType: "손보", channel: null, key: null, cond1: "월간연속가동 시상" }, // →설계사
+  { id: "d-sonbo-jugan", lineType: "손보", channel: null, key: null, cond1: "주간 3주차" }, // →설계사
+  { id: "d-sonbo-julyeok", lineType: "손보", channel: null, key: null, cond1: "주력상품Ⅰ1주차" }, // →자체
+  { id: "d-sonbo-nullcond", lineType: "손보", channel: null, key: null, cond1: null }, // →자체(기타/잔여)
+  { id: "d-sonbo-planner", lineType: "손보", channel: null, key: "incentive-plans/planner.pdf", cond1: "주력상품" }, // OCR 링크=설계사(링크 우선, cond1 무시)
+  { id: "d-sonbo-self", lineType: "손보", channel: null, key: "incentive-plans/self.pdf", cond1: "가동" }, // OCR 링크=자체(링크 우선)
 ];
 
 beforeAll(async () => {
@@ -27,7 +29,7 @@ beforeAll(async () => {
   ]).onConflictDoNothing();
   for (const r of rows) {
     await db.insert(incentivePlanDefinitions).values({
-      id: r.id, insurerId: "ins-f056", baseMonth: "202606", lineType: r.lineType, channel: r.channel,
+      id: r.id, insurerId: "ins-f056", baseMonth: "202606", lineType: r.lineType, channel: r.channel, cond1: r.cond1,
       product: "종신", rateType: "rate", rateValue: 1, sourceType: r.key ? "ocr" : "xlsx", planImageKey: r.key,
       createdBy: "test-admin", createdAt: "2026-07-11",
     }).onConflictDoNothing();
@@ -54,17 +56,19 @@ describe("시상정의 대분류 필터 (F-056)", () => {
 
   it("category=sonbo → 손보 전체(xlsx + OCR 모두)", async () => {
     const ids = await countByCategory("sonbo");
-    expect(ids).toEqual(new Set(["d-sonbo-1", "d-sonbo-2", "d-sonbo-3", "d-sonbo-planner", "d-sonbo-self"]));
+    expect(ids).toEqual(new Set(["d-sonbo-gadong", "d-sonbo-jugan", "d-sonbo-julyeok", "d-sonbo-nullcond", "d-sonbo-planner", "d-sonbo-self"]));
   });
 
-  it("category=sonbo_planner → 시책안 대분류=설계사 연결분만 (F-057)", async () => {
+  it("category=sonbo_planner → OCR 링크(설계사) + xlsx 시상유형 설계사 소급 (F-057/F-058)", async () => {
     const ids = await countByCategory("sonbo_planner");
-    expect(ids).toEqual(new Set(["d-sonbo-planner"]));
+    // 가동·주간(xlsx 소급) + 링크=설계사(OCR). d-sonbo-self는 cond1=가동이지만 링크=자체라 제외(링크 우선).
+    expect(ids).toEqual(new Set(["d-sonbo-gadong", "d-sonbo-jugan", "d-sonbo-planner"]));
   });
 
-  it("category=sonbo_self → 시책안 대분류=자체 연결분만 (F-057)", async () => {
+  it("category=sonbo_self → OCR 링크(자체) + xlsx 시상유형 자체 소급(그 외+null) (F-057/F-058)", async () => {
     const ids = await countByCategory("sonbo_self");
-    expect(ids).toEqual(new Set(["d-sonbo-self"]));
+    // 주력상품·null(xlsx 소급) + 링크=자체(OCR). d-sonbo-planner는 cond1=주력이지만 링크=설계사라 제외.
+    expect(ids).toEqual(new Set(["d-sonbo-julyeok", "d-sonbo-nullcond", "d-sonbo-self"]));
   });
 
   it("category 없으면 전체(6건 시드 모두 포함)", async () => {
