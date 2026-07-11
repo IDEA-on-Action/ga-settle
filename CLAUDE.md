@@ -23,6 +23,10 @@ pnpm -F @ga-settle/schema db:generate  # 스키마 변경 후 D1 마이그레이
 pnpm -F api d1:migrate:local           # 로컬 D1에 마이그레이션 적용 (트리거는 0001 수동 유지)
 ```
 
+## 프로젝트 스킬
+
+- `/demo-guide-audit` (`.claude/skills/demo-guide-audit/`): 데모(`apps/api/src/demo.ts`)·도움말/가이드(`apps/web/src/content/guide.ts`+가이드 PDF)가 현재 시스템 상태(라우트·기능·수치)를 반영하는지 점검·갱신. **기능 배포·화면 추가·수치 변경 후, 그리고 `/ax:session-end` 시 함께 실행**한다. 자동 점검부: `bash scripts/content-currency-check.sh`(라우트↔도움말 커버리지·가이드 라우트 유효성·최근 DONE F-item 키워드 반영·데모 하드코딩 수치 플래그). 신규 기능 배포 시 그 스크립트의 `FEATURE_KW`에 키워드 1줄 추가. 가이드 문구 수정 시 `pnpm -F web guide:pdf` 재생성 필수.
+
 ## 불변 원칙 (아키텍처 문서 §4-§7 요약)
 
 1. **역추적 불변식**: commission_records는 반드시 upload_id + row_no 보유. 어떤 정산 숫자든 원본 행까지 2 join.
