@@ -18,19 +18,31 @@ async function insertChunked<R>(run: (rows: R[]) => Promise<unknown>, rows: R[],
   for (let i = 0; i < rows.length; i += per) await run(rows.slice(i, i + per));
 }
 
-// 시책안 4대 대분류 → 시상정의 필터(F-056/F-057). 생보는 channel로 정확히 파생.
-// 손보 xlsx는 설계사/자체 미구분(channel=null)이라 sonbo=손보 전체.
-// 손보 설계사/자체(F-057)는 **시책안 대분류로 연결**: OCR로 확정한 시상정의는 원본 시책안 업로드의
-// category를 상속한다(plan_image_key = incentive_plans.r2_key). xlsx 손보(plan_image_key 없음)는
-// 이 세분화에 안 잡히고 sonbo 전체에만 포함된다.
+// 시책안 4대 대분류 → 시상정의 필터(F-056/F-057/F-058). 생보는 channel로 정확히 파생.
+// 손보 설계사/자체는 2단 규칙:
+//   ① OCR 확정분(plan_image_key 있음): 원본 시책안 업로드의 category 상속(F-057, 정확).
+//   ② xlsx 소급분(plan_image_key 없음): 시상유형(cond1) 매핑 근사(F-058, 사용자 결정).
+//      설계사=가동·주간·기본·연속·브릿지(활동/실적), 자체=그 외(주력·전략·신상품·특별·분기·추가·기타).
 const linkedCategory = (cat: string) =>
   sql`EXISTS(SELECT 1 FROM incentive_plans ip WHERE ip.r2_key = incentive_plan_definitions.plan_image_key AND ip.category = ${cat})`;
+// 시상유형 '설계사' 패턴(활동/실적 기반). 나머지 손보 xlsx는 자체로 분류(F-058).
+const PLANNER_COND1 = sql`(incentive_plan_definitions.cond1 LIKE '%가동%' OR incentive_plan_definitions.cond1 LIKE '%주간%' OR incentive_plan_definitions.cond1 LIKE '%기본%' OR incentive_plan_definitions.cond1 LIKE '%연속%' OR incentive_plan_definitions.cond1 LIKE '%브릿지%')`;
 const CATEGORY_FILTER: Record<string, () => ReturnType<typeof and>> = {
   sengbo_fc: () => and(eq(incentivePlanDefinitions.lineType, "생보"), eq(incentivePlanDefinitions.channel, "FC")),
   sengbo_corp: () => and(eq(incentivePlanDefinitions.lineType, "생보"), eq(incentivePlanDefinitions.channel, "법인")),
   sonbo: () => eq(incentivePlanDefinitions.lineType, "손보"),
-  sonbo_planner: () => and(eq(incentivePlanDefinitions.lineType, "손보"), linkedCategory("sonbo_planner")),
-  sonbo_self: () => and(eq(incentivePlanDefinitions.lineType, "손보"), linkedCategory("sonbo_self")),
+  // OCR 링크 우선, 없으면(xlsx) 시상유형 소급 규칙.
+  sonbo_planner: () =>
+    and(
+      eq(incentivePlanDefinitions.lineType, "손보"),
+      sql`(${linkedCategory("sonbo_planner")} OR (incentive_plan_definitions.plan_image_key IS NULL AND ${PLANNER_COND1}))`,
+    ),
+  sonbo_self: () =>
+    and(
+      eq(incentivePlanDefinitions.lineType, "손보"),
+      // COALESCE로 cond1 NULL(=기타)도 자체로 포함(null-safe).
+      sql`(${linkedCategory("sonbo_self")} OR (incentive_plan_definitions.plan_image_key IS NULL AND COALESCE(${PLANNER_COND1}, 0) = 0))`,
+    ),
 };
 
 // GET /api/incentive-plan-definitions?insurerId=&month=&category=&q=&limit=&offset=
