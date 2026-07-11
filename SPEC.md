@@ -557,6 +557,16 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 - **Sprint**: S22
 - **Notes**: 2026-07-11. 사용자 요청. **데이터 제약(실측)**: 대분류(category)는 incentive_plans(업로드)에 있고 시상정의는 별도 테이블 → line_type+channel로 파생. **생보는 channel로 FC/법인 정확 분리되나 손보 xlsx는 channel=null이라 설계사/자체 미구분**(전부 5,363건 손보 한 덩어리). 사용자 결정: **파생 3-way**(손보 세분화는 원본 데이터 확보 시 후속). 스키마 변경 없음. 구현: `routes/incentive-plan-definitions.ts` CATEGORY_FILTER + `screens/PlanDefinitions.tsx` 셀렉터. E2E(UI 손보 선택→5,366·전 행 손보 확인). PR 예정 → 배포.
 
+### F-057 · 손보 설계사/자체 시상정의를 시책안 대분류로 연결
+- **REQ-079**: 손보 시상정의를 설계사시상/자체시상으로 구분하되, 그 구분을 원본 시책안 업로드의 대분류(category)로부터 상속받아 필터할 수 있다
+- **Acceptance**:
+  - [x] 대분류 필터에 sonbo_planner(손보설계사)·sonbo_self(손보자체) 추가 - `plan_image_key = incentive_plans.r2_key` EXISTS 조인으로 업로드 category 연결
+  - [x] PlanDefinitions 셀렉터에 손보설계사시상·손보자체시상 옵션(손보시상 전체와 병존)
+  - [x] 테스트 7(설계사/자체 링크 분리) + 실데이터 검증(OCR 손보 정의 3건을 sonbo_planner 연결 시 손보설계사=3)
+- **Status**: ✅ DONE
+- **Sprint**: S22
+- **Notes**: 2026-07-11. 사용자 요청("손보 설계사/자체 구분은 시책안 대분류로 연결"). F-056 파생 3-way 손보 한계(xlsx channel=null) 보완. **연결 경로**: OCR로 확정한 시상정의는 원본 시책안(incentive_plans)의 category 상속(plan_image_key=r2_key). 새 컬럼/마이그레이션 없이 EXISTS 조인. **적용 범위**: F-051 이후 대분류 붙여 업로드→OCR 확정한 손보 시상정의부터 분류(xlsx 손보·과거 OCR분은 미연결이라 손보 전체에만). 구현: routes/incentive-plan-definitions.ts linkedCategory + PlanDefinitions.tsx 옵션 2개.
+
 ## §3. Backlog (F-item 승격 대기)
 
 | ID | 한 줄 | 승격 기준 충족? | 우선 |
@@ -604,4 +614,4 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 | 19 · 260710 시책 피드백 배치(S19) | 후속 | F-049(OCR 10p 분할)·F-050(삭제→복원)·F-051(4대 대분류)·F-052(납입기간별 지급율)·F-053(시책룰 항목 확장) | done |
 | 20 · 고객 협업 포털 IA 설계(S20) | 후속 | F-054 (계약~운영 라이프사이클 IA 설계 + 공개 레이어 구현·배포, P1) | done |
 | 21 · 데모·도움말 현행성 점검 스킬(S21) | 후속 | F-055 (demo-guide-audit 스킬 + 최근 기능 반영, 배포 fb94fb8c) | done |
-| 22 · 시책안 대분류 시상정의 필터(S22) | 후속 | F-056 (파생 3-way 필터, 생보FC/생보법인/손보) | done |
+| 22 · 시책안 대분류 시상정의 필터(S22) | 후속 | F-056(파생 3-way)·F-057(손보 설계사/자체=시책안 대분류 연결) | done |

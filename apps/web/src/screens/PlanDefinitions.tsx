@@ -108,13 +108,15 @@ export default function PlanDefinitions() {
             <select
               value={category}
               onChange={(e) => onFilter(() => setCategory(e.target.value))}
-              className="h-9 w-40 rounded-md border border-axis-border-default bg-axis-surface-primary px-3 text-sm text-axis-text-primary"
+              className="h-9 w-44 rounded-md border border-axis-border-default bg-axis-surface-primary px-3 text-sm text-axis-text-primary"
               aria-label="시책안 대분류"
             >
               <option value="">대분류 전체</option>
               <option value="sengbo_fc">생보FC시상</option>
               <option value="sengbo_corp">생보법인시상</option>
-              <option value="sonbo">손보시상</option>
+              <option value="sonbo">손보시상 (전체)</option>
+              <option value="sonbo_planner">손보설계사시상</option>
+              <option value="sonbo_self">손보자체시상</option>
             </select>
             <InsurerSelect value={insurerId} onChange={(v) => onFilter(() => setInsurerId(v))} className="w-52" />
             <Input
