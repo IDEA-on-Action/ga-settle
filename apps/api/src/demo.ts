@@ -8,7 +8,7 @@ export const DEMO_HTML = `<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%2329c7ff'/%3E%3Cstop offset='1' stop-color='%230a72e8'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='%230a0e1a'/%3E%3Cpath d='M8 48 Q20 8 31 44 Q43 8 56 48' fill='none' stroke='url(%23g)' stroke-width='7.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
 <title>ATA · 수수료 정산/대사 시스템</title>
-<meta name="description" content="30개 원수사의 제각각 엑셀을 AI 온톨로지 매핑으로 표준화하고, 결정적 코드로 정산·대사·마감까지 자동화하는 GA 수수료 통합 정산 시스템." />
+<meta name="description" content="30여 개 원수사의 제각각 엑셀을 AI 온톨로지 매핑으로 표준화하고, 결정적 코드로 정산·대사·마감까지 자동화하는 GA 수수료 통합 정산 시스템." />
 <style>
   :root{
     --bg:#0a0e1a;--bg2:#0f1524;--card:#141b2d;--card2:#1a2338;--line:#232d44;
@@ -153,7 +153,7 @@ export const DEMO_HTML = `<!doctype html>
 <div class="demo0"></div>
 <section class="hero"><div class="wrap">
   <span class="kicker">◆ 보험 GA 수수료·시책 정산 자동화</span>
-  <h1>30개 원수사, 제각각 엑셀.<br><span class="g">정산은 오차 0, 근거는 원본까지.</span></h1>
+  <h1>30여 개 원수사, 제각각 엑셀.<br><span class="g">정산은 오차 0, 근거는 원본까지.</span></h1>
   <p class="lead">수기 대사와 엑셀 취합으로 며칠씩 태우던 마감을 자동화합니다. AI가 제각각인 컬럼을 표준 필드로 매핑하면, 검증된 결정적 코드가 정산-대사-마감까지 끝냅니다. 모든 숫자는 원본 엑셀 행까지 역추적되어 감사에 그대로 답이 됩니다.</p>
   <div class="cta">
     <a class="btn p" href="#demo">▶ 60초 파이프라인 데모</a>
@@ -192,11 +192,11 @@ export const DEMO_HTML = `<!doctype html>
 </div></section>
 
 <section class="demo" id="catalog"><div class="wrap">
-  <h2>30개 원수사의 제각각 시상안이, 하나의 표준 카탈로그로</h2>
+  <h2>30여 개 원수사의 제각각 시상안이, 하나의 표준 카탈로그로</h2>
   <p class="sub">엑셀·이미지 포스터로 흩어져 오던 시상정의를 <b>무손실로 표준화</b>합니다. 담당자가 확정하면 정산 엔진 운영룰이 되고, 어떤 지급 건이든 <b>원본 시책안까지 되짚어</b> 감사에 답이 됩니다. 아래는 귀사 제공 자료로 실제 반영된 카탈로그입니다.</p>
   <div class="stats" style="margin-top:0;margin-bottom:22px">
     <div class="stat"><b>14,590</b><span>표준화된 시상정의</span></div>
-    <div class="stat"><b>30</b><span>원수사(생보 18 · 손보 12)</span></div>
+    <div class="stat"><b>33</b><span>원수사 마스터(생보·손보)</span></div>
     <div class="stat"><b>6+</b><span>차원(상품·납기·지급시점·채널·조건·율)</span></div>
     <div class="stat"><b>무손실</b><span>원본 이미지·엑셀까지 역추적</span></div>
   </div>
@@ -224,7 +224,7 @@ export const DEMO_HTML = `<!doctype html>
   </div>
   <h2 style="margin-top:56px">처리 흐름</h2>
   <div class="flow">
-    <span><b>30 원수사 엑셀</b></span><span class="a">→</span>
+    <span><b>30여 원수사 엑셀</b></span><span class="a">→</span>
     <span>L0 <b>시그니처 캐시</b></span><span class="a">→</span>
     <span>L1 <b>프로파일링</b></span><span class="a">→</span>
     <span>L2 <b>LLM 매핑</b></span><span class="a">→</span>
