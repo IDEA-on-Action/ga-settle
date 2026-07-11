@@ -536,6 +536,17 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 - **Sprint**: S20
 - **Notes**: 2026-07-11 등록·완료. 요청: `https://ata.minu.best/` IA 구조 설계. 최초 범위=설계 산출물까지였으나 사용자 지시("IA 설계에 맞춰 작업 완료")로 **공개 레이어 구현+배포까지 확대**. **설계**: `docs/specs/portal-ia/ia-design-v0.1.md`(사이트맵·화면구조·콘텐츠모델 5영역·접근권한 매트릭스·현행자산 관계·와이어프레임 2종·오픈이슈 4건). **구현**: `apps/api/src/portal.ts` + `index.ts` 라우팅(포털홈 `/portal`·`/overview`·`/status`·`/deliverables` 공개, `/assets`·`/comms` 로그인 유도, 데모는 `/demo`로 이동). 데모와 동일 다크/브랜드 테마 서버 렌더. 접근 모델 공개+일부보호(사용자 결정): 진행/산출물 공개, 다운로드/자료/소통 인증(F-024). PR #55 → prod 배포(c3287bdf) 후 **사용자 요청으로 루트 원복(PR #56, prod 767b7d06): `/`=데모 랜딩, 포털은 `/portal`로 이동**(계약 미체결 감안). prod 스모크: /=데모·/portal=포털·/status·/deliverables·/app·/demo 200. 테스트 portal 6(전체 149 green). **후속 F-item 후보**: 보호영역 상세 콘텐츠 관리(자료실 Asset·소통 CommunicationLog·피드백 FeedbackThread), 진행현황 SPEC 자동 롤업 - 계약 확정 후. WAF(Super Bot Fight Mode) 경계는 공개 HTML이라 데모(기존 공개)와 동일하게 통과.
 
+### F-055 · 데모·도움말 현행성 점검 스킬 + 최근 기능 반영
+- **REQ-077**: 데모·도움말이 현재 시스템 상태(라우트·기능·수치)를 반영하는지 점검하고, 어긋난 부분을 갱신한다. 이 점검은 시스템 업데이트 시 함께 돌 수 있게 스킬로 상시화한다
+- **Acceptance**:
+  - [x] `.claude/skills/demo-guide-audit` 스킬(구조 점검 + 카피 리뷰 2단) + CLAUDE.md 프로젝트 스킬 등록·실행시점 명시
+  - [x] `scripts/content-currency-check.sh`(라우트↔도움말 커버리지·가이드 라우트 유효성·최근 DONE F-item 키워드·데모 수치 플래그, --json)
+  - [x] 점검 발견 갭 반영: F-051 대분류(업로드 필수)·F-052 납입기간별 지급율·F-048 등록 내역·F-053 시책룰 항목 → guide.ts guideStep/screenHelp
+  - [x] 데모 수치 정정(원수사 데이터 stat 30→33, 헤드라인 framing 30여 개) + 가이드 PDF 재생성
+- **Status**: ✅ DONE
+- **Sprint**: S21
+- **Notes**: 2026-07-11. 사용자 요청("데모·도움말 현행성 점검 + 루틴 스킬화"). content currency: OK, 전체 113 api tests green. PR #57 → prod fb94fb8c. **유지보수**: 신규 기능 배포 시 `content-currency-check.sh` `FEATURE_KW`에 키워드 1줄 추가. 가이드 문구 수정 시 `pnpm -F web guide:pdf` 재생성 필수. 단일 소스=`guide.ts`(Guide·HelpPanel·Tour·PDF 공용). ⚠️ 데모 루트(`/`) HTML은 CF 엣지 캐시되므로 배포 후 하드 리프레시/캐시 만료까지 구버전 보일 수 있음(내용은 정상 배포).
+
 ## §3. Backlog (F-item 승격 대기)
 
 | ID | 한 줄 | 승격 기준 충족? | 우선 |
@@ -582,3 +593,4 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 | 18 · 시책안 등록 대장(S18) | 후속 | F-048 (incentive_plans 테이블 + 업로드 즉시 등록 + 목록 화면) | done |
 | 19 · 260710 시책 피드백 배치(S19) | 후속 | F-049(OCR 10p 분할)·F-050(삭제→복원)·F-051(4대 대분류)·F-052(납입기간별 지급율)·F-053(시책룰 항목 확장) | done |
 | 20 · 고객 협업 포털 IA 설계(S20) | 후속 | F-054 (계약~운영 라이프사이클 IA 설계 + 공개 레이어 구현·배포, P1) | done |
+| 21 · 데모·도움말 현행성 점검 스킬(S21) | 후속 | F-055 (demo-guide-audit 스킬 + 최근 기능 반영, 배포 fb94fb8c) | done |
