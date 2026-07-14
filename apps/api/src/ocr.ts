@@ -116,14 +116,23 @@ export async function clovaOcr(image: ArrayBuffer, format: string, env: Env): Pr
   return { text: fields.map((f) => f.text).join(" "), avgConfidence, fieldCount: fields.length, fields };
 }
 
+// 상류(LLM) 비결정 실패는 파일 문제가 아니라 재시도로 풀리는 경우가 많아 안내를 붙인다(F-059).
+// 같은 파일 재업로드는 sha 멱등이라 대장 원 레코드에 이어서 재처리된다(F-048).
+const RETRY_HINT = "같은 파일을 다시 업로드하면 재시도할 수 있어요.";
+
 // content 문자열에서 JSON 블록만 안전 추출(코드펜스/앞뒤 잡텍스트 방어).
 function parseJsonLoose(s: string): unknown {
   const fenced = s.match(/```(?:json)?\s*([\s\S]*?)```/i);
   const body = fenced?.[1] ?? s;
   const start = body.indexOf("{");
   const end = body.lastIndexOf("}");
-  if (start < 0 || end < 0) throw new OcrError("Upstage 구조화 응답에서 JSON을 찾지 못했어요", 502);
-  return JSON.parse(body.slice(start, end + 1));
+  if (start < 0 || end < 0) throw new OcrError(`Upstage 구조화 응답에서 JSON을 찾지 못했어요. ${RETRY_HINT}`, 502);
+  try {
+    return JSON.parse(body.slice(start, end + 1));
+  } catch {
+    // 중괄호는 있으나 절단/손상된 JSON (max output 초과 등). SyntaxError를 500으로 흘리지 않는다.
+    throw new OcrError(`Upstage 구조화 응답 JSON이 손상됐어요. ${RETRY_HINT}`, 502);
+  }
 }
 
 // LLM이 값 자리에 배열/중첩 객체를 넣어도 사람이 읽는 한 줄로 평탄화(‑ "[object Object]" 방지).
@@ -166,37 +175,127 @@ export function coercePayoutRows(v: unknown): PayoutRow[] {
     .filter((r): r is PayoutRow => r !== null);
 }
 
-// ② Upstage Solar: OCR 텍스트 → 시책룰 필드 구조화 + 납입기간별 지급율 행. LLM 신뢰도는 CLOVA 평균과 곱해 보정.
-export async function structureRule(ocrText: string, ocrAvgConfidence: number, env: Env): Promise<{ rule: StructuredRule; payoutRows: PayoutRow[] }> {
-  if (!env.UPSTAGE_API_KEY) throw new OcrError("Upstage 미설정 (UPSTAGE_API_KEY)", 503);
-  const base = env.UPSTAGE_BASE_URL || "https://api.upstage.ai/v1";
-  const model = env.UPSTAGE_MODEL || "solar-mini";
-  const sys = "너는 보험 GA 시책안 OCR 텍스트를 시책룰 필드로 구조화하는 도우미다. 반드시 JSON만 출력한다. 금액 계산은 하지 말고 원문에 있는 값만 추출한다.";
-  const usr =
+// 손보 다중 시상(12+p) PDF는 OCR 텍스트가 수만 자에 달해 단일 구조화 요청이 깨진다(F-059,
+// 고객 재현: "JSON을 찾지 못했어요" 502). 이 이하로 청크를 잘라 각각 구조화 후 병합한다.
+// solar-mini 32k 컨텍스트 기준 프롬프트+응답 여유를 둔 보수치.
+const STRUCTURE_CHUNK_CHARS = 8000;
+
+// OCR 텍스트를 maxChars 이하 청크로 분할. 공백 경계 우선(단어 절단 회피), 공백이 없으면 하드 컷.
+// ≤maxChars면 원본 1건 그대로(짧은 문서 회귀 무변경). export: F-059 단위 테스트용.
+export function splitTextForStructure(text: string, maxChars: number): string[] {
+  if (text.length <= maxChars) return [text];
+  const chunks: string[] = [];
+  let rest = text;
+  while (rest.length > maxChars) {
+    const window = rest.slice(0, maxChars);
+    const cut = window.lastIndexOf(" ");
+    // 공백이 너무 앞이면(청크의 절반 미만) 하드 컷 - 병리적 무공백 입력에서 청크 수 폭증 방지.
+    const at = cut >= maxChars / 2 ? cut : maxChars;
+    chunks.push(rest.slice(0, at));
+    rest = rest.slice(at).replace(/^ /, "");
+  }
+  if (rest) chunks.push(rest);
+  return chunks;
+}
+
+// 청크별 구조화 결과 병합: rule 필드는 non-null 중 신뢰도 최고값, payoutRows는 concat + 완전 중복 제거.
+// export: F-059 단위 테스트용.
+export function mergeStructured(parts: { rule: StructuredRule; payoutRows: PayoutRow[] }[]): { rule: StructuredRule; payoutRows: PayoutRow[] } {
+  if (parts.length === 1) return parts[0]!;
+  const rule = {} as StructuredRule;
+  for (const k of RULE_KEYS) {
+    let best: RuleField = { value: null, confidence: 0 };
+    for (const p of parts) {
+      const f = p.rule[k];
+      if (f.value != null && (best.value == null || f.confidence > best.confidence)) best = f;
+    }
+    rule[k] = best;
+  }
+  const seen = new Set<string>();
+  const payoutRows: PayoutRow[] = [];
+  for (const r of parts.flatMap((p) => p.payoutRows)) {
+    const key = `${r.payTerm ?? ""}|${r.payTiming ?? ""}|${r.rate ?? ""}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      payoutRows.push(r);
+    }
+  }
+  return { rule, payoutRows };
+}
+
+const STRUCTURE_SYS = "너는 보험 GA 시책안 OCR 텍스트를 시책룰 필드로 구조화하는 도우미다. 반드시 JSON만 출력한다. 금액 계산은 하지 말고 원문에 있는 값만 추출한다.";
+
+function buildStructurePrompt(ocrText: string): string {
+  return (
     "다음은 시책안 포스터 OCR 텍스트다. 아래 필드를 JSON으로 추출하라. 각 필드는 {value, confidence(0~1)}. " +
     "value는 반드시 문자열(string) 한 줄로 작성하고, 여러 값이면 ' · '로 이어 붙여라. 배열이나 중첩 객체를 value에 넣지 마라. " +
     "필드: insurer(보험사), planType(시책유형), period(적용기간), targetProduct(대상상품), payout(지급방식/배수), retention(유지조건). 원문에 없으면 value:null. " +
     "추가로, 생명보험 시책은 상품의 납입기간(예 5년납/7년납)·지급시점(예 익월/13차월)마다 지급율이 다르다. " +
     "이런 구분이 있으면 payoutRows 배열로 각 조합을 별도 행으로 추출하라. 각 원소는 {payTerm(납입기간 문자열, 예 \"5년납\"), payTiming(지급시점 문자열, 예 \"익월\"|\"13차월\"), rate(지급율/배수 문자열, 예 \"150%\"|\"0\")}. " +
     "납입기간별 구분이 없으면 payoutRows는 빈 배열([])로 둬라.\n\nOCR:\n" +
-    ocrText;
-  const res = await fetch(`${base}/chat/completions`, {
+    ocrText
+  );
+}
+
+// Upstage chat/completions 1회 호출. jsonMode=true면 response_format으로 JSON 출력을 강제한다.
+// response_format은 solar-pro-2 이상만 지원 - solar-mini 등 미지원 모델은 400을 반환하므로 호출부에서 fallback.
+async function callUpstage(env: Env, usr: string, jsonMode: boolean): Promise<Response> {
+  const base = env.UPSTAGE_BASE_URL || "https://api.upstage.ai/v1";
+  const model = env.UPSTAGE_MODEL || "solar-mini";
+  return fetch(`${base}/chat/completions`, {
     method: "POST",
     headers: { Authorization: `Bearer ${env.UPSTAGE_API_KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ model, temperature: 0, messages: [{ role: "system", content: sys }, { role: "user", content: usr }] }),
+    body: JSON.stringify({
+      model,
+      temperature: 0,
+      messages: [{ role: "system", content: STRUCTURE_SYS }, { role: "user", content: usr }],
+      ...(jsonMode ? { response_format: { type: "json_object" } } : {}),
+    }),
   });
-  if (!res.ok) throw new OcrError(`Upstage 오류 ${res.status}: ${(await res.text()).slice(0, 200)}`);
-  const json = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-  const content = json.choices?.[0]?.message?.content ?? "";
-  const parsed = parseJsonLoose(content) as Record<string, unknown>;
+}
+
+function extractContent(json: unknown): string {
+  return (json as { choices?: { message?: { content?: string } }[] }).choices?.[0]?.message?.content ?? "";
+}
+
+// 청크 1개 구조화: JSON 강제 → 미지원 모델(400) fallback → 파싱 실패 1회 재시도.
+async function structureChunk(text: string, env: Env): Promise<Record<string, unknown>> {
+  const usr = buildStructurePrompt(text);
+  let res = await callUpstage(env, usr, true);
+  // 400은 response_format 미지원 모델(solar-mini 등)일 가능성 - JSON 모드 없이 재시도.
+  if (res.status === 400) res = await callUpstage(env, usr, false);
+  if (!res.ok) throw new OcrError(`Upstage 오류 ${res.status}: ${(await res.text()).slice(0, 200)}. ${RETRY_HINT}`);
+  try {
+    return parseJsonLoose(extractContent(await res.json())) as Record<string, unknown>;
+  } catch {
+    // temperature 0이어도 상류 비결정으로 비-JSON/절단 응답이 관찰됨(고객 재현) - 1회 재시도.
+    const retry = await callUpstage(env, usr, false);
+    if (!retry.ok) throw new OcrError(`Upstage 오류 ${retry.status}: ${(await retry.text()).slice(0, 200)}. ${RETRY_HINT}`);
+    return parseJsonLoose(extractContent(await retry.json())) as Record<string, unknown>;
+  }
+}
+
+// LLM 파싱 결과 → 필드별 blended 신뢰도 rule. 과신 보정: 구조화 신뢰도 × OCR 평균, 미검출은 0.
+function buildRule(parsed: Record<string, unknown>, ocrAvgConfidence: number): { rule: StructuredRule; payoutRows: PayoutRow[] } {
   const rule = {} as StructuredRule;
   for (const k of RULE_KEYS) {
     const f = coerceField(parsed[k]);
-    // LLM 과신 보정: 구조화 신뢰도 × OCR 평균 신뢰도. 미검출은 0.
     const blended = f.value == null ? 0 : Math.round(f.confidence * ocrAvgConfidence * 1000) / 1000;
     rule[k] = { value: f.value, confidence: blended };
   }
   return { rule, payoutRows: coercePayoutRows(parsed.payoutRows) };
+}
+
+// ② Upstage Solar: OCR 텍스트 → 시책룰 필드 구조화 + 납입기간별 지급율 행. LLM 신뢰도는 CLOVA 평균과 곱해 보정.
+// 긴 텍스트(손보 다중 시상)는 청크 분할 구조화 후 병합(F-059). 청크는 순차 호출(상류 rate limit 배려).
+export async function structureRule(ocrText: string, ocrAvgConfidence: number, env: Env): Promise<{ rule: StructuredRule; payoutRows: PayoutRow[] }> {
+  if (!env.UPSTAGE_API_KEY) throw new OcrError("Upstage 미설정 (UPSTAGE_API_KEY)", 503);
+  const chunks = splitTextForStructure(ocrText, STRUCTURE_CHUNK_CHARS);
+  const parts: { rule: StructuredRule; payoutRows: PayoutRow[] }[] = [];
+  for (const chunk of chunks) {
+    parts.push(buildRule(await structureChunk(chunk, env), ocrAvgConfidence));
+  }
+  return mergeStructured(parts);
 }
 
 // 파이프라인: 이미지 → CLOVA OCR → Upstage 구조화 → 저신뢰 필드 표시.

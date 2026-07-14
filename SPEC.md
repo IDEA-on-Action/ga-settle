@@ -580,13 +580,13 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 ### F-059 · 시책안 OCR Upstage 구조화 견고성 보강 (P1)
 - **REQ-081**: 손보 다중 시상 PDF처럼 OCR 텍스트가 긴 경우에도 Upstage 구조화가 "JSON을 찾지 못했어요"(502) 없이 안정적으로 결과를 반환한다
 - **Acceptance**:
-  - [ ] Upstage 요청에 JSON 강제 응답(response_format json_object 또는 동등 수단) 적용
-  - [ ] 긴 OCR 텍스트(다중 시상) 분할 구조화 + 병합 또는 안전 절단 전략 적용, 기존 짧은 문서 회귀 무변경
-  - [ ] 실패 시 오류 메시지에 재시도 안내 포함(대장 status=failed 유지, 동일 파일 재업로드 재시도 가능 확인)
-  - [ ] 고객 재현 케이스([손해보험]26.05월 1주차 시상 유형의 다중 페이지 손보 PDF) 성공 처리
-- **Status**: 📋 PLANNED
+  - [x] Upstage 요청에 JSON 강제 응답(response_format json_object) 적용 - 미지원 모델(solar-mini)은 400 감지 시 무모드 fallback
+  - [x] 긴 OCR 텍스트(>8,000자) 청크 분할 구조화 + 병합(rule=신뢰도 최고값, payoutRows=concat+dedupe), 짧은 문서 회귀 무변경(단일 청크 동일 경로)
+  - [x] 실패 시 오류 메시지에 재시도 안내 포함 + 비-JSON 응답 1회 자동 재시도 + 절단 JSON도 502 OcrError(500 방지). 대장 failed·멱등 재시도는 기존 F-048 경로 실측 확인
+  - [ ] 고객 재현 케이스([손해보험]26.05월 1주차 시상 유형의 다중 페이지 손보 PDF) 성공 처리 - 배포 후 고객 재업로드로 확인
+- **Status**: 🔧 IN_PROGRESS
 - **Sprint**: S23 (예정)
-- **Notes**: 2026-07-14 고객(김혜경) 테스트 리포트. 손보설계사시상 PDF 업로드 시 `ocr.ts parseJsonLoose`에서 502. CLOVA 10p 분할(F-049)은 통과했으나 구조화 단계는 텍스트 길이 무방비. 실패 건은 F-048 대장에 failed로 기록됨(멱등 재시도 가능) 확인.
+- **Notes**: 2026-07-14 고객(김혜경) 테스트 리포트. 손보설계사시상 PDF 업로드 시 `ocr.ts parseJsonLoose`에서 502. CLOVA 10p 분할(F-049)은 통과했으나 구조화 단계는 텍스트 길이 무방비. 실패 건은 F-048 대장에 failed로 기록됨(멱등 재시도 가능) 확인. **구현(2026-07-14)**: `ocr.ts` - splitTextForStructure(8,000자, 공백 경계)·mergeStructured·structureChunk(JSON 모드→400 fallback→파싱 실패 1회 재시도). Upstage 문서상 response_format은 solar-pro-2 이상 지원이나 **실호출 실측(2026-07-14): solar-mini-250422도 200 + 유효 JSON 반환** - JSON 강제가 1차 경로로 즉시 작동, 400 fallback은 방어층으로 유지. 테스트 10건 신규(ocr-structure-robust), 전체 130 PASS. 잔여: 배포 후 고객 원본 PDF 재현 확인.
 
 ### F-060 · 시상정의 만기기간 차원 추가 (P1)
 - **REQ-082**: 생보 시상정의에서 상품명이 같아도 납입기간·만기기간에 따라 지급율이 다른 경우를 구분해 확정할 수 있다
