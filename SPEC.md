@@ -614,27 +614,27 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 ### F-062 · 시책지급내역 문서유형 인입 (P1)
 - **REQ-084**: 원수사 시책지급내역(시상금) 엑셀을 문서유형 선택으로 업로드하면 시책 전용 온톨로지로 매핑·검증되어 시책 지급 원장(incentive_payout_records)까지 적재된다
 - **Acceptance**:
-  - [ ] uploads.doc_type(commission|incentive, 기본 commission) + POST /api/uploads docType 수용 (기존 호출 무변경)
-  - [ ] 시책 온톨로지(INCENTIVE_ONTOLOGY): 계약번호·시상금 필수, 설계사코드/명·상품명·실적일자·보험료·시상율·시상항목 선택. 매핑 함수군 온톨로지 파라미터화(기본값=기존 ONTOLOGY, 골든 회귀 무변경)
-  - [ ] 다중 블록 시트 절단: 헤더 이후 새 헤더성 행/■마커 감지 시 첫 블록만 파싱(삼성화재 실파일: 9개+ 하위 표 중 상세 87행만) - incentive 유형에서만 적용
-  - [ ] 다단 헤더 그룹 라벨(헤더 위 1~2행)을 프로파일·매핑에 반영("시상금 합계" 그룹 아래 "설계사" 열 → 시상금 후보)
-  - [ ] incentive는 계약번호+회차 중복 검증 미적용(동일 증권번호 복수 시상 행 정상)
-  - [ ] 승인 시 incentive_payout_records 커밋(upload_id+row_no 역추적 불변식 #1, 시상금/보험료 암호화 #5), 업로드 삭제 cascade 포함
-  - [ ] UI: 업로드 화면 문서유형 선택 + 업로드 내역 유형 표시
-  - [ ] 실파일(삼성화재 시책지급내역) grid 기반 테스트: 블록 절단·시책 매핑·원장 커밋
-- **Status**: 🔧 IN_PROGRESS
+  - [x] uploads.doc_type(commission|incentive, 기본 commission) + POST /api/uploads docType 수용 (기존 호출 무변경)
+  - [x] 시책 온톨로지(INCENTIVE_ONTOLOGY): 계약번호·시상금 필수, 설계사코드/명·상품명·실적일자·보험료·시상율·시상항목 선택. 매핑 함수군 온톨로지 파라미터화(기본값=기존 ONTOLOGY, 골든 회귀 무변경)
+  - [x] 다중 블록 시트 절단: 헤더 이후 새 헤더성 행/■마커 감지 시 첫 블록만 파싱(삼성화재 실파일: 9개+ 하위 표 중 상세 87행만) - incentive 유형에서만 적용
+  - [x] 다단 헤더 그룹 라벨(헤더 위 1~2행)을 프로파일·매핑에 반영("시상금 합계" 그룹 아래 "설계사" 열 → 시상금 후보)
+  - [x] incentive는 계약번호+회차 중복 검증 미적용(동일 증권번호 복수 시상 행 정상)
+  - [x] 승인 시 incentive_payout_records 커밋(upload_id+row_no 역추적 불변식 #1, 시상금/보험료 암호화 #5), 업로드 삭제 cascade 포함
+  - [x] UI: 업로드 화면 문서유형 선택 + 업로드 내역 유형 표시
+  - [x] 실파일(삼성화재 시책지급내역) grid 기반 테스트: 블록 절단·시책 매핑·원장 커밋
+- **Status**: ✅ DONE
 - **Sprint**: S24
 - **Notes**: 2026-07-15 고객 피드백(F-061 후속) + 인터뷰 결정 4건: 목표=시책 대사까지(F-063 분리)·기존 업로드 파이프라인 확장·1블록+합계 시상금 MVP(시상항목별 unpivot은 후속)·P1 바로 착수. 실측 근거: 삼성화재 "장기 건별 시상금" 963행 x 105열 = 서로 다른 헤더의 하위 표 9개+ 이어붙임(상세는 r6~92 87행), 3단 헤더(그룹→중그룹→리프), 시상율/시상금 4쌍 + 합계 열(그룹 "시상금 합계"). wide unpivot·시상항목별 정밀 대사는 Backlog(후속 승격).
 
 ### F-063 · 시책 대사 (보고 시상금 vs 계산) (P1)
 - **REQ-085**: 정산 run에서 원수사 보고 시상금(incentive_payout_records)과 시책룰 계산액(settlement_lines)을 원수사별·계약별로 비교(diff)할 수 있다
 - **Acceptance**:
-  - [ ] GET /api/runs/:id/incentive-reconciliation: 원수사별 보고/계산/차액 집계 + 계약 단위 드릴다운 (조회 전용 MVP, 저장 없음 - F-014 reconciliations와 분리)
-  - [ ] UI: 대사 화면에 시책 대사 섹션
-  - [ ] 테스트: 시책 원장 + 룰 계산 diff 시나리오
-- **Status**: 🔧 IN_PROGRESS
+  - [x] GET /api/runs/:id/incentive-reconciliation: 원수사별 보고/계산/차액 집계 + 계약 단위 드릴다운 (조회 전용 MVP, 저장 없음 - F-014 reconciliations와 분리)
+  - [x] UI: 대사 화면에 시책 대사 섹션
+  - [x] 테스트: 시책 원장 + 룰 계산 diff 시나리오
+- **Status**: ✅ DONE
 - **Sprint**: S24
-- **Notes**: F-062 의존. 계산측은 기존 settlement_lines(시책룰 evaluate) 재사용 - F-014(수수료 대사)와 계산측 공유, 보고측만 시책 원장으로 대체한 대칭 설계. 마감 스냅샷/저장 대사 반영은 후속.
+- **Notes**: F-062 의존. 계산측은 기존 settlement_lines(시책룰 evaluate) 재사용 - F-014(수수료 대사)와 계산측 공유, 보고측만 시책 원장으로 대체한 대칭 설계. 마감 스냅샷/저장 대사 반영은 후속. **배포(2026-07-15, PR #62, version 11a08ed2, migration 0007 remote 적용)**: prod 스모크 = /health·/app 200, 신규 endpoint 401 게이트, 번들 시책 UI 문자열, D1 테이블/컬럼 확인. 실파일(삼성화재) 실측 = 963행→89행 절단·81행 staged·9필드 후보. 잔여 관찰: 고객 실업로드(인증 실사용은 자격증명 부재로 F-048 선례처럼 로컬 동일코드 검증으로 갈음). localMap은 첫 시상항목 "시상금" 열을 잡음 - 합계 열(그룹 "시상금 합계") 교정은 매핑 검토 HITL에서, AI 매핑은 그룹 라벨을 프롬프트로 받음.
 
 ## §3. Backlog (F-item 승격 대기)
 
