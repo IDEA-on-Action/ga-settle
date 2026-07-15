@@ -85,4 +85,24 @@ describe("F-008 파싱 파이프라인 + 승인 커밋", () => {
     expect(res.status).toBe(409);
     expect((await getDb(env).select().from(commissionRecords).where(eq(commissionRecords.uploadId, "u1")).all()).length).toBe(0);
   });
+
+  // F-061: 검증 오류 대량(>20행 = 바인딩 100개 초과) 파일도 파싱 실패 없이 review 도달.
+  // 실사례: 삼성화재 시책지급내역 963행 -> 오류 2,911건 -> 단일 insert 파라미터 14,555개로 D1 한도 초과.
+  it("오류 300행 대량 파일: 분할 insert로 전량 기록 + review (REQ-083)", async () => {
+    await seedUpload();
+    const g = buildGrid(); // 12 valid + 2 오류
+    for (let i = 1; i <= 300; i++) {
+      const prem = 500000 + i;
+      g.push([`Q-${i}`, "2026-06-15", "", prem, 20, Math.round(prem * 0.2)]); // 설계사명(필수) 누락
+    }
+    const counts = await ingestParsed(noKeyEnv, getDb(env), { uploadId: "u1", r2Key: R2KEY, insurerId: "ins1" }, g);
+    expect(counts).toMatchObject({ rowCount: 314, okCount: 12, errorCount: 302 });
+
+    const up = await getDb(env).select().from(uploads).where(eq(uploads.id, "u1")).get();
+    expect(up?.status).toBe("review");
+    expect(up?.errorCount).toBe(302);
+
+    const errs = (await (await aget("/api/uploads/u1/errors")).json()) as { rowNo: number; field: string }[];
+    expect(errs.length).toBe(302); // 상세 행도 전량 (MAX_ERROR_DETAIL_ROWS 이내)
+  });
 });
