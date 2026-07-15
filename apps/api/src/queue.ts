@@ -9,6 +9,10 @@ import type { Env, ParseJob } from "./types";
 
 export type { ParseJob }; // 기존 import 경로(./queue) 호환용 재노출
 
+// 오류 상세 행 저장 상한. errorCount(총계)는 전량 기록되고 상세만 절단 -> 병리적 파일(수만 오류)에서
+// 배치 폭주 방지. 상한 초과분은 /errors 리포트에 미노출(총계와 차이로 절단 인지 가능).
+export const MAX_ERROR_DETAIL_ROWS = 5000;
+
 // XLSX 바이트 -> Grid(배열의 배열). 얇은 I/O 어댑터. workerd에서 SheetJS가 환경 편차가
 // 있어 CI 테스트는 이 함수를 우회하고 프로덕션 스모크로 검증한다(F-008 Notes).
 export function sheetToGrid(buf: ArrayBuffer): Cell[][] {
@@ -42,9 +46,13 @@ export async function ingestParsed(
 
   const { staged, errors } = validateRows(rows, columnMap);
   if (errors.length) {
-    await db.insert(uploadErrors).values(
-      errors.map((e) => ({ uploadId, rowNo: e.rowNo, field: e.field, reason: e.reason, rawValue: e.rawValue ?? null })),
-    );
+    // D1은 쿼리당 바인딩 파라미터 100개 한도 -> 5컬럼 x 18행 = 90개 단위로 분할해
+    // 단일 batch(원자적)로 기록. 대량 오류 파일(삼성화재 시책지급내역 2,911건 실사례) 대응.
+    const detail = errors.slice(0, MAX_ERROR_DETAIL_ROWS)
+      .map((e) => ({ uploadId, rowNo: e.rowNo, field: e.field, reason: e.reason, rawValue: e.rawValue ?? null }));
+    const chunks = [];
+    for (let i = 0; i < detail.length; i += 18) chunks.push(detail.slice(i, i + 18));
+    await db.batch([db.insert(uploadErrors).values(chunks[0]!), ...chunks.slice(1).map((c) => db.insert(uploadErrors).values(c))]);
   }
   await env.UPLOADS.put(`${r2Key}.staged.json`, JSON.stringify({ columnMap, staged }));
   await db.update(uploads).set({
@@ -78,7 +86,9 @@ export async function queueConsumer(batch: MessageBatch<ParseJob>, env: Env): Pr
       msg.ack();
     } catch (e) {
       console.error(`parse job 실패 job=${jobId} upload=${uploadId}`, e);
-      await db.update(jobs).set({ status: "failed", message: "파싱 실패", updatedAt: now() }).where(eq(jobs.id, jobId));
+      // 원인 미기록이면 사후 진단 불가(F-061 교훈: "파싱 실패"만으론 D1 한도 초과를 특정 못 함)
+      const cause = String(e instanceof Error ? e.message : e).slice(0, 200);
+      await db.update(jobs).set({ status: "failed", message: `파싱 실패: ${cause}`, updatedAt: now() }).where(eq(jobs.id, jobId));
       msg.retry(); // max_retries 3 이후 DLQ
     }
   }
