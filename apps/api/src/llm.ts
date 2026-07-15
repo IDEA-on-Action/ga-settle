@@ -1,6 +1,6 @@
 import {
   ONTOLOGY, RELATION_DESC, buildProfilePrompt, localMap, runConsistency, applyEvidence,
-  type ColumnProfile, type Cell, type CandidateMap, type Evidence,
+  type ColumnProfile, type Cell, type CandidateMap, type Evidence, type OntologyField,
 } from "@ga-settle/mapping";
 import type { Env } from "./types";
 
@@ -14,8 +14,11 @@ export type MappingResult = { candidates: CandidateMap; evidence: Evidence[]; en
  * 매핑 후보(field->ci)+신뢰도+근거를 tool_use JSON으로 수신 (REQ-008, REQ-010).
  * 실패(키 없음/HTTP 오류/빈 응답)는 throw -> 호출자가 규칙 엔진으로 폴백.
  */
-export async function aiMap(profiles: ColumnProfile[], apiKey: string): Promise<CandidateMap> {
-  const ontologyDesc = ONTOLOGY.map(
+export async function aiMap(
+  profiles: ColumnProfile[], apiKey: string,
+  ontology: OntologyField[] = ONTOLOGY, relationDesc: string = RELATION_DESC,
+): Promise<CandidateMap> {
+  const ontologyDesc = ontology.map(
     (f) => `- ${f.key} (${f.type}${f.required ? ", 필수" : ""}): ${f.desc} [동의어: ${f.syn.join(", ")}]`,
   ).join("\n");
   const system =
@@ -23,7 +26,7 @@ export async function aiMap(profiles: ColumnProfile[], apiKey: string): Promise<
     "헤더 이름뿐 아니라 값의 타입 분포와 표본을 근거로 판단하라. 확신이 없으면 낮은 신뢰도를 매겨라. " +
     "매핑은 후보일 뿐이며 최종 확정은 별도 정합성 검증과 사람이 한다.";
   const user =
-    `# 표준 온톨로지\n${ontologyDesc}\n\n# 핵심 관계\n${RELATION_DESC}\n\n` +
+    `# 표준 온톨로지\n${ontologyDesc}\n\n# 핵심 관계\n${relationDesc}\n\n` +
     `# 업로드 컬럼 프로파일 (표본은 마스킹됨)\n${buildProfilePrompt(profiles, true)}\n\n` +
     "각 온톨로지 필드에 가장 잘 맞는 열 번호(ci)와 신뢰도(0~1), 한 줄 근거를 map 도구로 제출하라. 매칭 열이 없으면 생략하라.";
 
@@ -68,7 +71,7 @@ export async function aiMap(profiles: ColumnProfile[], apiKey: string): Promise<
   const mappings = (tool?.input as { mappings?: Array<{ field: string; ci: number; confidence: number; reason?: string }> })?.mappings;
   if (!mappings?.length) throw new Error("빈 매핑 응답");
 
-  const valid = new Set(ONTOLOGY.map((f) => f.key));
+  const valid = new Set(ontology.map((f) => f.key));
   const out: CandidateMap = {};
   for (const m of mappings) {
     if (!valid.has(m.field) || typeof m.ci !== "number") continue;
@@ -89,19 +92,20 @@ export async function aiMap(profiles: ColumnProfile[], apiKey: string): Promise<
  */
 export async function resolveMapping(
   profiles: ColumnProfile[], rows: Cell[][], env: Env, learned: Record<string, string> = {},
+  ontology: OntologyField[] = ONTOLOGY, relationDesc: string = RELATION_DESC,
 ): Promise<MappingResult> {
   let candidates: CandidateMap;
   let engine: "ai" | "local";
   try {
     if (!env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY 없음");
-    candidates = await aiMap(profiles, env.ANTHROPIC_API_KEY);
+    candidates = await aiMap(profiles, env.ANTHROPIC_API_KEY, ontology, relationDesc);
     engine = "ai";
   } catch (e) {
     console.warn("AI 매핑 실패, 규칙 엔진 폴백:", String(e));
-    candidates = localMap(profiles, learned);
+    candidates = localMap(profiles, learned, ontology);
     engine = "local";
   }
-  const evidence = runConsistency(candidates, profiles, rows);
-  applyEvidence(candidates, evidence, engine);
+  const evidence = runConsistency(candidates, profiles, rows, ontology);
+  applyEvidence(candidates, evidence, engine, ontology);
   return { candidates, evidence, engine };
 }

@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { and, desc, eq, like, or, sql } from "drizzle-orm";
-import { settlementRuns, settlementLines, commissionRecords, familyFlags, reconciliations, adjustments } from "@ga-settle/schema";
+import { settlementRuns, settlementLines, commissionRecords, incentivePayoutRecords, familyFlags, reconciliations, adjustments } from "@ga-settle/schema";
 import { evaluate, type CommissionInput } from "@ga-settle/rules";
 import type { Env } from "../types";
 import { getDb, encField, decNum, writeAudit, type Db } from "../db";
@@ -187,6 +187,65 @@ runsRoutes.get("/api/runs/:id/reconciliation", async (c) => {
   }
 
   return c.json({ runId: run.id, insurers: summary, diffContracts });
+});
+
+/**
+ * 시책 대사 (F-063 REQ-085): 원수사 보고 시상금(incentive_payout_records) vs 시책룰 계산액
+ * (settlement_lines 합)을 원수사별로 비교하고, 차액을 계약(contractNo) 단위까지 추적.
+ * F-014(수수료 대사)와 계산측을 공유하고 보고측만 시책 원장으로 대체한 대칭 설계.
+ * 조회 전용 MVP - reconciliations 저장 없음(마감 스냅샷 반영은 후속).
+ */
+runsRoutes.get("/api/runs/:id/incentive-reconciliation", async (c) => {
+  const db = getDb(c.env);
+  const run = await db.select().from(settlementRuns).where(eq(settlementRuns.id, c.req.param("id"))).get();
+  if (!run) return c.json({ error: "없는 run이에요" }, 404);
+
+  const key = c.env.FIELD_ENCRYPTION_KEY;
+  const iprs = await db.select().from(incentivePayoutRecords).where(eq(incentivePayoutRecords.settlementMonth, run.settlementMonth)).all();
+
+  // 계산측: settlement_lines를 계약번호 단위로 집계 (commission_records 경유로 contractNo 매핑)
+  const lines = await db.select().from(settlementLines).where(eq(settlementLines.runId, run.id)).all();
+  const crs = await db.select({ id: commissionRecords.id, contractNo: commissionRecords.contractNo, insurerId: commissionRecords.insurerId })
+    .from(commissionRecords).where(eq(commissionRecords.settlementMonth, run.settlementMonth)).all();
+  const contractOfRecord = new Map(crs.map((r) => [r.id, r] as const));
+  const calcByContract = new Map<string, number>();
+  for (const l of lines) {
+    const cr = contractOfRecord.get(l.commissionRecordId);
+    if (!cr) continue;
+    calcByContract.set(cr.contractNo, (calcByContract.get(cr.contractNo) ?? 0) + (await decNum(l.amountEnc, key)));
+  }
+
+  // 보고측: 시책 원장을 계약번호 단위로 집계 (동일 증권번호 복수 시상 행 합산)
+  const reportedByContract = new Map<string, { insurerId: string; amount: number }>();
+  for (const r of iprs) {
+    const agg = reportedByContract.get(r.contractNo) ?? { insurerId: r.insurerId, amount: 0 };
+    agg.amount += await decNum(r.payoutEnc, key);
+    reportedByContract.set(r.contractNo, agg);
+  }
+
+  // 계약 단위 diff (보고/계산 어느 한쪽에만 있는 계약도 포함)
+  const contracts = [...new Set([...reportedByContract.keys(), ...calcByContract.keys()])].map((contractNo) => {
+    const rep = reportedByContract.get(contractNo);
+    const insurerAmount = rep?.amount ?? 0;
+    const calculatedAmount = calcByContract.get(contractNo) ?? 0;
+    return { contractNo, insurerId: rep?.insurerId ?? contractOfRecord.get(contractNo)?.insurerId ?? null, insurerAmount, calculatedAmount, diff: insurerAmount - calculatedAmount };
+  });
+  const diffContracts = contracts.filter((x) => x.diff !== 0);
+
+  // 원수사별 집계 (보고 시상금이 있는 원수사 기준 + 계산만 있는 건 insurerId null 그룹 제외)
+  const byInsurer = new Map<string, { insurer: number; calc: number }>();
+  for (const x of contracts) {
+    if (!x.insurerId) continue;
+    const agg = byInsurer.get(x.insurerId) ?? { insurer: 0, calc: 0 };
+    agg.insurer += x.insurerAmount; agg.calc += x.calculatedAmount;
+    byInsurer.set(x.insurerId, agg);
+  }
+  const summary = [...byInsurer.entries()].map(([insurerId, agg]) => ({
+    insurerId, insurerTotal: agg.insurer, calculatedTotal: agg.calc, diff: agg.insurer - agg.calc,
+    status: agg.insurer - agg.calc === 0 ? "matched" : "diff",
+  }));
+
+  return c.json({ runId: run.id, reportedRecords: iprs.length, insurers: summary, diffContracts });
 });
 
 /**

@@ -15,6 +15,7 @@ import type { JobDetail, UploadAcceptedResponse, UploadDetail, UploadDuplicateBo
 import { currentMonth, formatNumber, ProgressBar, StatusBadge } from "./_pipeline/shared";
 
 type UploadKind = "excel" | "plan";
+type DocType = "commission" | "incentive";
 
 /**
  * 업로드 (F-026): 엑셀 업로드 -> 파싱 진행률 폴링 -> 업로드 상태.
@@ -31,6 +32,7 @@ interface SessionUpload {
 
 export default function UploadScreen() {
   const [kind, setKind] = useState<UploadKind>("excel");
+  const [docType, setDocType] = useState<DocType>("commission");
   const [insurerId, setInsurerId] = useState("");
   const [settlementMonth, setSettlementMonth] = useState(currentMonth());
   const [file, setFile] = useState<File | null>(null);
@@ -46,6 +48,7 @@ export default function UploadScreen() {
       form.append("file", file);
       form.append("insurerId", insurerId);
       form.append("settlementMonth", settlementMonth);
+      form.append("docType", docType);
       return apiFetch<UploadAcceptedResponse>("/api/uploads", { method: "POST", body: form });
     },
     onSuccess: (res) => {
@@ -137,6 +140,30 @@ export default function UploadScreen() {
                   className="hidden"
                   onChange={(e) => setFile(e.target.files?.[0] ?? null)}
                 />
+              </div>
+
+              {/* 문서유형 (F-062): 수수료 지급명세(기본) vs 시책지급내역(시상금) - 매핑 온톨로지 분기 */}
+              <div className="flex flex-col gap-1.5">
+                <Label>문서유형</Label>
+                <div className="inline-flex w-fit rounded-md border border-axis-border-default p-0.5">
+                  {([["commission", "수수료 지급명세"], ["incentive", "시책지급내역 (시상금)"]] as const).map(([v, label]) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => setDocType(v)}
+                      className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${
+                        docType === v ? "bg-axis-surface-info text-axis-text-brand" : "text-axis-text-tertiary"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                {docType === "incentive" && (
+                  <p className="text-xs text-axis-text-tertiary">
+                    시상금 지급 내역 엑셀이에요. 시트에 여러 표가 이어 붙은 경우 첫 번째 상세 표만 인식해요.
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">

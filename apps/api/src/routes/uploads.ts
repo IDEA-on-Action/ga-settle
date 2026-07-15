@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { and, desc, eq, inArray, like, or, sql } from "drizzle-orm";
-import { uploads, jobs, insurers, uploadErrors, commissionRecords, settlementRuns, settlementLines } from "@ga-settle/schema";
+import { uploads, jobs, insurers, uploadErrors, commissionRecords, incentivePayoutRecords, settlementRuns, settlementLines } from "@ga-settle/schema";
 import type { StagedRow } from "@ga-settle/mapping";
 import type { Env } from "../types";
 import { getDb, sha256Hex, encField, writeAudit } from "../db";
@@ -15,6 +15,8 @@ const MAX_UPLOAD_BYTES = 50 * 1024 * 1024; // 50MB (수만 행 엑셀 여유분,
 const uploadMeta = z.object({
   insurerId: z.string().min(1),
   settlementMonth: z.string().regex(/^\d{4}-\d{2}$/, "YYYY-MM 형식"),
+  // 문서유형 (F-062): 수수료(기본) | 시책지급내역. 폼 미전송(null)이면 commission (기존 호출 호환).
+  docType: z.enum(["commission", "incentive"]).nullish().transform((v) => v ?? "commission"),
 });
 
 uploadsRoutes.post("/api/uploads", async (c) => {
@@ -25,6 +27,7 @@ uploadsRoutes.post("/api/uploads", async (c) => {
   const meta = uploadMeta.safeParse({
     insurerId: form.get("insurerId"),
     settlementMonth: form.get("settlementMonth"),
+    docType: form.get("docType"),
   });
   if (!meta.success) return c.json({ error: "메타 검증 실패", detail: meta.error.flatten().fieldErrors }, 400);
 
@@ -67,7 +70,7 @@ uploadsRoutes.post("/api/uploads", async (c) => {
     await db.batch([
       db.insert(uploads).values({
         id: uploadId, insurerId: meta.data.insurerId, r2Key, fileHash, status: "queued",
-        settlementMonth: meta.data.settlementMonth, createdBy, createdAt: now,
+        docType: meta.data.docType, settlementMonth: meta.data.settlementMonth, createdBy, createdAt: now,
       }),
       db.insert(jobs).values({
         id: jobId, kind: "parse-upload", refId: uploadId, status: "queued", progress: 0, updatedAt: now,
@@ -78,7 +81,7 @@ uploadsRoutes.post("/api/uploads", async (c) => {
     return c.json({ error: "이미 업로드된 파일이에요", duplicate: true }, 409);
   }
 
-  await c.env.PARSE_QUEUE.send({ kind: "parse-upload", uploadId, jobId, r2Key, insurerId: meta.data.insurerId });
+  await c.env.PARSE_QUEUE.send({ kind: "parse-upload", uploadId, jobId, r2Key, insurerId: meta.data.insurerId, docType: meta.data.docType });
 
   return c.json({ uploadId, jobId, status: "queued" }, 202);
 });
@@ -103,6 +106,7 @@ uploadsRoutes.get("/api/uploads", async (c) => {
       insurerName: insurers.name,
       settlementMonth: uploads.settlementMonth,
       status: uploads.status,
+      docType: uploads.docType,
       rowCount: uploads.rowCount,
       okCount: uploads.okCount,
       errorCount: uploads.errorCount,
@@ -160,6 +164,30 @@ uploadsRoutes.post("/api/uploads/:id/approve", async (c) => {
   if (claim.meta.changes === 0) return c.json({ error: "이미 승인됐거나 review 상태가 아니에요" }, 409);
 
   const key = c.env.FIELD_ENCRYPTION_KEY;
+
+  // 시책지급내역 (F-062): incentive_payout_records로 커밋 (역추적 불변식 #1 + 금액 암호화 #5 동일)
+  if (up.docType === "incentive") {
+    const recs = await Promise.all(staged.map(async (s) => ({
+      id: crypto.randomUUID(),
+      uploadId: up.id, rowNo: s.rowNo, settlementMonth: up.settlementMonth, insurerId: up.insurerId,
+      contractNo: String(s.fields["계약번호"] ?? ""),
+      agentId: s.fields["설계사코드"] != null ? String(s.fields["설계사코드"]) : null,
+      productName: s.fields["상품명"] != null ? String(s.fields["상품명"]) : null,
+      perfDate: s.fields["실적일자"] != null ? String(s.fields["실적일자"]) : null,
+      incentiveLabel: s.fields["시상항목"] != null ? String(s.fields["시상항목"]) : null,
+      rate: typeof s.fields["시상율"] === "number" ? s.fields["시상율"] : null,
+      premiumEnc: await encField(s.fields["보험료"], key),
+      payoutEnc: await encField(s.fields["시상금"], key),
+    })));
+    if (recs.length) {
+      await db.batch([
+        db.insert(incentivePayoutRecords).values(recs[0]!),
+        ...recs.slice(1).map((r) => db.insert(incentivePayoutRecords).values(r)),
+      ]);
+    }
+    return c.json({ committed: recs.length, status: "approved", docType: "incentive" });
+  }
+
   const recs = await Promise.all(staged.map(async (s) => ({
     id: crypto.randomUUID(),
     uploadId: up.id, rowNo: s.rowNo, settlementMonth: up.settlementMonth, insurerId: up.insurerId,
@@ -215,6 +243,7 @@ uploadsRoutes.delete("/api/uploads/:id", async (c) => {
     deletedLines += res.meta.changes ?? 0;
   }
   const delRec = await db.delete(commissionRecords).where(eq(commissionRecords.uploadId, id));
+  const delIpr = await db.delete(incentivePayoutRecords).where(eq(incentivePayoutRecords.uploadId, id));
   const delErr = await db.delete(uploadErrors).where(eq(uploadErrors.uploadId, id));
   const delJob = await db.delete(jobs).where(and(eq(jobs.kind, "parse-upload"), eq(jobs.refId, id)));
   await db.delete(uploads).where(eq(uploads.id, id));
@@ -225,6 +254,7 @@ uploadsRoutes.delete("/api/uploads/:id", async (c) => {
     settlementMonth: up.settlementMonth,
     insurerId: up.insurerId,
     commissionRecords: delRec.meta.changes ?? 0,
+    incentivePayoutRecords: delIpr.meta.changes ?? 0,
     settlementLines: deletedLines,
     uploadErrors: delErr.meta.changes ?? 0,
     jobs: delJob.meta.changes ?? 0,

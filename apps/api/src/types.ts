@@ -5,6 +5,7 @@ export type ParseJob = {
   jobId: string;
   r2Key: string;
   insurerId: string;
+  docType?: "commission" | "incentive"; // 문서유형 (F-062, 생략 시 commission - 구 메시지 호환)
 };
 
 export type Env = {
