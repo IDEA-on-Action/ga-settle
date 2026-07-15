@@ -5,9 +5,9 @@
  */
 import { describe, it, expect } from "vitest";
 import {
-  ONTOLOGY, norm, parseDate, parseNumber, maskSample, detectHeaderRow,
+  ONTOLOGY, INCENTIVE_ONTOLOGY, norm, parseDate, parseNumber, maskSample, detectHeaderRow,
   profileColumns, inferType, localMap, feeFormulaCheck, runConsistency, applyEvidence,
-  validateRows, columnMapOf,
+  validateRows, columnMapOf, truncateAtBlockBoundary, extractGroupHeaders,
   type Grid, type Cell, type CandidateMap,
 } from "../src/index";
 
@@ -214,5 +214,73 @@ describe("L2 규칙 엔진 -> L3 산식 발굴 -> L4 등급", () => {
   it("온톨로지 필수 필드 정의가 유지된다 (SPEC 정합)", () => {
     const required = ONTOLOGY.filter((f) => f.required).map((f) => f.key);
     expect(required).toEqual(["계약번호", "설계사명", "지급수수료"]);
+  });
+});
+
+// F-062 시책지급내역: 다중 블록 절단 + 다단 헤더 그룹 라벨 + 시책 온톨로지
+describe("F-062 시책지급내역 인입", () => {
+  // 삼성화재 실파일 축약 재현: ■마커 + 3단 헤더 + 상세 블록 + 이어 붙은 하위 표
+  function incentiveGrid(): Cell[][] {
+    const g: Cell[][] = [
+      ["■ 장기 건별 시상금"],
+      [],
+      [null, null, null, null, null, "시상금 합계"], // 그룹 라벨 행 (hIdx-1)
+      ["증권번호", "설계사코드", "설계사명", "상품명", "월납P", "설계사"], // 리프 헤더
+    ];
+    for (let i = 1; i <= 12; i++) {
+      const prem = 20000 + i * 100;
+      g.push([`P-${i}`, `A${i % 3}`, i % 4 === 0 ? null : "김설계", "운전자보험", prem, prem * 3]);
+    }
+    g.push(["P-1", "A1", "김설계", "운전자보험", 20100, 60300]); // 동일 증권번호 재등장 (시상 복수 행)
+    // 이어 붙은 하위 표 (다른 헤더) - 절단돼야 함
+    g.push(["부서", "부서코드", "대리점", "지사", "지사코드", "사업부"]);
+    g.push(["강남", 1234, "에이전시", "본점", 99, "수도권"]);
+    return g;
+  }
+
+  it("truncateAtBlockBoundary: 이어 붙은 하위 표 헤더에서 절단한다", () => {
+    const g = incentiveGrid();
+    const hIdx = detectHeaderRow(g);
+    expect(hIdx).toBe(3);
+    const cut = truncateAtBlockBoundary(g, hIdx);
+    expect(cut.length).toBe(g.length - 2); // 하위 표 2행 제거
+    const { rows } = profileColumns(cut, hIdx);
+    expect(rows.length).toBe(13); // 상세 13행만
+  });
+
+  it("truncateAtBlockBoundary: ■ 섹션 마커에서도 절단한다", () => {
+    const g = incentiveGrid().slice(0, 10);
+    g.push(["■ 부서별 집계"], ["강남", 1, 2, 3, 4, 5]);
+    const cut = truncateAtBlockBoundary(g, 3);
+    expect(cut.length).toBe(10);
+  });
+
+  it("extractGroupHeaders: 헤더 위 행의 그룹 라벨을 좌측 전파로 추출한다", () => {
+    const g = incentiveGrid();
+    const groups = extractGroupHeaders(g, 3);
+    expect(groups[5]).toBe("시상금 합계");
+  });
+
+  it("그룹 라벨 결합 매핑: '시상금 합계' 그룹 아래 '설계사' 열이 시상금 후보가 된다", () => {
+    const g = truncateAtBlockBoundary(incentiveGrid(), 3);
+    const { profiles } = profileColumns(g, 3, { groupHeaders: extractGroupHeaders(g, 3) });
+    const cands = localMap(profiles, {}, INCENTIVE_ONTOLOGY);
+    expect(cands["시상금"]?.ci).toBe(5);
+    expect(cands["계약번호"]?.ci).toBe(0);
+    expect(cands["보험료"]?.ci).toBe(4); // 월납P
+  });
+
+  it("시책 검증: 중복 미적용 + 설계사명 공란 허용 (필수는 계약번호·시상금만)", () => {
+    const g = truncateAtBlockBoundary(incentiveGrid(), 3);
+    const { profiles, rows } = profileColumns(g, 3, { groupHeaders: extractGroupHeaders(g, 3) });
+    const cands = localMap(profiles, {}, INCENTIVE_ONTOLOGY);
+    const { staged, errors } = validateRows(rows, columnMapOf(cands), INCENTIVE_ONTOLOGY, { dedupe: false });
+    expect(staged.length).toBe(13); // 동일 증권번호 재등장·설계사명 공란 전부 통과
+    expect(errors.length).toBe(0);
+  });
+
+  it("시책 온톨로지 필수 필드 정의가 유지된다 (SPEC 정합)", () => {
+    const required = INCENTIVE_ONTOLOGY.filter((f) => f.required).map((f) => f.key);
+    expect(required).toEqual(["계약번호", "시상금"]);
   });
 });

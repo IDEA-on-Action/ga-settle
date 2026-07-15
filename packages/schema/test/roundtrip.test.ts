@@ -14,6 +14,7 @@ function freshDb(): BetterSQLite3Database<typeof schema> {
   const sqlite = new Database(":memory:");
   sqlite.exec(MIG("0000_rainy_rogue.sql")); // '--> statement-breakpoint' 은 SQL 주석이라 무시됨
   sqlite.exec(MIG("0001_triggers.sql"));
+  sqlite.exec(MIG("0007_dry_excalibur.sql")); // uploads.doc_type + incentive_payout_records (F-062)
   return drizzle(sqlite, { schema });
 }
 
@@ -21,11 +22,11 @@ describe("F-002 스키마 왕복", () => {
   let db: BetterSQLite3Database<typeof schema>;
   beforeEach(() => { db = freshDb(); });
 
-  it("18개 테이블이 생성된다", () => {
+  it("19개 테이블이 생성된다", () => {
     const rows = db.all<{ name: string }>(
       sql`SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'`,
     );
-    expect(rows.length).toBe(18);
+    expect(rows.length).toBe(19); // +incentive_payout_records (F-062, 0007)
   });
 
   it("commission_records 역추적 왕복 (upload_id + row_no), REQ-004", () => {

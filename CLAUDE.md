@@ -43,7 +43,7 @@ pnpm -F api d1:migrate:local           # 로컬 D1에 마이그레이션 적용 
 - GET /assets · /comms - 포털 보호 영역(자료실·소통) → 로그인(/app) 유도 (설계 §8, 상세 구현 후속)
 - GET /health - 헬스체크
 - POST /api/insurers · GET /api/insurers · GET/PATCH/DELETE /api/insurers/:id - 원수사 마스터 CRUD(삭제는 참조 있으면 409) (F-032)
-- POST /api/uploads - 엑셀 업로드(멀티파트). SHA-256 멱등(중복 409), R2 불변 보관, Queue 발행, 202+{uploadId,jobId} (F-003)
+- POST /api/uploads - 엑셀 업로드(멀티파트). SHA-256 멱등(중복 409), R2 불변 보관, Queue 발행, 202+{uploadId,jobId} (F-003). docType 필드(commission 기본|incentive=시책지급내역): incentive는 시책 온톨로지(계약번호·시상금 필수)+다중블록 첫 표 절단+다단 헤더 그룹 라벨 매핑+중복검증 미적용, 승인 시 incentive_payout_records 원장 커밋 (F-062)
 - GET /api/uploads - 최근 업로드 목록(id,원수사명,정산월,상태,카운트) 선택기용, 민감정보 제외. ?q·?limit·?offset+total 검색/페이지 (F-036/F-042)
 - DELETE /api/uploads/:id - 업로드 삭제. 마감(closed run)된 정산월은 409 차단(불변식 #2, API+D1 트리거), 그 외는 원장·정산라인·검증오류·jobs·R2 원본 cascade + 감사로그(upload.delete). UI: 업로드 내역 목록 2단계 확인 (F-047)
 - GET /api/jobs/:id - 파싱 진행률 폴링 (F-003)
@@ -73,6 +73,7 @@ pnpm -F api d1:migrate:local           # 로컬 D1에 마이그레이션 적용 
 - GET /api/runs - 정산 Run 목록(id,정산월,상태,마감시각) 월/Run 선택기용 (F-037)
 - POST /api/runs · POST /api/runs/:id/calculate · GET /api/runs/:id - 월 정산 run + 룰 계산(재현성) (F-013)
 - GET /api/runs/:id/reconciliation - 대사(원수사 보고액 vs 계산액, 계약 단위 차액 드릴다운) (F-014)
+- GET /api/runs/:id/incentive-reconciliation - 시책 대사(보고 시상금 incentive_payout_records vs 시책룰 계산액, 원수사별+계약 단위 diff, 조회 전용) (F-063)
 - GET /api/runs/:id/contracts - 해당 run 월 계약 목록(contractNo,agentId,productName) 보정 선택기용, 금액 제외 (F-041)
 - GET /api/runs/:id/parallel-verify - 병행 검증(저장 vs 재계산 차액 0원 무결성) (F-022)
 - POST /api/runs/:id/adjustments · GET - 수동 보정(reason 필수)+감사로그. 등록자(createdBy)는 인증 사용자 자동 기록, approvedBy는 선택적 이중 승인자 (F-015/F-038). GET은 {items,total} 페이지네이션 (F-042)

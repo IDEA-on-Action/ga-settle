@@ -31,6 +31,7 @@ export const uploads = sqliteTable("uploads", {
   r2Key: text("r2_key").notNull(),
   fileHash: text("file_hash").notNull(),               // 멱등 키
   status: text("status").notNull(),                    // queued|parsing|review|approved|rejected
+  docType: text("doc_type").notNull().default("commission"), // commission(수수료)|incentive(시책지급내역) (F-062)
   settlementMonth: text("settlement_month").notNull(), // YYYY-MM (월 파티셔닝)
   rowCount: integer("row_count"),
   okCount: integer("ok_count"),
@@ -66,6 +67,27 @@ export const commissionRecords = sqliteTable("commission_records", {
 }, (t) => ({
   idxCrMonth: index("idx_cr_month").on(t.settlementMonth, t.insurerId),
   idxCrTrace: index("idx_cr_trace").on(t.uploadId, t.rowNo), // 역추적 조회
+}));
+
+// 시책지급내역 원장 (F-062): 원수사가 보고한 시상금 지급 내역. commission_records와 대칭 -
+// 역추적 불변식(upload_id + row_no) + 금액 암호화(불변식 #5). 시책 대사(F-063)의 보고측.
+export const incentivePayoutRecords = sqliteTable("incentive_payout_records", {
+  id: text("id").primaryKey(),
+  uploadId: text("upload_id").notNull().references(() => uploads.id),
+  rowNo: integer("row_no").notNull(),
+  settlementMonth: text("settlement_month").notNull(),
+  insurerId: text("insurer_id").notNull().references(() => insurers.id),
+  contractNo: text("contract_no").notNull(),
+  agentId: text("agent_id"),
+  productName: text("product_name"),
+  perfDate: text("perf_date"),               // 실적일자
+  incentiveLabel: text("incentive_label"),   // 시상항목/유형
+  rate: real("rate"),                        // 시상율 (요율은 룰과 동일하게 평문)
+  premiumEnc: text("premium_enc"),           // 기준 보험료 (암호화, F-020 대칭)
+  payoutEnc: text("payout_enc"),             // 시상금 (암호화)
+}, (t) => ({
+  idxIprMonth: index("idx_ipr_month").on(t.settlementMonth, t.insurerId),
+  idxIprTrace: index("idx_ipr_trace").on(t.uploadId, t.rowNo),
 }));
 
 // ── 조직 / 설계사 / 시점별 소속 (F-009) ─────────────────────────

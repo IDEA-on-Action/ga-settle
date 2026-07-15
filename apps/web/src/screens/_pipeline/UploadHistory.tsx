@@ -12,6 +12,8 @@ interface UploadRow {
   insurerName: string | null;
   settlementMonth: string;
   status: string;
+  docType?: "commission" | "incentive"; // F-062 문서유형
+
   rowCount: number | null;
   okCount: number | null;
   errorCount: number | null;
@@ -84,6 +86,9 @@ export function UploadHistory() {
               <div className="flex items-center gap-2">
                 <span className="truncate text-sm font-medium">{u.insurerName ?? u.insurerId}</span>
                 <span className="shrink-0 text-xs text-axis-text-tertiary">{u.settlementMonth}</span>
+                {u.docType === "incentive" && (
+                  <span className="shrink-0 rounded bg-axis-surface-info px-1.5 py-0.5 text-[10px] font-semibold text-axis-text-brand">시책</span>
+                )}
                 <StatusBadge status={u.status} />
               </div>
               <span className="text-xs text-axis-text-tertiary">

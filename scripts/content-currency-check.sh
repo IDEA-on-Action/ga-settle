@@ -59,6 +59,7 @@ declare -A FEATURE_KW=(
   ["납입기간별 지급율(F-052)"]="납입기간"
   ["구간시상(F-053)"]="구간시상"
   ["시책안 등록 대장(F-048)"]="등록 내역"
+  ["시책지급내역 업로드·시책 대사(F-062/063)"]="시책지급내역"
 )
 CONTENT="$(cat "$GUIDE_FILE" "$DEMO_FILE" 2>/dev/null)"
 for feat in "${!FEATURE_KW[@]}"; do

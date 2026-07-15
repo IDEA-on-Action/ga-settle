@@ -30,6 +30,26 @@ export const ONTOLOGY: OntologyField[] = [
 export const RELATION_DESC =
   "핵심 관계: 지급수수료 ≈ 보험료 x 수수료율 (수수료율이 % 단위면 100으로 나눔). 환수금액 <= 지급수수료가 일반적.";
 
+/**
+ * 시책지급내역(시상금) 온톨로지 (F-062). 수수료와 달리 설계사명 공란이 흔해(삼성화재 실측
+ * 444/933행) 필수는 계약번호+시상금만. 같은 증권번호가 시상 항목별로 반복 등장할 수 있어
+ * 중복 검증도 미적용(validateRows dedupe=false).
+ */
+export const INCENTIVE_ONTOLOGY: OntologyField[] = [
+  { key: "계약번호", required: true, type: "text", desc: "보험 계약(증권) 고유 번호. 시상 항목별 반복 등장 가능", syn: ["증권번호", "계약no", "policyno", "증번", "증권no"] },
+  { key: "설계사코드", required: false, type: "text", desc: "설계사(모집인) 사번/코드", syn: ["모집인코드", "사원코드", "fc코드", "설계사번호", "ga설계사", "사번", "fc사번", "최종설계사"] },
+  { key: "설계사명", required: false, type: "text", desc: "설계사(모집인) 성명. 공란 흔함", syn: ["모집인", "모집자", "fc명", "설계사", "모집인명", "fc성명"] },
+  { key: "상품명", required: false, type: "text", desc: "보험 상품 이름", syn: ["상품", "보험상품명", "상품명칭", "주계약명"] },
+  { key: "실적일자", required: false, type: "date", desc: "실적(계약/청약) 일자", syn: ["실적일", "계약일", "계약일자", "청약일", "성립일"] },
+  { key: "보험료", required: false, type: "number", unit: "원", desc: "시상 산정 기준 보험료(월납/보장 보험료)", syn: ["월납p", "월납보험료", "보장p", "실적보험료", "납입보험료"] },
+  { key: "시상금", required: true, type: "number", unit: "원", desc: "지급 시상금 금액(합계 우선)", syn: ["시상금액", "시상금합계", "지급시상금", "총시상금", "인센티브", "시책지급액"] },
+  { key: "시상율", required: false, type: "number", unit: "비율(0-1) 또는 %", desc: "시상 지급률", syn: ["시상률", "지급률", "지급율"] },
+  { key: "시상항목", required: false, type: "text", desc: "시상(시책) 항목/유형 이름", syn: ["시상명", "시상유형", "시책명", "시상구분"] },
+];
+
+export const INCENTIVE_RELATION_DESC =
+  "핵심 관계: 시상금 ≈ 기준 실적(보험료) x 시상율 (시상율이 % 단위면 100으로 나눔). 시상금 합계 열이 있으면 항목별 시상금보다 합계를 우선 매핑.";
+
 export const AUTO_TH = 0.88;
 export const REVIEW_TH = 0.5;
 
@@ -44,6 +64,7 @@ export type ColumnProfile = {
   nullRate: number; numericRate: number; dateRate: number; distinctRatio: number;
   numAvg: number | null; numMin: number | null; numMax: number | null;
   samples: string[]; type: ColumnType;
+  groupHeader?: string; // 다단 헤더 그룹 라벨 (F-062, extractGroupHeaders 주입 시)
 };
 
 export type Candidate = {
@@ -142,6 +163,48 @@ export function detectHeaderRow(g: Grid): number {
 }
 
 /**
+ * 다중 블록 시트 절단 (F-062): 실무 시책지급내역 엑셀은 서로 다른 헤더의 하위 표 여러 개를
+ * 한 시트에 이어 붙이는 경우가 흔함(삼성화재 실측 9개+). 헤더(hIdx) 이후 "새 헤더성 행"
+ * (문자열 위주 + 숫자 없음) 또는 ■ 섹션 마커를 만나면 그 앞까지만 남긴다(첫 블록 = 상세).
+ * 수수료 경로는 기존 동작 유지(호출부에서 incentive 유형만 적용).
+ */
+export function truncateAtBlockBoundary(g: Grid, hIdx: number): Grid {
+  for (let r = hIdx + 1; r < g.length; r++) {
+    const row = g[r] ?? [];
+    const filled = row.filter((c) => c != null && c !== "");
+    if (!filled.length) continue; // 빈 행은 경계 아님 (블록 내 공백 허용)
+    const first = filled[0];
+    if (typeof first === "string" && first.trim().startsWith("■")) return g.slice(0, r);
+    const strs = filled.filter((c) => typeof c === "string").length;
+    const nums = filled.filter((c) => typeof c === "number").length;
+    // 헤더성 행: 채워진 셀 4+ 전부 문자열 위주(숫자 ≤1) -> 다음 하위 표의 헤더로 판정
+    if (filled.length >= 4 && nums <= 1 && strs / filled.length >= 0.8) return g.slice(0, r);
+  }
+  return g;
+}
+
+/**
+ * 다단 헤더 그룹 라벨 추출 (F-062): 헤더 행 위 1~2행에서 열별로 가장 가까운 비공백 문자열을
+ * 그룹 라벨로 취한다(병합 셀은 좌측 열에만 값이 남으므로 좌측으로 전파). 시책지급내역의
+ * "시상금 합계" 그룹 아래 "설계사" 리프처럼 리프 헤더만으로 의미가 안 잡히는 열을 보강.
+ */
+export function extractGroupHeaders(g: Grid, hIdx: number): string[] {
+  const width = Math.max(...[hIdx - 2, hIdx - 1, hIdx].filter((r) => r >= 0).map((r) => (g[r] ?? []).length), 0);
+  const out: string[] = new Array(width).fill("");
+  for (const r of [hIdx - 1, hIdx - 2]) {
+    if (r < 0) break;
+    let carry = "";
+    for (let ci = 0; ci < width; ci++) {
+      const v = (g[r] ?? [])[ci];
+      if (typeof v === "string" && v.trim()) carry = v.trim();
+      else if (v != null && v !== "") carry = ""; // 숫자 등 비라벨 값은 전파 중단
+      if (!out[ci] && carry) out[ci] = carry;
+    }
+  }
+  return out;
+}
+
+/**
  * 열별 대표 타입 판정 (REQ-007 "타입 분포"의 소비 가능한 산출).
  * 날짜/숫자는 겹칠 수 있어(yymmdd 생년월일 등) 우세율로 판정, 임계 미만이면 text.
  * int vs number 는 데이터로 구별 불가(정수형 금액 흔함) -> 온톨로지에서 정제.
@@ -152,7 +215,9 @@ export function inferType(p: Pick<ColumnProfile, "numericRate" | "dateRate">): C
   return "text";
 }
 
-export function profileColumns(g: Grid, hIdx: number): { profiles: ColumnProfile[]; rows: Cell[][] } {
+export function profileColumns(
+  g: Grid, hIdx: number, opts?: { groupHeaders?: string[] },
+): { profiles: ColumnProfile[]; rows: Cell[][] } {
   const headers = (g[hIdx] ?? []).map((h) => (h == null ? "" : String(h)));
   const rows = g.slice(hIdx + 1).filter((r) => r && r.some((c) => c != null && c !== ""));
   const profiles = headers.map((h, ci) => {
@@ -173,6 +238,7 @@ export function profileColumns(g: Grid, hIdx: number): { profiles: ColumnProfile
       numericRate, dateRate, distinctRatio: distinct.size / n,
       numAvg: numN ? sum / numN : null, numMin: numN ? min : null, numMax: numN ? max : null,
       samples: [...distinct].slice(0, 8), type: inferType({ numericRate, dateRate }),
+      ...(opts?.groupHeaders?.[ci] ? { groupHeader: opts.groupHeaders[ci] } : {}),
     };
   }).filter((p) => p.header || p.count > 0);
   return { profiles, rows };
@@ -185,12 +251,20 @@ function typeCompat(f: OntologyField, p: ColumnProfile): number {
   return p.numericRate > 0.9 ? -0.15 : 0.03;
 }
 
-export function localMap(profiles: ColumnProfile[], learned: Record<string, string> = {}): CandidateMap {
+export function localMap(
+  profiles: ColumnProfile[], learned: Record<string, string> = {}, ontology: OntologyField[] = ONTOLOGY,
+): CandidateMap {
   const cand: { fi: string; ci: number; score: number }[] = [];
-  ONTOLOGY.forEach((f) => profiles.forEach((p) => {
+  ontology.forEach((f) => profiles.forEach((p) => {
     if (!p.header) return;
     let s = similarity(f.key, p.header);
     for (const syn of f.syn) s = Math.max(s, similarity(syn, p.header) * 0.98);
+    // 다단 헤더: 그룹 라벨 결합 매칭 (리프 "설계사" + 그룹 "시상금 합계" -> 시상금 후보)
+    if (p.groupHeader) {
+      const combined = `${p.groupHeader} ${p.header}`;
+      s = Math.max(s, similarity(f.key, combined) * 0.95, similarity(f.key, p.groupHeader) * 0.9);
+      for (const syn of f.syn) s = Math.max(s, similarity(syn, combined) * 0.93, similarity(syn, p.groupHeader) * 0.88);
+    }
     if (learned[norm(p.header)] === f.key) s = Math.max(s, 0.95);
     s = Math.min(0.99, s + typeCompat(f, p));
     if (s > 0.3) cand.push({ fi: f.key, ci: p.ci, score: s });
@@ -224,16 +298,21 @@ export function feeFormulaCheck(premCi: number, rateCi: number, feeCi: number, r
   return { n, passRate: n ? pass / n : 0, scale };
 }
 
-export function runConsistency(cands: CandidateMap, profiles: ColumnProfile[], rows: Cell[][]): Evidence[] {
+export function runConsistency(
+  cands: CandidateMap, profiles: ColumnProfile[], rows: Cell[][], ontology: OntologyField[] = ONTOLOGY,
+): Evidence[] {
   const ev: Evidence[] = [];
   const get = (k: string) => (cands[k] ? cands[k].ci : -1);
-  const prem = get("보험료"), rate = get("수수료율"), fee = get("지급수수료");
+  // 산식 필드: 수수료(지급수수료=보험료x수수료율) / 시책(시상금=보험료x시상율) 온톨로지별 대응
+  const feeKey = ontology.some((f) => f.key === "시상금") ? "시상금" : "지급수수료";
+  const rateKey = feeKey === "시상금" ? "시상율" : "수수료율";
+  const prem = get("보험료"), rate = get(rateKey), fee = get(feeKey);
 
   if (prem >= 0 && rate >= 0 && fee >= 0) {
     const r = feeFormulaCheck(prem, rate, fee, rows);
     ev.push({
-      id: "formula", label: `지급수수료 ≈ 보험료 x 수수료율${r.scale === 100 ? " (% 감지)" : ""}`,
-      fields: ["보험료", "수수료율", "지급수수료"], passRate: r.passRate, n: r.n,
+      id: "formula", label: `${feeKey} ≈ 보험료 x ${rateKey}${r.scale === 100 ? " (% 감지)" : ""}`,
+      fields: ["보험료", rateKey, feeKey], passRate: r.passRate, n: r.n,
       verdict: r.n < 10 ? "skip" : r.passRate >= 0.9 ? "pass" : r.passRate <= 0.6 ? "fail" : "warn",
     });
   } else if (prem >= 0 && rate >= 0 && fee < 0) {
@@ -246,15 +325,15 @@ export function runConsistency(cands: CandidateMap, profiles: ColumnProfile[], r
       if (r.n >= 10 && r.passRate >= 0.9 && (!best || r.passRate > best.passRate)) best = { p, n: r.n, passRate: r.passRate };
     }
     if (best) {
-      cands["지급수수료"] = {
+      cands[feeKey] = {
         ci: best.p.ci, confidence: 0.85, source: "evidence",
         reason: `데이터 증거 발굴: '${best.p.header}' 값이 산식과 ${Math.round(best.passRate * 100)}% 일치`,
       };
-      ev.push({ id: "formula-discover", label: `발굴: '${best.p.header}' -> 지급수수료`, fields: ["지급수수료"], passRate: best.passRate, n: best.n, verdict: "pass" });
+      ev.push({ id: "formula-discover", label: `발굴: '${best.p.header}' -> ${feeKey}`, fields: [feeKey], passRate: best.passRate, n: best.n, verdict: "pass" });
     }
   }
 
-  ONTOLOGY.forEach((f) => {
+  ontology.forEach((f) => {
     const c = cands[f.key]; if (!c) return;
     const p = profiles.find((x) => x.ci === c.ci); if (!p) return;
     if ((f.type === "number" || f.type === "int") && p.numericRate < 0.7)
@@ -266,16 +345,18 @@ export function runConsistency(cands: CandidateMap, profiles: ColumnProfile[], r
 }
 
 /* ---------------- L4: 신뢰도 결합 + 등급 ---------------- */
-const MONEY_FIELDS = new Set(["보험료", "지급수수료", "환수금액"]);
+const MONEY_FIELDS = new Set(["보험료", "지급수수료", "환수금액", "시상금"]);
 
-export function applyEvidence(cands: CandidateMap, evs: Evidence[], engineMode: "ai" | "local" | "cache"): void {
+export function applyEvidence(
+  cands: CandidateMap, evs: Evidence[], engineMode: "ai" | "local" | "cache", ontology: OntologyField[] = ONTOLOGY,
+): void {
   evs.forEach((e) => e.fields.forEach((fk) => {
     const c = cands[fk]; if (!c) return;
     if (e.verdict === "pass") c.confidence = Math.min(0.99, c.confidence + 0.08);
     else if (e.verdict === "fail") c.confidence = Math.max(0.05, c.confidence - 0.3);
     else if (e.verdict === "warn") c.confidence = Math.max(0.05, c.confidence - 0.1);
   }));
-  ONTOLOGY.forEach((f) => {
+  ontology.forEach((f) => {
     const c = cands[f.key]; if (!c) return;
     // 금액 필드는 오매핑 비용 비대칭 -> 정합성 pass 증거 없으면 임계 상향 (보수적)
     const hasPass = evs.some((e) => e.verdict === "pass" && e.fields.includes(f.key));
@@ -298,7 +379,11 @@ export type RowError = { rowNo: number; field: string; reason: string; rawValue?
  * 행 검증 (F-008 REQ-015): 타입/필수/중복 검증. 오류 행은 전량 rowNo+사유로 수집.
  * 통과 행만 staged. 확정된 columnMap(field->ci) 기준으로 파싱/표준화한다. 순수 함수(재현성).
  */
-export function validateRows(rows: Cell[][], columnMap: Record<string, number>): { staged: StagedRow[]; errors: RowError[] } {
+export function validateRows(
+  rows: Cell[][], columnMap: Record<string, number>,
+  ontology: OntologyField[] = ONTOLOGY, opts?: { dedupe?: boolean },
+): { staged: StagedRow[]; errors: RowError[] } {
+  const dedupe = opts?.dedupe ?? true; // 시책지급내역은 false (동일 증권번호 복수 시상 행 정상)
   const staged: StagedRow[] = [];
   const errors: RowError[] = [];
   const seen = new Set<string>(); // 중복: 계약번호 + 납입회차
@@ -308,7 +393,7 @@ export function validateRows(rows: Cell[][], columnMap: Record<string, number>):
     const fields: Record<string, string | number | null> = {};
     let ok = true;
 
-    for (const f of ONTOLOGY) {
+    for (const f of ontology) {
       const ci = columnMap[f.key];
       if (ci == null) {
         if (f.required) { errors.push({ rowNo, field: f.key, reason: "필수 필드 미매핑" }); ok = false; }
@@ -334,7 +419,7 @@ export function validateRows(rows: Cell[][], columnMap: Record<string, number>):
     }
 
     const contract = fields["계약번호"];
-    if (contract != null) {
+    if (dedupe && contract != null) {
       const key = `${contract}|${fields["납입회차"] ?? ""}`;
       if (seen.has(key)) { errors.push({ rowNo, field: "계약번호", reason: "중복 행(계약번호+납입회차)" }); ok = false; }
       else seen.add(key);
@@ -350,6 +435,7 @@ export function validateRows(rows: Cell[][], columnMap: Record<string, number>):
 export function buildProfilePrompt(profiles: ColumnProfile[], mask = true): string {
   return profiles.map((p) => {
     const samples = p.samples.map((v) => (mask ? maskSample(v) : v)).join(", ");
-    return `- "${p.header || `(무제 ${p.ci + 1}열)`}" [열${p.ci}]: 추정타입 ${p.type} / 숫자 ${Math.round(p.numericRate * 100)}% / 날짜형 ${Math.round(p.dateRate * 100)}% / 널 ${Math.round(p.nullRate * 100)}% / 유니크 ${Math.round(p.distinctRatio * 100)}%\n  표본: ${samples}`;
+    const group = p.groupHeader ? ` (상위 그룹: "${p.groupHeader}")` : "";
+    return `- "${p.header || `(무제 ${p.ci + 1}열)`}" [열${p.ci}]${group}: 추정타입 ${p.type} / 숫자 ${Math.round(p.numericRate * 100)}% / 날짜형 ${Math.round(p.dateRate * 100)}% / 널 ${Math.round(p.nullRate * 100)}% / 유니크 ${Math.round(p.distinctRatio * 100)}%\n  표본: ${samples}`;
   }).join("\n");
 }

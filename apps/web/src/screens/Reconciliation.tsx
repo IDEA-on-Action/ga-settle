@@ -32,6 +32,22 @@ interface ReconciliationResponse {
   diffContracts: DiffContract[];
 }
 
+// 시책 대사 (F-063): 보고 시상금(시책지급내역 원장) vs 시책룰 계산
+interface IncentiveDiffContract {
+  contractNo: string;
+  insurerId: string | null;
+  insurerAmount: number;
+  calculatedAmount: number;
+  diff: number;
+}
+
+interface IncentiveReconciliationResponse {
+  runId: string;
+  reportedRecords: number;
+  insurers: InsurerReconciliation[];
+  diffContracts: IncentiveDiffContract[];
+}
+
 interface ParallelVerifyDiff {
   commissionRecordId: string;
   ruleId: string;
@@ -60,6 +76,12 @@ export default function Reconciliation() {
   const verifyQuery = useQuery({
     queryKey: ["parallel-verify", appliedRunId],
     queryFn: () => apiFetch<ParallelVerifyResponse>(`/api/runs/${appliedRunId}/parallel-verify`),
+    enabled: !!appliedRunId,
+  });
+
+  const incentiveQuery = useQuery({
+    queryKey: ["incentive-reconciliation", appliedRunId],
+    queryFn: () => apiFetch<IncentiveReconciliationResponse>(`/api/runs/${appliedRunId}/incentive-reconciliation`),
     enabled: !!appliedRunId,
   });
 
@@ -219,6 +241,93 @@ export default function Reconciliation() {
               </Card>
             </>
           )}
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">시책 대사</CardTitle>
+              <CardDescription>
+                원수사 보고 시상금(시책지급내역 업로드) vs 시책룰 계산액 - 계약(증권) 단위 차액 드릴다운.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3">
+              {incentiveQuery.isLoading && <p className="text-sm text-axis-text-tertiary">시책 대사 조회 중...</p>}
+              {incentiveQuery.isError && (
+                <p className="text-sm font-medium text-axis-text-error">
+                  {incentiveQuery.error instanceof ApiError ? incentiveQuery.error.message : "시책 대사를 불러오지 못했어요"}
+                </p>
+              )}
+              {incentiveQuery.data && incentiveQuery.data.reportedRecords === 0 && (
+                <p className="text-sm text-axis-text-tertiary">
+                  이 정산월에 업로드·승인된 시책지급내역이 없어요. 업로드 화면에서 문서유형을 "시책지급내역"으로 올리면 여기서 대사돼요.
+                </p>
+              )}
+              {incentiveQuery.data && incentiveQuery.data.reportedRecords > 0 && (
+                <>
+                  <div className="text-xs text-axis-text-tertiary">보고 시상 행 {incentiveQuery.data.reportedRecords.toLocaleString("ko-KR")}건</div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>원수사</TableHead>
+                        <TableHead className="text-right">보고 시상금</TableHead>
+                        <TableHead className="text-right">계산액</TableHead>
+                        <TableHead className="text-right">차액</TableHead>
+                        <TableHead>상태</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {incentiveQuery.data.insurers.map((i) => (
+                        <TableRow key={i.insurerId}>
+                          <TableCell className="font-mono text-xs">{i.insurerId}</TableCell>
+                          <TableCell className="text-right tabular-nums">{i.insurerTotal.toLocaleString("ko-KR")}</TableCell>
+                          <TableCell className="text-right tabular-nums">{i.calculatedTotal.toLocaleString("ko-KR")}</TableCell>
+                          <TableCell className={`text-right font-semibold tabular-nums ${i.diff === 0 ? "text-axis-text-tertiary" : "text-axis-text-error"}`}>
+                            {i.diff === 0 ? "0" : signedKrw(i.diff)}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant="outline"
+                              className={
+                                i.status === "matched"
+                                  ? "border-transparent bg-axis-badge-success-bg text-axis-badge-success-text"
+                                  : "border-transparent bg-axis-badge-error-bg text-axis-badge-error-text"
+                              }
+                            >
+                              {i.status === "matched" ? "일치" : "차액"}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  {incentiveQuery.data.diffContracts.length > 0 && (
+                    <div className="flex flex-col gap-1.5">
+                      <div className="text-xs font-semibold text-axis-text-secondary">계약 단위 차액 (상위 20건)</div>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>증권번호</TableHead>
+                            <TableHead className="text-right">보고 시상금</TableHead>
+                            <TableHead className="text-right">계산액</TableHead>
+                            <TableHead className="text-right">차액</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {incentiveQuery.data.diffContracts.slice(0, 20).map((d) => (
+                            <TableRow key={d.contractNo}>
+                              <TableCell className="font-mono text-xs">{d.contractNo}</TableCell>
+                              <TableCell className="text-right tabular-nums">{d.insurerAmount.toLocaleString("ko-KR")}</TableCell>
+                              <TableCell className="text-right tabular-nums">{d.calculatedAmount.toLocaleString("ko-KR")}</TableCell>
+                              <TableCell className="text-right font-semibold tabular-nums text-axis-text-error">{signedKrw(d.diff)}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </>
+              )}
+            </CardContent>
+          </Card>
 
           <Card>
             <CardHeader>
