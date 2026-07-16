@@ -586,7 +586,7 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
   - [ ] 고객 재현 케이스([손해보험]26.05월 1주차 시상 유형의 다중 페이지 손보 PDF) 성공 처리 - **배포 후 재현 실패 확인(2026-07-16 실측)**, 아래 Notes 참조
 - **Status**: 🔧 IN_PROGRESS
 - **Sprint**: S23 (예정)
-- **Notes**: 2026-07-14 고객(김혜경) 테스트 리포트. 손보설계사시상 PDF 업로드 시 `ocr.ts parseJsonLoose`에서 502. CLOVA 10p 분할(F-049)은 통과했으나 구조화 단계는 텍스트 길이 무방비. 실패 건은 F-048 대장에 failed로 기록됨(멱등 재시도 가능) 확인. **구현(2026-07-14)**: `ocr.ts` - splitTextForStructure(8,000자, 공백 경계)·mergeStructured·structureChunk(JSON 모드→400 fallback→파싱 실패 1회 재시도). Upstage 문서상 response_format은 solar-pro-2 이상 지원이나 **실호출 실측(2026-07-14): solar-mini-250422도 200 + 유효 JSON 반환** - JSON 강제가 1차 경로로 즉시 작동, 400 fallback은 방어층으로 유지. 테스트 10건 신규(ocr-structure-robust), 전체 130 PASS. **2026-07-16 프로덕션 실측 - 배포 후에도 재현 실패**: F-059 배포(2026-07-14 07:50 UTC) 이후인 **07-15 04:11 UTC 업로드된 `sonbo_planner`(손보설계사시상) 32p·3.4MB PDF가 04:15에 `ocr_status=failed`** (배포 20시간 후 = 수정본 경유 확정). 07-14 05:18 업로드된 `sonbo_self` 39p·4.2MB 건도 07-15 04:00에 재시도됐으나 여전히 failed. 즉 잔여 항목은 "고객 재업로드 대기"가 아니라 **"재현 시도했고 실패"** 상태. 시책안 전수 7건 중 실패 2건이 모두 대용량 스캔본(39p/32p)이고, 통과한 5건은 3·4·27·29p(다만 27·29p는 low_confidence)라 **페이지 수·스캔 여부와의 상관**이 보인다(n=7이라 상관일 뿐 인과 미확정). **원인 미확정 - 관측 공백**: `incentive_plans`에 오류 메시지 컬럼이 없어 `failed`만 남고 사유가 유실된다(F-061이 `jobs.message`에 원인을 넣은 것의 OCR 경로 대응 부재). 차기 착수 시 (1) 실패 사유 저장 컬럼 추가로 진단 가능화 (2) 그 뒤 원본 2건 재시도로 근본 원인 규명 순서 권장. 원본은 R2 보존 중(`incentive-plans/{sha}.pdf`, 멱등 재시도 가능).
+- **Notes**: 2026-07-14 고객(김혜경) 테스트 리포트. 손보설계사시상 PDF 업로드 시 `ocr.ts parseJsonLoose`에서 502. CLOVA 10p 분할(F-049)은 통과했으나 구조화 단계는 텍스트 길이 무방비. 실패 건은 F-048 대장에 failed로 기록됨(멱등 재시도 가능) 확인. **구현(2026-07-14)**: `ocr.ts` - splitTextForStructure(8,000자, 공백 경계)·mergeStructured·structureChunk(JSON 모드→400 fallback→파싱 실패 1회 재시도). Upstage 문서상 response_format은 solar-pro-2 이상 지원이나 **실호출 실측(2026-07-14): solar-mini-250422도 200 + 유효 JSON 반환** - JSON 강제가 1차 경로로 즉시 작동, 400 fallback은 방어층으로 유지. 테스트 10건 신규(ocr-structure-robust), 전체 130 PASS. **2026-07-16 프로덕션 실측 - 배포 후에도 재현 실패**: F-059 배포(2026-07-14 07:50 UTC) 이후인 **07-15 04:11 UTC 업로드된 `sonbo_planner`(손보설계사시상) 32p·3.4MB PDF가 04:15에 `ocr_status=failed`** (배포 20시간 후 = 수정본 경유 확정). 07-14 05:18 업로드된 `sonbo_self` 39p·4.2MB 건도 07-15 04:00에 재시도됐으나 여전히 failed. 즉 잔여 항목은 "고객 재업로드 대기"가 아니라 **"재현 시도했고 실패"** 상태. 시책안 전수 7건 중 실패 2건이 모두 대용량 스캔본(39p/32p)이고, 통과한 5건은 3·4·27·29p(다만 27·29p는 low_confidence)라 **페이지 수·스캔 여부와의 상관**이 보인다(n=7이라 상관일 뿐 인과 미확정). **원인 미확정 - 관측 공백**: `incentive_plans`에 오류 메시지 컬럼이 없어 `failed`만 남고 사유가 유실된다(F-061이 `jobs.message`에 원인을 넣은 것의 OCR 경로 대응 부재). 진단 가능화는 **F-064로 분리 등록(2026-07-16, Sprint S25)** - F-064가 실패 단계·사유를 저장·노출하고, 그 뒤 R2 보존 원본 2건 재시도로 근본 원인을 규명해 결과를 본 항목에 반영한다. 즉 **F-059 잔여 항목은 F-064 선행 의존**. 원본은 R2 보존 중(`incentive-plans/{sha}.pdf`, 멱등 재시도 가능).
 
 ### F-060 · 시상정의 만기기간 차원 추가 (P1)
 - **REQ-082**: 생보 시상정의에서 상품명이 같아도 납입기간·만기기간에 따라 지급율이 다른 경우를 구분해 확정할 수 있다
@@ -635,6 +635,20 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 - **Status**: ✅ DONE
 - **Sprint**: S24
 - **Notes**: F-062 의존. 계산측은 기존 settlement_lines(시책룰 evaluate) 재사용 - F-014(수수료 대사)와 계산측 공유, 보고측만 시책 원장으로 대체한 대칭 설계. 마감 스냅샷/저장 대사 반영은 후속. **배포(2026-07-15, PR #62, version 11a08ed2, migration 0007 remote 적용)**: prod 스모크 = /health·/app 200, 신규 endpoint 401 게이트, 번들 시책 UI 문자열, D1 테이블/컬럼 확인. 실파일(삼성화재) 실측 = 963행→89행 절단·81행 staged·9필드 후보. 잔여 관찰: 고객 실업로드(인증 실사용은 자격증명 부재로 F-048 선례처럼 로컬 동일코드 검증으로 갈음). localMap은 첫 시상항목 "시상금" 열을 잡음 - 합계 열(그룹 "시상금 합계") 교정은 매핑 검토 HITL에서, AI 매핑은 그룹 라벨을 프롬프트로 받음.
+
+### F-064 · 시책안 OCR 실패 사유 저장 + 노출 (P1)
+- **REQ-086**: 시책안 OCR이 실패하면 등록 대장에 **실패 단계와 사유**가 남아, 업로드 시점이 지난 뒤에도 원인을 규명할 수 있고 담당자가 화면에서 직접 확인할 수 있다
+- **Acceptance**:
+  - [ ] `OcrError`에 단계 식별자 추가(`clova`|`upstage`|`parse`) - 기존 throw 8곳 태깅(CLOVA `ocr.ts:96,107` / parse `129,134` / Upstage `267,273,292` / 빈결과 `304`=clova). OcrError 아닌 예외는 `unknown`
+  - [ ] `incentive_plans`에 `ocr_error_stage`·`ocr_error_message` 컬럼 추가 (D1 migration 0008, 기존 행 nullable)
+  - [ ] `incentive-plans.ts` catch에서 stage+message 저장 - **현재는 `e`를 손에 쥐고도 버리고 `ocrStatus='failed'`만 기록**(HTTP 응답엔 `e.message`를 담으면서 대장엔 미보존 = 관측 공백의 실체)
+  - [ ] `GET /api/incentive-plans` 응답에 실패 단계·사유 포함
+  - [ ] UI: `PlanUploadHistory` failed 행에 단계+사유 표시 (담당자가 문의 없이 자가 판단)
+  - [ ] 테스트: 단계별 실패 시나리오(CLOVA 오류·Upstage 오류·parse 실패)가 각각 올바른 stage로 기록
+  - [ ] 배포 후 **R2 보존 원본 2건 재시도로 F-059 실패 단계 규명**(`incentive-plans/1939d31…pdf` 39p·`43294869…pdf` 32p, 멱등 재업로드 가능) → 결과를 F-059에 반영
+- **Status**: 📋 PLANNED
+- **Sprint**: S25
+- **Notes**: 2026-07-16 세션에서 F-059 잔여 항목을 실측하다 발견. **F-059 근본 원인 규명의 선행 조건** - 현재 prod 실패 2건이 `failed`로만 남아 "왜"를 알 수 없다(F-061이 `jobs.message`에 원인을 넣은 것의 OCR 경로 대응 부재 = 비대칭). 단계만 알아도 "F-059가 고친 Upstage 구조화 경로인가, 그 앞의 CLOVA인가"가 즉시 갈려 다음 수를 정할 수 있다. 실패 2건은 전수 7건 중 유이한 대용량 스캔본(39p/32p)이고 통과 5건은 3·4·27·29p(27·29p는 low_confidence) - 페이지수/스캔 상관이 보이나 n=7이라 인과 미확정, 본 F-item의 단계 데이터가 그 판정 재료. 승격 근거: D1 migration + 5파일 이상(schema·migration·ocr.ts·routes·web) + 사용자 관찰 가능.
 
 ## §3. Backlog (F-item 승격 대기)
 
