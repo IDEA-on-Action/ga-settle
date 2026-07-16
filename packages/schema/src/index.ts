@@ -175,6 +175,8 @@ export const incentivePlans = sqliteTable("incentive_plans", {
   ocrAvgConfidence: real("ocr_avg_confidence"),
   ocrFieldCount: integer("ocr_field_count"),
   lowConfidenceCount: integer("low_confidence_count"),
+  ocrErrorStage: text("ocr_error_stage"),                       // clova|upstage|parse|unknown (F-064, 실패 시만)
+  ocrErrorMessage: text("ocr_error_message"),                   // 실패 사유 원문 (F-064, 실패 시만)
   createdBy: text("created_by").notNull(),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at"),

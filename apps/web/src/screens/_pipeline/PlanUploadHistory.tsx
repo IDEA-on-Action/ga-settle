@@ -15,6 +15,8 @@ interface PlanRow {
   ocrAvgConfidence: number | null;
   ocrFieldCount: number | null;
   lowConfidenceCount: number | null;
+  ocrErrorStage: string | null;
+  ocrErrorMessage: string | null;
   createdBy: string;
   createdAt: string;
 }
@@ -29,6 +31,14 @@ const OCR_BADGE: Record<string, { label: string; cls: string }> = {
   ok: { label: "정상", cls: "bg-axis-surface-success text-axis-text-success" },
   low_confidence: { label: "확인필요", cls: "bg-axis-surface-warning text-axis-text-warning" },
   failed: { label: "OCR 실패", cls: "bg-axis-surface-error text-axis-text-error" },
+};
+
+// 실패 단계 라벨 (F-064). 담당자가 문의 없이 "CLOVA 인식 단계인지 Upstage 구조화 단계인지" 자가 판단.
+const STAGE_LABEL: Record<string, string> = {
+  clova: "CLOVA 인식",
+  upstage: "Upstage 구조화",
+  parse: "구조화 응답 파싱",
+  unknown: "알 수 없음",
 };
 
 function OcrBadge({ status }: { status: string }) {
@@ -79,6 +89,12 @@ export function PlanUploadHistory() {
                 {p.ocrFieldCount != null && ` · ${p.ocrFieldCount}필드`}
                 {p.lowConfidenceCount ? ` · 저신뢰 ${p.lowConfidenceCount}` : ""}
               </span>
+              {p.ocrStatus === "failed" && p.ocrErrorStage && (
+                <span className="truncate text-xs text-axis-text-error">
+                  {STAGE_LABEL[p.ocrErrorStage] ?? p.ocrErrorStage} 단계 실패
+                  {p.ocrErrorMessage && ` · ${p.ocrErrorMessage}`}
+                </span>
+              )}
             </div>
             <span className="shrink-0 text-xs text-axis-text-tertiary">{p.createdAt.slice(0, 10)}</span>
           </div>

@@ -5,8 +5,10 @@
 import { PDFDocument } from "pdf-lib";
 import type { Env } from "./types";
 
+// stage: 실패 단계 식별자 (F-064). 어느 단계에서 끊겼는지 알아야 재현/원인 규명이 가능하다.
+export type OcrStage = "clova" | "upstage" | "parse";
 export class OcrError extends Error {
-  constructor(message: string, readonly status = 502) {
+  constructor(message: string, readonly status = 502, readonly stage: OcrStage = "upstage") {
     super(message);
   }
 }
@@ -93,7 +95,7 @@ async function clovaOcrSingle(bytes: ArrayBuffer, format: string, url: string, s
     headers: { "X-OCR-SECRET": secret, "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new OcrError(`CLOVA OCR 오류 ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  if (!res.ok) throw new OcrError(`CLOVA OCR 오류 ${res.status}: ${(await res.text()).slice(0, 200)}`, 502, "clova");
   const json = (await res.json()) as { images?: { fields?: { inferText: string; inferConfidence: number }[] }[] };
   // PDF는 페이지별 images[] 반환(F-046). 전 페이지 필드를 합쳐야 다중 페이지 시책안도 온전히 인식된다.
   const raw = (json.images ?? []).flatMap((im) => im.fields ?? []);
@@ -104,7 +106,7 @@ async function clovaOcrSingle(bytes: ArrayBuffer, format: string, url: string, s
 // PDF가 10p를 넘으면 ≤10p 청크로 분할해 순차 호출 후 필드 병합(F-049 손보 다중 시상 대응).
 export async function clovaOcr(image: ArrayBuffer, format: string, env: Env): Promise<ClovaResult> {
   if (!env.CLOVA_OCR_INVOKE_URL || !env.CLOVA_OCR_SECRET) {
-    throw new OcrError("CLOVA OCR 미설정 (CLOVA_OCR_INVOKE_URL / CLOVA_OCR_SECRET)", 503);
+    throw new OcrError("CLOVA OCR 미설정 (CLOVA_OCR_INVOKE_URL / CLOVA_OCR_SECRET)", 503, "clova");
   }
   const isPdf = format.toLowerCase() === "pdf";
   const parts = isPdf ? await splitPdf(image, CLOVA_MAX_PAGES) : [image];
@@ -126,12 +128,12 @@ function parseJsonLoose(s: string): unknown {
   const body = fenced?.[1] ?? s;
   const start = body.indexOf("{");
   const end = body.lastIndexOf("}");
-  if (start < 0 || end < 0) throw new OcrError(`Upstage 구조화 응답에서 JSON을 찾지 못했어요. ${RETRY_HINT}`, 502);
+  if (start < 0 || end < 0) throw new OcrError(`Upstage 구조화 응답에서 JSON을 찾지 못했어요. ${RETRY_HINT}`, 502, "parse");
   try {
     return JSON.parse(body.slice(start, end + 1));
   } catch {
     // 중괄호는 있으나 절단/손상된 JSON (max output 초과 등). SyntaxError를 500으로 흘리지 않는다.
-    throw new OcrError(`Upstage 구조화 응답 JSON이 손상됐어요. ${RETRY_HINT}`, 502);
+    throw new OcrError(`Upstage 구조화 응답 JSON이 손상됐어요. ${RETRY_HINT}`, 502, "parse");
   }
 }
 
@@ -264,13 +266,13 @@ async function structureChunk(text: string, env: Env): Promise<Record<string, un
   let res = await callUpstage(env, usr, true);
   // 400은 response_format 미지원 모델(solar-mini 등)일 가능성 - JSON 모드 없이 재시도.
   if (res.status === 400) res = await callUpstage(env, usr, false);
-  if (!res.ok) throw new OcrError(`Upstage 오류 ${res.status}: ${(await res.text()).slice(0, 200)}. ${RETRY_HINT}`);
+  if (!res.ok) throw new OcrError(`Upstage 오류 ${res.status}: ${(await res.text()).slice(0, 200)}. ${RETRY_HINT}`, 502, "upstage");
   try {
     return parseJsonLoose(extractContent(await res.json())) as Record<string, unknown>;
   } catch {
     // temperature 0이어도 상류 비결정으로 비-JSON/절단 응답이 관찰됨(고객 재현) - 1회 재시도.
     const retry = await callUpstage(env, usr, false);
-    if (!retry.ok) throw new OcrError(`Upstage 오류 ${retry.status}: ${(await retry.text()).slice(0, 200)}. ${RETRY_HINT}`);
+    if (!retry.ok) throw new OcrError(`Upstage 오류 ${retry.status}: ${(await retry.text()).slice(0, 200)}. ${RETRY_HINT}`, 502, "upstage");
     return parseJsonLoose(extractContent(await retry.json())) as Record<string, unknown>;
   }
 }
@@ -289,7 +291,7 @@ function buildRule(parsed: Record<string, unknown>, ocrAvgConfidence: number): {
 // ② Upstage Solar: OCR 텍스트 → 시책룰 필드 구조화 + 납입기간별 지급율 행. LLM 신뢰도는 CLOVA 평균과 곱해 보정.
 // 긴 텍스트(손보 다중 시상)는 청크 분할 구조화 후 병합(F-059). 청크는 순차 호출(상류 rate limit 배려).
 export async function structureRule(ocrText: string, ocrAvgConfidence: number, env: Env): Promise<{ rule: StructuredRule; payoutRows: PayoutRow[] }> {
-  if (!env.UPSTAGE_API_KEY) throw new OcrError("Upstage 미설정 (UPSTAGE_API_KEY)", 503);
+  if (!env.UPSTAGE_API_KEY) throw new OcrError("Upstage 미설정 (UPSTAGE_API_KEY)", 503, "upstage");
   const chunks = splitTextForStructure(ocrText, STRUCTURE_CHUNK_CHARS);
   const parts: { rule: StructuredRule; payoutRows: PayoutRow[] }[] = [];
   for (const chunk of chunks) {
@@ -301,7 +303,7 @@ export async function structureRule(ocrText: string, ocrAvgConfidence: number, e
 // 파이프라인: 이미지 → CLOVA OCR → Upstage 구조화 → 저신뢰 필드 표시.
 export async function extractIncentivePlan(image: ArrayBuffer, format: string, env: Env): Promise<OcrExtractResult> {
   const ocr = await clovaOcr(image, format, env);
-  if (!ocr.fieldCount) throw new OcrError("이미지에서 텍스트를 찾지 못했어요(빈 결과)", 422);
+  if (!ocr.fieldCount) throw new OcrError("이미지에서 텍스트를 찾지 못했어요(빈 결과)", 422, "clova");
   const { rule, payoutRows } = await structureRule(ocr.text, ocr.avgConfidence, env);
   const lowConfidenceKeys = RULE_KEYS.filter((k) => rule[k].value == null || rule[k].confidence < LOW_CONFIDENCE);
   return {
