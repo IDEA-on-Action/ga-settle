@@ -583,10 +583,10 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
   - [x] Upstage 요청에 JSON 강제 응답(response_format json_object) 적용 - 미지원 모델(solar-mini)은 400 감지 시 무모드 fallback
   - [x] 긴 OCR 텍스트(>8,000자) 청크 분할 구조화 + 병합(rule=신뢰도 최고값, payoutRows=concat+dedupe), 짧은 문서 회귀 무변경(단일 청크 동일 경로)
   - [x] 실패 시 오류 메시지에 재시도 안내 포함 + 비-JSON 응답 1회 자동 재시도 + 절단 JSON도 502 OcrError(500 방지). 대장 failed·멱등 재시도는 기존 F-048 경로 실측 확인
-  - [ ] 고객 재현 케이스([손해보험]26.05월 1주차 시상 유형의 다중 페이지 손보 PDF) 성공 처리 - 배포 후 고객 재업로드로 확인
+  - [ ] 고객 재현 케이스([손해보험]26.05월 1주차 시상 유형의 다중 페이지 손보 PDF) 성공 처리 - **배포 후 재현 실패 확인(2026-07-16 실측)**, 아래 Notes 참조
 - **Status**: 🔧 IN_PROGRESS
 - **Sprint**: S23 (예정)
-- **Notes**: 2026-07-14 고객(김혜경) 테스트 리포트. 손보설계사시상 PDF 업로드 시 `ocr.ts parseJsonLoose`에서 502. CLOVA 10p 분할(F-049)은 통과했으나 구조화 단계는 텍스트 길이 무방비. 실패 건은 F-048 대장에 failed로 기록됨(멱등 재시도 가능) 확인. **구현(2026-07-14)**: `ocr.ts` - splitTextForStructure(8,000자, 공백 경계)·mergeStructured·structureChunk(JSON 모드→400 fallback→파싱 실패 1회 재시도). Upstage 문서상 response_format은 solar-pro-2 이상 지원이나 **실호출 실측(2026-07-14): solar-mini-250422도 200 + 유효 JSON 반환** - JSON 강제가 1차 경로로 즉시 작동, 400 fallback은 방어층으로 유지. 테스트 10건 신규(ocr-structure-robust), 전체 130 PASS. 잔여: 배포 후 고객 원본 PDF 재현 확인.
+- **Notes**: 2026-07-14 고객(김혜경) 테스트 리포트. 손보설계사시상 PDF 업로드 시 `ocr.ts parseJsonLoose`에서 502. CLOVA 10p 분할(F-049)은 통과했으나 구조화 단계는 텍스트 길이 무방비. 실패 건은 F-048 대장에 failed로 기록됨(멱등 재시도 가능) 확인. **구현(2026-07-14)**: `ocr.ts` - splitTextForStructure(8,000자, 공백 경계)·mergeStructured·structureChunk(JSON 모드→400 fallback→파싱 실패 1회 재시도). Upstage 문서상 response_format은 solar-pro-2 이상 지원이나 **실호출 실측(2026-07-14): solar-mini-250422도 200 + 유효 JSON 반환** - JSON 강제가 1차 경로로 즉시 작동, 400 fallback은 방어층으로 유지. 테스트 10건 신규(ocr-structure-robust), 전체 130 PASS. **2026-07-16 프로덕션 실측 - 배포 후에도 재현 실패**: F-059 배포(2026-07-14 07:50 UTC) 이후인 **07-15 04:11 UTC 업로드된 `sonbo_planner`(손보설계사시상) 32p·3.4MB PDF가 04:15에 `ocr_status=failed`** (배포 20시간 후 = 수정본 경유 확정). 07-14 05:18 업로드된 `sonbo_self` 39p·4.2MB 건도 07-15 04:00에 재시도됐으나 여전히 failed. 즉 잔여 항목은 "고객 재업로드 대기"가 아니라 **"재현 시도했고 실패"** 상태. 시책안 전수 7건 중 실패 2건이 모두 대용량 스캔본(39p/32p)이고, 통과한 5건은 3·4·27·29p(다만 27·29p는 low_confidence)라 **페이지 수·스캔 여부와의 상관**이 보인다(n=7이라 상관일 뿐 인과 미확정). **원인 미확정 - 관측 공백**: `incentive_plans`에 오류 메시지 컬럼이 없어 `failed`만 남고 사유가 유실된다(F-061이 `jobs.message`에 원인을 넣은 것의 OCR 경로 대응 부재). 차기 착수 시 (1) 실패 사유 저장 컬럼 추가로 진단 가능화 (2) 그 뒤 원본 2건 재시도로 근본 원인 규명 순서 권장. 원본은 R2 보존 중(`incentive-plans/{sha}.pdf`, 멱등 재시도 가능).
 
 ### F-060 · 시상정의 만기기간 차원 추가 (P1)
 - **REQ-082**: 생보 시상정의에서 상품명이 같아도 납입기간·만기기간에 따라 지급율이 다른 경우를 구분해 확정할 수 있다
