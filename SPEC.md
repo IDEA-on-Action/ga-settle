@@ -646,7 +646,8 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
   - [x] UI: `PlanUploadHistory` failed 행에 단계+사유 표시 (담당자가 문의 없이 자가 판단)
   - [x] 테스트: 단계별 실패 시나리오(CLOVA 오류·Upstage 오류·parse 실패)가 각각 올바른 stage로 기록
   - [ ] 배포 후 **R2 보존 원본 2건 재시도로 F-059 실패 단계 규명**(`incentive-plans/1939d31…pdf` 39p·`43294869…pdf` 32p, 멱등 재업로드 가능) → 결과를 F-059에 반영
-- **Status**: ✅ DONE (배포 후 R2 재시도 항목만 잔존)
+- **Status**: 🔧 IN_PROGRESS (코드/스키마/테스트 완료·배포됨, **잔여: R2 원본 2건 재시도 규명 미수행**)
+- **Notes(2026-07-16 Master 실측)**: autopilot이 PR #63(f223384)으로 10파일 구현·머지·CI green, 로컬 typecheck + F-064 테스트 18건 전량 통과 확인. **⚠️ 프로덕션 D1 migration 0008 미적용 발견 → Master가 수동 적용**: `deploy.yml`에 D1 migration 단계가 없어(grep 0건) autopilot의 CI green이 Worker 코드만 배포하고 스키마는 누락. prod `incentive_plans`에 `ocr_error_*` 컬럼 0개였음(배포 직후 실제로는 500 위험). MCP D1로 `ALTER TABLE ADD COLUMN` 2건 + `d1_migrations`에 0008 수동 기록(wrangler 미경유라 drift 방지). autopilot이 6/7 체크에서 ✅ DONE 마킹한 것을 🔧로 정정(마지막 Acceptance = R2 재시도 규명 미수행). **후속 2건**: ① `deploy.yml` D1 migration 자동화(신규 backlog, 매 migration 재발) ② R2 원본 2건 재시도로 F-059 stage 규명(별도 세션, 유료 OCR 호출).
 - **Sprint**: S25
 - **Notes**: 2026-07-16 세션에서 F-059 잔여 항목을 실측하다 발견. **F-059 근본 원인 규명의 선행 조건** - 현재 prod 실패 2건이 `failed`로만 남아 "왜"를 알 수 없다(F-061이 `jobs.message`에 원인을 넣은 것의 OCR 경로 대응 부재 = 비대칭). 단계만 알아도 "F-059가 고친 Upstage 구조화 경로인가, 그 앞의 CLOVA인가"가 즉시 갈려 다음 수를 정할 수 있다. 실패 2건은 전수 7건 중 유이한 대용량 스캔본(39p/32p)이고 통과 5건은 3·4·27·29p(27·29p는 low_confidence) - 페이지수/스캔 상관이 보이나 n=7이라 인과 미확정, 본 F-item의 단계 데이터가 그 판정 재료. 승격 근거: D1 migration + 5파일 이상(schema·migration·ocr.ts·routes·web) + 사용자 관찰 가능. **완료(PR #63 Match 100%, 2026-07-16)** - OcrError.stage 8곳 태깅(clova/upstage/parse) + D1 migration 0008(ocr_error_stage/ocr_error_message) + route catch 저장·목록 노출 + UI failed 행 단계·사유 표시 + 신규 테스트 7건(ocr-error-stage.test.ts)+통합 1건, 전체 api 143 PASS. 잔존 항목(R2 원본 2건 재시도)은 배포 후 prod 자격증명 필요 - Master가 배포 확인 후 수행하고 결과를 F-059에 반영한다.
 
@@ -666,6 +667,7 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 | B-010 | 실제 ATA 로고 파일 임베드(현재 SVG 재현) | 관찰가능 | low |
 | B-011 | 원수사 코드 체계 실제 값으로 조정(현재 영문 슬러그) | 데이터 | low |
 | ~~B-012~~ | ~~OCR 시책안 정식 구현~~ -> F-043(OCR 실연동)+F-044(스키마 확장·OCR결선·손보 구조화·운영룰 확정 UI·감사 소명)로 전량 완료 | 완료 | - |
+| B-014 | `deploy.yml`에 D1 migration 자동 적용 단계 추가 - **2026-07-16 F-064(migration 0008) 배포 시 CI green인데 prod 스키마 미적용 발견**(deploy가 Worker 코드만 배포, migration은 수동 `d1:migrate:remote` 규약). 매 migration 재발 구조. `d1_migrations` 자동 기록으로 drift도 해소. ⚠️ CLAUDE.md의 "트리거는 0001 수동 유지"와 상충 없는지 확인 필요(트리거 SQL만 수동, 컬럼 migration은 자동화 가능) | CI 신뢰성 | high |
 | B-013 | 시책안 PDF 사전 선별(TextBased면 OCR 생략, [pdf-inspector](https://github.com/firecrawl/pdf-inspector) 류) - **조건부 보류**: 2026-07-16 프로덕션 전수 7건 실측에서 전제 붕괴. TextBased 1/7(14%)뿐이고 6건은 추출 문자 0(페이지당 전면 이미지 = 순수 스캔본). 참고글 주장 54%는 웹 크롤링 PDF 분포라 본 도메인(원수사 판촉 편집물) 미전이. 실패 2건은 전부 대용량 스캔본(39p·32p)이라 선별로 해소 불가(이미 OCR 경로로 감). Rust 네이티브라 Workers 미실행(WASM/별도 서비스 필요). **재검토 조건**: 시책안 월 볼륨 100건+ 또는 TextBased 비율 40%+ 관측 시 | 미충족(이득 14%·총 7건) | low |
 
 > 프로덕션: `https://ata.minu.best` 배포·운영 중. admin=sinclairseo@gmail.com(비번). @atasset.co.kr=OTP. 주요 원수사 26곳 등록. 상세 next-task는 세션 Task 목록(#1~#7) 참조.
