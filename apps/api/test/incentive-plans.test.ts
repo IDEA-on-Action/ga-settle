@@ -57,6 +57,19 @@ describe("시책안 등록 대장 (F-048)", () => {
     expect(row?.ocrStatus).toBe("failed");
   });
 
+  it("OCR 실패 시 단계+사유가 대장에 저장·노출된다 (F-064)", async () => {
+    const filename = `stage-${Date.now()}.pdf`;
+    await post(ocrForm(new Uint8Array([0x25, 0x50, 0x44, 0x46]), "application/pdf", filename));
+    const list = (await (await aget("/api/incentive-plans?limit=50")).json()) as {
+      items: { fileName: string; ocrStatus: string; ocrErrorStage: string | null; ocrErrorMessage: string | null }[];
+    };
+    const row = list.items.find((r) => r.fileName === filename);
+    expect(row?.ocrStatus).toBe("failed");
+    // 테스트 env는 CLOVA_OCR_INVOKE_URL/SECRET 미설정 - clovaOcr이 가장 먼저 실행돼 stage=clova로 끊긴다.
+    expect(row?.ocrErrorStage).toBe("clova");
+    expect(row?.ocrErrorMessage).toContain("CLOVA");
+  });
+
   it("같은 파일 재업로드는 sha 멱등 - 대장 레코드가 중복 생성되지 않는다", async () => {
     const filename = `idem-${Date.now()}.png`;
     const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x11, 0x22]);

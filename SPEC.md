@@ -639,16 +639,16 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 ### F-064 · 시책안 OCR 실패 사유 저장 + 노출 (P1)
 - **REQ-086**: 시책안 OCR이 실패하면 등록 대장에 **실패 단계와 사유**가 남아, 업로드 시점이 지난 뒤에도 원인을 규명할 수 있고 담당자가 화면에서 직접 확인할 수 있다
 - **Acceptance**:
-  - [ ] `OcrError`에 단계 식별자 추가(`clova`|`upstage`|`parse`) - 기존 throw 8곳 태깅(CLOVA `ocr.ts:96,107` / parse `129,134` / Upstage `267,273,292` / 빈결과 `304`=clova). OcrError 아닌 예외는 `unknown`
-  - [ ] `incentive_plans`에 `ocr_error_stage`·`ocr_error_message` 컬럼 추가 (D1 migration 0008, 기존 행 nullable)
-  - [ ] `incentive-plans.ts` catch에서 stage+message 저장 - **현재는 `e`를 손에 쥐고도 버리고 `ocrStatus='failed'`만 기록**(HTTP 응답엔 `e.message`를 담으면서 대장엔 미보존 = 관측 공백의 실체)
-  - [ ] `GET /api/incentive-plans` 응답에 실패 단계·사유 포함
-  - [ ] UI: `PlanUploadHistory` failed 행에 단계+사유 표시 (담당자가 문의 없이 자가 판단)
-  - [ ] 테스트: 단계별 실패 시나리오(CLOVA 오류·Upstage 오류·parse 실패)가 각각 올바른 stage로 기록
+  - [x] `OcrError`에 단계 식별자 추가(`clova`|`upstage`|`parse`) - 기존 throw 8곳 태깅(CLOVA `ocr.ts:96,107` / parse `129,134` / Upstage `267,273,292` / 빈결과 `304`=clova). OcrError 아닌 예외는 `unknown`
+  - [x] `incentive_plans`에 `ocr_error_stage`·`ocr_error_message` 컬럼 추가 (D1 migration 0008, 기존 행 nullable)
+  - [x] `incentive-plans.ts` catch에서 stage+message 저장 - **현재는 `e`를 손에 쥐고도 버리고 `ocrStatus='failed'`만 기록**(HTTP 응답엔 `e.message`를 담으면서 대장엔 미보존 = 관측 공백의 실체)
+  - [x] `GET /api/incentive-plans` 응답에 실패 단계·사유 포함
+  - [x] UI: `PlanUploadHistory` failed 행에 단계+사유 표시 (담당자가 문의 없이 자가 판단)
+  - [x] 테스트: 단계별 실패 시나리오(CLOVA 오류·Upstage 오류·parse 실패)가 각각 올바른 stage로 기록
   - [ ] 배포 후 **R2 보존 원본 2건 재시도로 F-059 실패 단계 규명**(`incentive-plans/1939d31…pdf` 39p·`43294869…pdf` 32p, 멱등 재업로드 가능) → 결과를 F-059에 반영
-- **Status**: 📋 PLANNED
+- **Status**: ✅ DONE (배포 후 R2 재시도 항목만 잔존)
 - **Sprint**: S25
-- **Notes**: 2026-07-16 세션에서 F-059 잔여 항목을 실측하다 발견. **F-059 근본 원인 규명의 선행 조건** - 현재 prod 실패 2건이 `failed`로만 남아 "왜"를 알 수 없다(F-061이 `jobs.message`에 원인을 넣은 것의 OCR 경로 대응 부재 = 비대칭). 단계만 알아도 "F-059가 고친 Upstage 구조화 경로인가, 그 앞의 CLOVA인가"가 즉시 갈려 다음 수를 정할 수 있다. 실패 2건은 전수 7건 중 유이한 대용량 스캔본(39p/32p)이고 통과 5건은 3·4·27·29p(27·29p는 low_confidence) - 페이지수/스캔 상관이 보이나 n=7이라 인과 미확정, 본 F-item의 단계 데이터가 그 판정 재료. 승격 근거: D1 migration + 5파일 이상(schema·migration·ocr.ts·routes·web) + 사용자 관찰 가능.
+- **Notes**: 2026-07-16 세션에서 F-059 잔여 항목을 실측하다 발견. **F-059 근본 원인 규명의 선행 조건** - 현재 prod 실패 2건이 `failed`로만 남아 "왜"를 알 수 없다(F-061이 `jobs.message`에 원인을 넣은 것의 OCR 경로 대응 부재 = 비대칭). 단계만 알아도 "F-059가 고친 Upstage 구조화 경로인가, 그 앞의 CLOVA인가"가 즉시 갈려 다음 수를 정할 수 있다. 실패 2건은 전수 7건 중 유이한 대용량 스캔본(39p/32p)이고 통과 5건은 3·4·27·29p(27·29p는 low_confidence) - 페이지수/스캔 상관이 보이나 n=7이라 인과 미확정, 본 F-item의 단계 데이터가 그 판정 재료. 승격 근거: D1 migration + 5파일 이상(schema·migration·ocr.ts·routes·web) + 사용자 관찰 가능. **완료(PR #63 Match 100%, 2026-07-16)** - OcrError.stage 8곳 태깅(clova/upstage/parse) + D1 migration 0008(ocr_error_stage/ocr_error_message) + route catch 저장·목록 노출 + UI failed 행 단계·사유 표시 + 신규 테스트 7건(ocr-error-stage.test.ts)+통합 1건, 전체 api 143 PASS. 잔존 항목(R2 원본 2건 재시도)은 배포 후 prod 자격증명 필요 - Master가 배포 확인 후 수행하고 결과를 F-059에 반영한다.
 
 ## §3. Backlog (F-item 승격 대기)
 

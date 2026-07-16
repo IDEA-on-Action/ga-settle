@@ -96,7 +96,15 @@ incentivePlansRoutes.post("/api/incentive-plans/ocr", async (c) => {
     return c.json({ planId: plan?.id, planImageKey: key, sha256: sha, idempotentReuse: !!existing, ...result });
   } catch (e) {
     // OCR 실패도 대장에 남긴다(업로드 즉시 등록 정책, F-048): status=failed.
-    await db.update(incentivePlans).set({ ocrStatus: "failed", updatedAt: new Date().toISOString() }).where(eq(incentivePlans.sha256, sha));
+    // F-064: 실패 단계+사유도 함께 저장 - 이전엔 e를 손에 쥐고도 버려서 "failed"만 남고 원인이 유실됐다.
+    const stage = e instanceof OcrError ? e.stage : "unknown";
+    const message = e instanceof Error ? e.message : String(e);
+    await db.update(incentivePlans).set({
+      ocrStatus: "failed",
+      ocrErrorStage: stage,
+      ocrErrorMessage: message,
+      updatedAt: new Date().toISOString(),
+    }).where(eq(incentivePlans.sha256, sha));
     // OcrError(503 미설정 / 502 상류 오류 / 422 빈결과)는 그대로, 그 외는 500.
     if (e instanceof OcrError) return c.json({ error: e.message, planImageKey: key }, e.status as 502);
     return c.json({ error: "OCR 처리 실패", detail: String(e) }, 500);
@@ -128,6 +136,8 @@ incentivePlansRoutes.get("/api/incentive-plans", async (c) => {
       ocrAvgConfidence: incentivePlans.ocrAvgConfidence,
       ocrFieldCount: incentivePlans.ocrFieldCount,
       lowConfidenceCount: incentivePlans.lowConfidenceCount,
+      ocrErrorStage: incentivePlans.ocrErrorStage,
+      ocrErrorMessage: incentivePlans.ocrErrorMessage,
       createdBy: incentivePlans.createdBy,
       createdAt: incentivePlans.createdAt,
     })
