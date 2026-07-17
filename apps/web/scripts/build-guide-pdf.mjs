@@ -65,7 +65,7 @@ const html = `<!doctype html><html lang="ko"><head><meta charset="utf-8">
   <div class="cover">
     <div class="brand"><div class="logo"></div><b>ATA · GA-Settle</b></div>
     <h1>GA-Settle 사용 가이드</h1>
-    <p class="sub">원수사 엑셀 업로드부터 AI 매핑 · 시책 정산 · 대사 · 마감 · 지급 내역서까지, 데모를 따라 하며 익히는 8단계</p>
+    <p class="sub">원수사 엑셀 업로드부터 AI 매핑 · 시책 정산 · 대사 · 마감 · 감사 소명까지, 데모를 따라 하며 익히는 10단계</p>
     <div class="meta">수수료 · 시책 통합 정산/대사 시스템 · 접속 https://ata.minu.best/app</div>
   </div>
   ${guideSteps.map(stepHtml).join("")}

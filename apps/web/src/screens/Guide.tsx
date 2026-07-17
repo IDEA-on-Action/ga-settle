@@ -12,7 +12,7 @@ export default function Guide() {
         <div>
           <h1 className="text-xl font-bold tracking-tight text-axis-text-primary">GA-Settle 사용 가이드</h1>
           <p className="mt-1 text-sm text-axis-text-tertiary">
-            원수사 엑셀 업로드부터 AI 매핑 · 시책 정산 · 대사 · 마감 · 지급 내역서까지, 데모를 따라 하며 익히는 8단계예요.
+            원수사 엑셀 업로드부터 AI 매핑 · 시책 정산 · 대사 · 마감 · 감사 소명까지, 데모를 따라 하며 익히는 10단계예요.
           </p>
         </div>
         <div className="flex flex-none gap-2 print:hidden">
