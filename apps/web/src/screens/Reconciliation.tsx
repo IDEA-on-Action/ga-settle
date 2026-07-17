@@ -1,6 +1,7 @@
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch, ApiError } from "@/lib/api";
+import { useRunsList } from "@/lib/pickers";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -67,22 +68,35 @@ export default function Reconciliation() {
   const [appliedRunId, setAppliedRunId] = useState<string | null>(() => getLastRunId());
   const [expandedInsurer, setExpandedInsurer] = useState<string | null>(null);
 
+  // localStorage에 지속된 last runId가 현재 run 목록에 없으면(DB 리셋·run 삭제·환경 전환 등) 클리어.
+  // 죽은 id로 reconciliation/verify/incentive 3개 쿼리가 발사돼 404 스팸이 나던 것을 원천 차단.
+  const { data: runsList } = useRunsList();
+  useEffect(() => {
+    if (appliedRunId && runsList && !runsList.some((r) => r.id === appliedRunId)) {
+      setAppliedRunId(null);
+    }
+  }, [appliedRunId, runsList]);
+
+  // 쿼리는 run이 실제 목록에 있을 때만 발사(마운트 레이스로 stale id가 한 번 새는 것까지 차단).
+  // 목록 로드 전엔 대기 → 유효 run은 목록 도착 후 즉시 조회, stale run은 아예 요청 안 함.
+  const runValid = !!appliedRunId && !!runsList && runsList.some((r) => r.id === appliedRunId);
+
   const reconQuery = useQuery({
     queryKey: ["reconciliation", appliedRunId],
     queryFn: () => apiFetch<ReconciliationResponse>(`/api/runs/${appliedRunId}/reconciliation`),
-    enabled: !!appliedRunId,
+    enabled: runValid,
   });
 
   const verifyQuery = useQuery({
     queryKey: ["parallel-verify", appliedRunId],
     queryFn: () => apiFetch<ParallelVerifyResponse>(`/api/runs/${appliedRunId}/parallel-verify`),
-    enabled: !!appliedRunId,
+    enabled: runValid,
   });
 
   const incentiveQuery = useQuery({
     queryKey: ["incentive-reconciliation", appliedRunId],
     queryFn: () => apiFetch<IncentiveReconciliationResponse>(`/api/runs/${appliedRunId}/incentive-reconciliation`),
-    enabled: !!appliedRunId,
+    enabled: runValid,
   });
 
   const insurers = reconQuery.data?.insurers ?? [];
