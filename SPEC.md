@@ -694,7 +694,7 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 | B-011 | 원수사 코드 체계 실제 값으로 조정(현재 영문 슬러그) | 데이터 | low |
 | ~~B-012~~ | ~~OCR 시책안 정식 구현~~ -> F-043(OCR 실연동)+F-044(스키마 확장·OCR결선·손보 구조화·운영룰 확정 UI·감사 소명)로 전량 완료 | 완료 | - |
 | ~~B-015~~ | ~~시책안 OCR Upstage 호출 견고성(F-059 진짜 fix)~~ -> **F-065로 승격**(P0, Sprint S26) | 승격 | - |
-| B-014 | `deploy.yml`에 D1 migration 자동 적용 단계 추가 - **2026-07-16 F-064(migration 0008) 배포 시 CI green인데 prod 스키마 미적용 발견**(deploy가 Worker 코드만 배포, migration은 수동 `d1:migrate:remote` 규약). 매 migration 재발 구조. `d1_migrations` 자동 기록으로 drift도 해소. ⚠️ CLAUDE.md의 "트리거는 0001 수동 유지"와 상충 없는지 확인 필요(트리거 SQL만 수동, 컬럼 migration은 자동화 가능) | CI 신뢰성 | high |
+| ~~B-014~~ | ~~배포 자동화(ci.yml deploy 잡 + D1 migration)~~ -> **구현 완료(2026-07-17), secret 설정 대기**. **실체 정정**: F-064 때 "migration 갭"으로 봤으나 실제는 **배포 자동화 자체가 없었음**(ci.yml=verify만, 배포는 수동 `wrangler deploy`). F-064/065/066이 CI green인데 07-17 07:51까지 prod 미배포 방치되다 수동 일괄 배포로 확인. fix: ci.yml에 `deploy` 잡(verify 후 main push, migration→web build→deploy→헬스 스모크, `d1_migrations` 자동 기록으로 drift 해소). **잔여(사용자)**: GitHub Settings > Secrets에 `CLOUDFLARE_API_TOKEN`(Workers+D1 권한)·`CLOUDFLARE_ACCOUNT_ID` 추가 → 자동 활성(현재는 가드로 초록 skip). 추가 후 다음 push부터 자동 배포 | 해소 | - |
 | B-013 | 시책안 PDF 사전 선별(TextBased면 OCR 생략, [pdf-inspector](https://github.com/firecrawl/pdf-inspector) 류) - **조건부 보류**: 2026-07-16 프로덕션 전수 7건 실측에서 전제 붕괴. TextBased 1/7(14%)뿐이고 6건은 추출 문자 0(페이지당 전면 이미지 = 순수 스캔본). 참고글 주장 54%는 웹 크롤링 PDF 분포라 본 도메인(원수사 판촉 편집물) 미전이. 실패 2건은 전부 대용량 스캔본(39p·32p)이라 선별로 해소 불가(이미 OCR 경로로 감). Rust 네이티브라 Workers 미실행(WASM/별도 서비스 필요). **재검토 조건**: 시책안 월 볼륨 100건+ 또는 TextBased 비율 40%+ 관측 시 | 미충족(이득 14%·총 7건) | low |
 
 > 프로덕션: `https://ata.minu.best` 배포·운영 중. admin=sinclairseo@gmail.com(비번). @atasset.co.kr=OTP. 주요 원수사 26곳 등록. 상세 next-task는 세션 Task 목록(#1~#7) 참조.
