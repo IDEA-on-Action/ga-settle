@@ -22,6 +22,7 @@ interface DefRow {
   lineType: string | null;
   product: string;
   payTerm: string | null;
+  maturityTerm: string | null;
   payTiming: string | null;
   cond1: string | null;
   rateType: string;
@@ -130,7 +131,7 @@ export default function PlanDefinitions() {
             <Input
               value={q}
               onChange={(e) => onFilter(() => setQ(e.target.value))}
-              placeholder="상품·납입기간·지급시점 검색"
+              placeholder="상품·납입기간·만기기간·지급시점 검색"
               className="w-52"
             />
             <div className="ml-auto flex items-center gap-2">
@@ -166,6 +167,7 @@ export default function PlanDefinitions() {
                       <TableHead>상품</TableHead>
                       <TableHead>기준월</TableHead>
                       <TableHead>납입기간</TableHead>
+                      <TableHead>만기기간</TableHead>
                       <TableHead>지급시점</TableHead>
                       <TableHead>시상유형</TableHead>
                       <TableHead className="text-right">지급</TableHead>
@@ -175,7 +177,7 @@ export default function PlanDefinitions() {
                   <TableBody>
                     {items.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={10} className="py-6 text-center text-sm text-axis-text-tertiary">
+                        <TableCell colSpan={11} className="py-6 text-center text-sm text-axis-text-tertiary">
                           조건에 맞는 시상정의가 없어요.
                         </TableCell>
                       </TableRow>
@@ -196,6 +198,7 @@ export default function PlanDefinitions() {
                         <TableCell className="max-w-[280px] truncate" title={r.product}>{r.product}</TableCell>
                         <TableCell className="whitespace-nowrap tabular-nums">{r.baseMonth}</TableCell>
                         <TableCell className="whitespace-nowrap">{r.payTerm ?? "-"}</TableCell>
+                        <TableCell className="whitespace-nowrap">{r.maturityTerm ?? "-"}</TableCell>
                         <TableCell className="whitespace-nowrap">{r.payTiming ?? "-"}</TableCell>
                         <TableCell className="max-w-[180px] truncate" title={r.cond1 ?? ""}>{r.cond1 ?? "-"}</TableCell>
                         <TableCell className="whitespace-nowrap text-right tabular-nums">{fmtRate(r)}</TableCell>

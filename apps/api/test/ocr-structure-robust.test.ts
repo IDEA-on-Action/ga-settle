@@ -53,14 +53,25 @@ describe("mergeStructured (F-059 청크 병합)", () => {
   });
 
   it("payoutRows는 concat + 완전 중복 제거", () => {
-    const r1: PayoutRow = { payTerm: "5년납", payTiming: "익월", rate: "150%" };
-    const r2: PayoutRow = { payTerm: "7년납", payTiming: "익월", rate: "250%" };
+    const r1: PayoutRow = { payTerm: "5년납", maturityTerm: null, payTiming: "익월", rate: "150%" };
+    const r2: PayoutRow = { payTerm: "7년납", maturityTerm: null, payTiming: "익월", rate: "250%" };
     const merged = mergeStructured([
       { rule: emptyRule(), payoutRows: [r1, r2] },
-      { rule: emptyRule(), payoutRows: [{ ...r1 }, { payTerm: "7년납", payTiming: "13차월", rate: "100%" }] },
+      { rule: emptyRule(), payoutRows: [{ ...r1 }, { payTerm: "7년납", maturityTerm: null, payTiming: "13차월", rate: "100%" }] },
     ]);
     expect(merged.payoutRows).toHaveLength(3);
     expect(merged.payoutRows.filter((r) => r.payTerm === "5년납")).toHaveLength(1);
+  });
+
+  it("F-060: 상품·납입기간·지급시점 같아도 만기기간 다르면 별도 행(dedup 키에 만기 포함)", () => {
+    const base = { payTerm: "5년납", payTiming: "익월", rate: "150%" };
+    const merged = mergeStructured([
+      { rule: emptyRule(), payoutRows: [{ ...base, maturityTerm: "20년만기" }] },
+      { rule: emptyRule(), payoutRows: [{ ...base, maturityTerm: "종신" }, { ...base, maturityTerm: "20년만기" }] },
+    ]);
+    // 20년만기 1건(중복 제거) + 종신 1건 = 2건
+    expect(merged.payoutRows).toHaveLength(2);
+    expect(merged.payoutRows.map((r) => r.maturityTerm).sort()).toEqual(["20년만기", "종신"]);
   });
 });
 

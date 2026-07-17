@@ -71,7 +71,7 @@ data.forEach((r, ri) => {
     const id = `def-sonbo-${baseMonth}-${ri + 1}-${g.col}`;
     values.push("(" + [
       q(id), q(insurerId), q(baseMonth), q("손보"), q(product),
-      "NULL", q(g.timing), "NULL", "NULL",
+      "NULL", "NULL", q(g.timing), "NULL", "NULL",
       q(g.type), q(cond2), q(cond3),
       q(isRate ? "rate" : "fixed"), val, q(g.vlabel && g.vlabel !== "지급액" && !isRate ? g.vlabel : null),
       q("xlsx"), q(SOURCE_REF), "NULL",
@@ -81,7 +81,7 @@ data.forEach((r, ri) => {
 });
 
 // insurers는 33개사 세트에 이미 포함(생보 임포터가 생성) → 여기선 정의만.
-const COLS = "(id, insurer_id, base_month, line_type, product, pay_term, pay_timing, channel, branch, cond1, cond2, cond3, rate_type, rate_value, note, source_type, source_ref, plan_image_key, created_by, created_at)";
+const COLS = "(id, insurer_id, base_month, line_type, product, pay_term, maturity_term, pay_timing, channel, branch, cond1, cond2, cond3, rate_type, rate_value, note, source_type, source_ref, plan_image_key, created_by, created_at)";
 const PER_STMT = 50, PER_FILE = 2000;
 let fileIdx = 0;
 for (let f = 0; f < values.length; f += PER_FILE) {

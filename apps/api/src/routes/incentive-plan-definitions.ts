@@ -65,6 +65,7 @@ incentivePlanDefinitionsRoutes.get("/api/incentive-plan-definitions", async (c) 
         like(incentivePlanDefinitions.product, `%${q}%`),
         like(incentivePlanDefinitions.payTiming, `%${q}%`),
         like(incentivePlanDefinitions.payTerm, `%${q}%`),
+        like(incentivePlanDefinitions.maturityTerm, `%${q}%`),
         like(insurers.name, `%${q}%`),
       ),
     );
@@ -79,6 +80,7 @@ incentivePlanDefinitionsRoutes.get("/api/incentive-plan-definitions", async (c) 
       lineType: incentivePlanDefinitions.lineType,
       product: incentivePlanDefinitions.product,
       payTerm: incentivePlanDefinitions.payTerm,
+      maturityTerm: incentivePlanDefinitions.maturityTerm,
       payTiming: incentivePlanDefinitions.payTiming,
       channel: incentivePlanDefinitions.channel,
       branch: incentivePlanDefinitions.branch,
@@ -114,6 +116,7 @@ const rowSchema = z.object({
   lineType: z.string().optional(),
   product: z.string().min(1),
   payTerm: z.string().optional(),
+  maturityTerm: z.string().optional(),
   payTiming: z.string().optional(),
   channel: z.string().optional(),
   branch: z.string().optional(),
@@ -158,6 +161,7 @@ incentivePlanDefinitionsRoutes.post("/api/incentive-plan-definitions", async (c)
     lineType: r.lineType ?? null,
     product: r.product,
     payTerm: r.payTerm ?? null,
+    maturityTerm: r.maturityTerm ?? null,
     payTiming: r.payTiming ?? null,
     channel: r.channel ?? null,
     branch: r.branch ?? null,
@@ -173,8 +177,8 @@ incentivePlanDefinitionsRoutes.post("/api/incentive-plan-definitions", async (c)
     createdBy: requester,
     createdAt: now,
   }));
-  // incentivePlanDefinitions 20컬럼 → D1 100변수 한도 위해 청크 insert.
-  await insertChunked((rows) => db.insert(incentivePlanDefinitions).values(rows), values, 20);
+  // incentivePlanDefinitions 21컬럼 → D1 100변수 한도 위해 청크 insert.
+  await insertChunked((rows) => db.insert(incentivePlanDefinitions).values(rows), values, 21);
   await writeAudit(db, {
     actor: requester,
     action: "incentive_plan_def.create",
@@ -262,7 +266,7 @@ incentivePlanDefinitionsRoutes.post("/api/incentive-plan-definitions/promote", a
       const condition = {
         condition: { period: { from, to }, insurerIds: [d.insurerId], productPatterns: d.product ? [d.product] : [] },
         overlapPolicy: "exclusive" as const,
-        _source: { definitionId: d.id, payTerm: d.payTerm, payTiming: d.payTiming, channel: d.channel, branch: d.branch, cond1: d.cond1, cond2: d.cond2, cond3: d.cond3 },
+        _source: { definitionId: d.id, payTerm: d.payTerm, maturityTerm: d.maturityTerm, payTiming: d.payTiming, channel: d.channel, branch: d.branch, cond1: d.cond1, cond2: d.cond2, cond3: d.cond3 },
       };
       const action = d.rateType === "rate" ? { kind: "rate", rate: d.rateValue } : { kind: "fixed", amount: d.rateValue };
       const name = `[정의] ${d.product}${d.payTiming ? ` · ${d.payTiming}` : ""}${d.cond1 ? ` · ${d.cond1}` : ""}`.slice(0, 200);

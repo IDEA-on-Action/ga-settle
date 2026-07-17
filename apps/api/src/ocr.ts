@@ -26,9 +26,9 @@ export type StructuredRule = {
   payout: RuleField;       // 지급방식/배수
   retention: RuleField;    // 유지조건
 };
-// 납입기간·지급시점별 지급율 행 (F-052). 생보는 상품 납입기간(5년납/7년납)·지급시점(익월/13차월)마다
-// 지급율이 달라 단일 payout 필드로는 손실 → 배열로 각 조합을 별도 행으로 추출한다.
-export type PayoutRow = { payTerm: string | null; payTiming: string | null; rate: string | null };
+// 납입기간·만기기간·지급시점별 지급율 행 (F-052, F-060). 생보는 상품 납입기간(5년납/7년납)·만기기간(20년만기/종신)·
+// 지급시점(익월/13차월)마다 지급율이 달라 단일 payout 필드로는 손실 → 배열로 각 조합을 별도 행으로 추출한다.
+export type PayoutRow = { payTerm: string | null; maturityTerm: string | null; payTiming: string | null; rate: string | null };
 export type OcrExtractResult = {
   ocr: { avgConfidence: number; fieldCount: number; text: string };
   rule: StructuredRule;
@@ -170,9 +170,9 @@ export function coercePayoutRows(v: unknown): PayoutRow[] {
     .map((e) => {
       if (!e || typeof e !== "object") return null;
       const o = e as Record<string, unknown>;
-      const row: PayoutRow = { payTerm: flattenValue(o.payTerm), payTiming: flattenValue(o.payTiming), rate: flattenValue(o.rate) };
-      // 셋 다 비면 무의미 행 → 제거.
-      return row.payTerm || row.payTiming || row.rate ? row : null;
+      const row: PayoutRow = { payTerm: flattenValue(o.payTerm), maturityTerm: flattenValue(o.maturityTerm), payTiming: flattenValue(o.payTiming), rate: flattenValue(o.rate) };
+      // 넷 다 비면 무의미 행 → 제거.
+      return row.payTerm || row.maturityTerm || row.payTiming || row.rate ? row : null;
     })
     .filter((r): r is PayoutRow => r !== null);
 }
@@ -225,7 +225,7 @@ export function mergeStructured(parts: { rule: StructuredRule; payoutRows: Payou
   const seen = new Set<string>();
   const payoutRows: PayoutRow[] = [];
   for (const r of parts.flatMap((p) => p.payoutRows)) {
-    const key = `${r.payTerm ?? ""}|${r.payTiming ?? ""}|${r.rate ?? ""}`;
+    const key = `${r.payTerm ?? ""}|${r.maturityTerm ?? ""}|${r.payTiming ?? ""}|${r.rate ?? ""}`;
     if (!seen.has(key)) {
       seen.add(key);
       payoutRows.push(r);
@@ -241,9 +241,9 @@ function buildStructurePrompt(ocrText: string): string {
     "다음은 시책안 포스터 OCR 텍스트다. 아래 필드를 JSON으로 추출하라. 각 필드는 {value, confidence(0~1)}. " +
     "value는 반드시 문자열(string) 한 줄로 작성하고, 여러 값이면 ' · '로 이어 붙여라. 배열이나 중첩 객체를 value에 넣지 마라. " +
     "필드: insurer(보험사), planType(시책유형), period(적용기간), targetProduct(대상상품), payout(지급방식/배수), retention(유지조건). 원문에 없으면 value:null. " +
-    "추가로, 생명보험 시책은 상품의 납입기간(예 5년납/7년납)·지급시점(예 익월/13차월)마다 지급율이 다르다. " +
-    "이런 구분이 있으면 payoutRows 배열로 각 조합을 별도 행으로 추출하라. 각 원소는 {payTerm(납입기간 문자열, 예 \"5년납\"), payTiming(지급시점 문자열, 예 \"익월\"|\"13차월\"), rate(지급율/배수 문자열, 예 \"150%\"|\"0\")}. " +
-    "납입기간별 구분이 없으면 payoutRows는 빈 배열([])로 둬라.\n\nOCR:\n" +
+    "추가로, 생명보험 시책은 상품의 납입기간(예 5년납/7년납)·만기기간(예 20년만기/종신)·지급시점(예 익월/13차월)마다 지급율이 다르다. " +
+    "이런 구분이 있으면 payoutRows 배열로 각 조합을 별도 행으로 추출하라. 각 원소는 {payTerm(납입기간 문자열, 예 \"5년납\"), maturityTerm(만기기간 문자열, 예 \"20년만기\"|\"종신\", 없으면 null), payTiming(지급시점 문자열, 예 \"익월\"|\"13차월\"), rate(지급율/배수 문자열, 예 \"150%\"|\"0\")}. " +
+    "납입기간·만기기간별 구분이 없으면 payoutRows는 빈 배열([])로 둬라.\n\nOCR:\n" +
     ocrText
   );
 }

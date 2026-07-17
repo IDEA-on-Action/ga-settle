@@ -51,6 +51,7 @@ writeFileSync(`${OUT}/00_insurers.sql`, insSql);
 const wb = XLSX.readFile(SRC);
 const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: null, blankrows: false }).slice(1);
 // 컬럼: 0기준월 1손생보 2보험사 3상품1 4상품2 5납입기간 6지급시점 7채널 8지점 9조건1 10조건2 11조건3 12적용률 13비고
+// 만기기간(maturity_term, F-060)은 현 시트에 열이 없음 → NULL로 관통(스키마 정합). 향후 만기 열 추가 시 여기서 매핑.
 const nz = (v) => (v == null || v === "" ? null : String(v).trim());
 
 const values = [];
@@ -70,7 +71,7 @@ rows.forEach((r, i) => {
   values.push(
     "(" + [
       q(id), q(insurerId), q(baseMonth), q(lineType), q(product),
-      q(nz(r[5])), q(nz(r[6])), q(nz(r[7])), q(nz(r[8])),
+      q(nz(r[5])), "NULL", q(nz(r[6])), q(nz(r[7])), q(nz(r[8])),
       q(nz(r[9])), q(nz(r[10])), q(nz(r[11])),
       q(rateType), rv, q(nz(r[13])),
       q("xlsx"), q(SOURCE_REF), "NULL",
@@ -79,7 +80,7 @@ rows.forEach((r, i) => {
   );
 });
 
-const COLS = "(id, insurer_id, base_month, line_type, product, pay_term, pay_timing, channel, branch, cond1, cond2, cond3, rate_type, rate_value, note, source_type, source_ref, plan_image_key, created_by, created_at)";
+const COLS = "(id, insurer_id, base_month, line_type, product, pay_term, maturity_term, pay_timing, channel, branch, cond1, cond2, cond3, rate_type, rate_value, note, source_type, source_ref, plan_image_key, created_by, created_at)";
 const PER_STMT = 50, PER_FILE = 2000;
 let fileIdx = 0;
 for (let f = 0; f < values.length; f += PER_FILE) {

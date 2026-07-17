@@ -592,13 +592,13 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 ### F-060 · 시상정의 만기기간 차원 추가 (P1)
 - **REQ-082**: 생보 시상정의에서 상품명이 같아도 납입기간·만기기간에 따라 지급율이 다른 경우를 구분해 확정할 수 있다
 - **Acceptance**:
-  - [ ] incentive_plan_definitions에 만기기간(maturity_term) 컬럼 추가 (D1 migration)
-  - [ ] OCR 구조화(payoutRows)와 xlsx 인입 경로에 만기기간 추출/저장 반영
-  - [ ] 시상정의 확정 화면·목록 API에 만기기간 노출 + 검색 대상 포함
-  - [ ] 감사 역추적(_source)에 만기기간 포함
-- **Status**: 📋 PLANNED
-- **Sprint**: S23 (예정)
-- **Notes**: 2026-07-14 고객(김혜경) 요청 - ABL생명 동일 상품명에서 납입기간·만기기간별 지급율 상이. 납입기간(pay_term)은 모델·API에 기존재하나 확정 화면 미노출이었음 → 컬럼 노출은 F-item 없이 즉시 반영(같은 날 커밋). 만기기간은 모델 자체 부재라 본 항목에서 신규.
+  - [x] incentive_plan_definitions에 만기기간(maturity_term) 컬럼 추가 (D1 migration 0009, nullable)
+  - [x] OCR 구조화(payoutRows)와 xlsx 인입 경로에 만기기간 추출/저장 반영 (PayoutRow.maturityTerm + LLM 프롬프트/dedup 키 + import-sisang-saengbo/sonbo COLS)
+  - [x] 시상정의 확정 화면·목록 API에 만기기간 노출 + 검색 대상 포함 (GET select+like, POST rowSchema, PlanDefinitions.tsx 만기기간 열)
+  - [x] 감사 역추적(_source)에 만기기간 포함 (promote _source.maturityTerm + Audit.tsx 표시)
+- **Status**: 🔧 IN_PROGRESS
+- **Sprint**: S23
+- **Notes**: 2026-07-14 고객(김혜경) 요청 - ABL생명 동일 상품명에서 납입기간·만기기간별 지급율 상이. 납입기간(pay_term)은 모델·API에 기존재하나 확정 화면 미노출이었음 → 컬럼 노출은 F-item 없이 즉시 반영(같은 날 커밋). 만기기간은 모델 자체 부재라 본 항목에서 신규. **구현(2026-07-17, feat/f-060-maturity-term)**: pay_term을 거울삼아 maturity_term을 스키마→OCR(payoutRows)→xlsx 스크립트→목록/검색 API→확정 화면(PlanDefinitions)·OCR 미리보기(IncentivePlanUpload)→운영룰 승격 _source→감사 화면(Audit)까지 대칭 관통. D1 100변수 한도 대응 insertChunked cols 20→21. 신규 테스트 3(만기 write→목록→검색→승격 _source DB 왕복) + OCR 단위 2, 전체 api 153 PASS. xlsx 현 시트엔 만기 열 부재라 NULL 관통(향후 열 추가 시 매핑).
 
 ### F-061 · 업로드 검증 오류 대량 파일 파싱 실패 수정 (P0, Bug)
 - **REQ-083**: 검증 오류가 대량(수천 건)인 엑셀도 "파싱 실패" 없이 review 상태에 도달하고 오류 리포트가 전량 기록된다

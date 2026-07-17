@@ -21,7 +21,7 @@ interface Trace {
   upload?: { id: string; settlementMonth: string; r2Key: string };
   rule?: { id: string; name: string; action: { kind: string; rate?: number; amount?: number }; validFrom: string; validTo: string | null; active: boolean; createdBy: string };
   definition?: DefRow & {
-    baseMonth: string; lineType: string | null; payTerm: string | null; channel: string | null; branch: string | null;
+    baseMonth: string; lineType: string | null; payTerm: string | null; maturityTerm: string | null; channel: string | null; branch: string | null;
     cond1: string | null; cond2: string | null; cond3: string | null; rateType: string; rateValue: number;
     sourceType: string; sourceRef: string | null; planImageKey: string | null; createdBy: string; createdAt: string;
   };
@@ -211,6 +211,7 @@ export default function Audit() {
                       <span>{trace.definition.baseMonth}</span>
                       {trace.definition.payTiming && <span>지급시점 {trace.definition.payTiming}</span>}
                       {trace.definition.payTerm && <span>납기 {trace.definition.payTerm}</span>}
+                      {trace.definition.maturityTerm && <span>만기 {trace.definition.maturityTerm}</span>}
                       {trace.definition.channel && <span>{trace.definition.channel}</span>}
                       {trace.definition.cond1 && <span>{trace.definition.cond1}</span>}
                       <span>{trace.definition.rateType === "rate" ? `x${trace.definition.rateValue}` : `${trace.definition.rateValue.toLocaleString()}원`}</span>
