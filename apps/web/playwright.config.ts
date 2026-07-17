@@ -20,7 +20,9 @@ export default defineConfig({
     command: "pnpm exec vite --port 4319 --strictPort",
     url: "http://127.0.0.1:4319",
     reuseExistingServer: !process.env.CI,
-    timeout: 60_000,
+    // B-016: CI(GitHub 러너)는 vite 콜드 스타트 시 의존성 사전 번들링으로 60s를 넘겨 타임아웃났다.
+    // 로컬은 즉시 뜨므로 120s 상향은 로컬 영향 없이 CI 콜드 스타트 여유만 확보.
+    timeout: 120_000,
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
 });
