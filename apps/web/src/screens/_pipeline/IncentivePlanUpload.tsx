@@ -51,14 +51,30 @@ export function IncentivePlanUpload() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const [progress, setProgress] = useState(0);
+
   const ocrMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (): Promise<OcrResult> => {
       if (!file) throw new Error("파일을 선택하세요");
       if (!category) throw new Error("대분류를 선택하세요");
       const form = new FormData();
       form.append("image", file);
       form.append("category", category); // F-051 대분류 필수
-      return apiFetch<OcrResult>("/api/incentive-plans/ocr", { method: "POST", body: form });
+      // F-066: 비동기. 202로 접수 후 job 완료까지 폴링(대용량 다청크는 수 분 소요) → 결과 조회.
+      setProgress(0);
+      const queued = await apiFetch<{ planId: string; jobId: string; idempotentReuse: boolean }>(
+        "/api/incentive-plans/ocr", { method: "POST", body: form });
+      let done = false;
+      for (let i = 0; i < 300 && !done; i++) {
+        const job = await apiFetch<{ status: string; progress: number; message?: string }>(`/api/jobs/${queued.jobId}`);
+        setProgress(job.progress ?? 0);
+        if (job.status === "done") done = true;
+        else if (job.status === "failed") throw new Error(job.message || "OCR 처리에 실패했어요");
+        else await new Promise((r) => setTimeout(r, 2000)); // 2s 간격, 최대 ~10분
+      }
+      if (!done) throw new Error("OCR 처리가 예상보다 오래 걸려요. 등록 내역에서 상태를 확인하세요.");
+      const result = await apiFetch<OcrResult>(`/api/incentive-plans/${queued.planId}/ocr-result`);
+      return { ...result, planId: queued.planId, idempotentReuse: queued.idempotentReuse };
     },
     // OCR 실패도 업로드 즉시 대장에 기록되므로(F-048), 성공/실패 모두 등록 내역을 갱신한다.
     onError: (err) => {
@@ -135,6 +151,17 @@ export function IncentivePlanUpload() {
             <Button type="submit" disabled={!file || !category || ocrMutation.isPending} className="self-start">
               {ocrMutation.isPending ? "OCR 처리 중..." : "OCR로 시책룰 후보 추출"}
             </Button>
+            {/* F-066: 비동기 처리 진행률. 대용량 시책안은 수 분 걸릴 수 있음. */}
+            {ocrMutation.isPending && (
+              <div className="flex flex-col gap-1">
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-axis-bg-tertiary">
+                  <div className="h-full rounded-full bg-axis-accent transition-all" style={{ width: `${Math.round(progress * 100)}%` }} />
+                </div>
+                <span className="text-xs text-axis-text-secondary">
+                  대용량 시책안은 수 분 걸릴 수 있어요 ({Math.round(progress * 100)}%)
+                </span>
+              </div>
+            )}
           </form>
         </CardContent>
       </Card>

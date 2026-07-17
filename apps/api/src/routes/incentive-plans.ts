@@ -1,11 +1,10 @@
 import { Hono } from "hono";
 import { desc, eq, like, or, sql } from "drizzle-orm";
-import { incentivePlans, insurers } from "@ga-settle/schema";
+import { incentivePlans, insurers, jobs } from "@ga-settle/schema";
 import type { Env } from "../types";
 import { getDb, sha256Hex } from "../db";
 import { authUser } from "../auth";
 import { pageParams } from "../pagination";
-import { extractIncentivePlan, OcrError } from "../ocr";
 
 // 시책안 OCR 인식 + 등록 대장 (F-043 REQ-059/060, F-048 REQ-068/069).
 // 이미지/PDF → R2 불변 보관 → CLOVA OCR + Upstage 구조화 → 저신뢰 필드 표시.
@@ -19,15 +18,6 @@ const MAX_BYTES = 8 * 1024 * 1024; // 8MB
 const PLAN_CATEGORIES = ["sonbo_planner", "sonbo_self", "sengbo_fc", "sengbo_corp"] as const;
 type PlanCategory = (typeof PLAN_CATEGORIES)[number];
 const isPlanCategory = (v: unknown): v is PlanCategory => typeof v === "string" && (PLAN_CATEGORIES as readonly string[]).includes(v);
-
-// OCR 적용기간 문자열에서 정산월(YYYY-MM) best-effort 파싱 (F-048).
-// "2026년 3월" / "2026-03" / "2026.3" 등 → "2026-03". 실패 시 null(수동 보정).
-function parseSettlementMonth(period: string | null | undefined): string | null {
-  if (!period) return null;
-  const m = period.match(/(20\d{2})\s*[년.\-/]\s*(1[0-2]|0?[1-9])\b/);
-  if (!m || !m[1] || !m[2]) return null;
-  return `${m[1]}-${m[2].padStart(2, "0")}`;
-}
 
 incentivePlansRoutes.post("/api/incentive-plans/ocr", async (c) => {
   const db = getDb(c.env);
@@ -79,36 +69,29 @@ incentivePlansRoutes.post("/api/incentive-plans/ocr", async (c) => {
     set: { category, updatedAt: now },
   });
 
-  try {
-    const result = await extractIncentivePlan(bytes, ext, c.env);
-    const month = parseSettlementMonth(result.rule.period?.value);
-    const lowCount = result.lowConfidenceKeys.length;
-    // OCR 결과로 대장 갱신. settlementMonth는 파싱 성공 시에만 덮어쓴다(수동 보정 보존).
-    await db.update(incentivePlans).set({
-      ocrStatus: lowCount > 0 ? "low_confidence" : "ok",
-      ocrAvgConfidence: result.ocr.avgConfidence,
-      ocrFieldCount: result.ocr.fieldCount,
-      lowConfidenceCount: lowCount,
-      ...(month ? { settlementMonth: month } : {}),
-      updatedAt: new Date().toISOString(),
-    }).where(eq(incentivePlans.sha256, sha));
-    const plan = await db.select({ id: incentivePlans.id }).from(incentivePlans).where(eq(incentivePlans.sha256, sha)).get();
-    return c.json({ planId: plan?.id, planImageKey: key, sha256: sha, idempotentReuse: !!existing, ...result });
-  } catch (e) {
-    // OCR 실패도 대장에 남긴다(업로드 즉시 등록 정책, F-048): status=failed.
-    // F-064: 실패 단계+사유도 함께 저장 - 이전엔 e를 손에 쥐고도 버려서 "failed"만 남고 원인이 유실됐다.
-    const stage = e instanceof OcrError ? e.stage : "unknown";
-    const message = e instanceof Error ? e.message : String(e);
-    await db.update(incentivePlans).set({
-      ocrStatus: "failed",
-      ocrErrorStage: stage,
-      ocrErrorMessage: message,
-      updatedAt: new Date().toISOString(),
-    }).where(eq(incentivePlans.sha256, sha));
-    // OcrError(503 미설정 / 502 상류 오류 / 422 빈결과)는 그대로, 그 외는 500.
-    if (e instanceof OcrError) return c.json({ error: e.message, planImageKey: key }, e.status as 502);
-    return c.json({ error: "OCR 처리 실패", detail: String(e) }, 500);
-  }
+  // F-066: OCR을 동기 처리하지 않고 큐로 이관한다. 대용량 다청크는 144~310s라 HTTP 요청을 오래
+  // 붙잡아 긴 스피너가 됐다(F-065 부작용). 엑셀 업로드(F-003)와 동일하게 job 발행 후 즉시 202.
+  const plan = await db.select({ id: incentivePlans.id }).from(incentivePlans).where(eq(incentivePlans.sha256, sha)).get();
+  if (!plan) return c.json({ error: "대장 등록에 실패했어요" }, 500);
+  // 재업로드(멱등) 시 이전 실패 사유를 클리어하고 다시 대기 상태로 - 실패 후 재시도가 성공하면 깨끗이.
+  await db.update(incentivePlans).set({ ocrStatus: "pending", ocrErrorStage: null, ocrErrorMessage: null, updatedAt: now })
+    .where(eq(incentivePlans.id, plan.id));
+  const jobId = crypto.randomUUID();
+  await db.insert(jobs).values({ id: jobId, kind: "ocr-plan", refId: plan.id, status: "queued", progress: 0, updatedAt: now });
+  await c.env.PARSE_QUEUE.send({ kind: "ocr-plan", planId: plan.id, jobId, r2Key: key, ext });
+  return c.json({ planId: plan.id, jobId, planImageKey: key, sha256: sha, idempotentReuse: !!existing, status: "queued" }, 202);
+});
+
+// F-066: OCR 결과 조회. 큐 consumer가 R2(`{r2Key}.ocr.json`)에 저장한 구조화 결과를 반환.
+// 프론트는 job(GET /api/jobs/:id) done 확인 후 이걸로 rule/payoutRows 후보를 표시(동기 응답 대체).
+incentivePlansRoutes.get("/api/incentive-plans/:id/ocr-result", async (c) => {
+  const db = getDb(c.env);
+  const plan = await db.select({ r2Key: incentivePlans.r2Key, ocrStatus: incentivePlans.ocrStatus })
+    .from(incentivePlans).where(eq(incentivePlans.id, c.req.param("id"))).get();
+  if (!plan) return c.json({ error: "시책안을 찾을 수 없어요" }, 404);
+  const obj = await c.env.UPLOADS.get(`${plan.r2Key}.ocr.json`);
+  if (!obj) return c.json({ error: "OCR 결과가 아직 없어요", ocrStatus: plan.ocrStatus }, 404);
+  return c.json(JSON.parse(await obj.text()));
 });
 
 // F-048: 시책안 등록 대장 목록. 원수사명 조인 + ?q·?limit·?offset 검색/페이지.

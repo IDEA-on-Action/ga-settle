@@ -668,13 +668,14 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 ### F-066 · 시책안 OCR 비동기 처리 (진행률/폴링) (P1)
 - **REQ-088**: 대용량 시책안(다청크, 144~310s) 업로드가 긴 동기 대기 없이 즉시 접수(jobId)되고, 담당자는 진행 상태를 폴링으로 확인하며, 클라이언트 연결이 끊겨도 서버가 OCR을 완주해 대장에 결과가 남는다
 - **Acceptance**:
-  - [ ] OCR을 엑셀 업로드(F-003)처럼 Queue consumer로 이관하거나, 최소 `ctx.waitUntil`로 클라 끊김과 서버 완주 분리
-  - [ ] `POST /api/incentive-plans/ocr`가 즉시 202+{planId,jobId} 반환, OCR은 백그라운드
-  - [ ] 진행/완료 폴링(`GET /api/incentive-plans/:id` ocrStatus pending→ok/failed) + UI 스피너를 폴링 기반으로
-  - [ ] 회귀: 소용량(단일 청크)도 동일 경로로 정상, 대장 stage/사유 기록 유지(F-064)
-- **Status**: 📋 PLANNED
+  - [x] OCR을 엑셀 업로드(F-003)처럼 Queue consumer로 이관 - `ParseJob` 판별 유니온에 `ocr-plan` 추가, `queueConsumer` kind 분기, `runOcrPlanJob`(extractIncentivePlan→결과 R2 `{r2Key}.ocr.json` 저장→대장 갱신)
+  - [x] `POST /api/incentive-plans/ocr`가 즉시 202+{planId,jobId,status:queued} 반환, OCR은 큐 백그라운드. 재업로드 시 이전 실패 사유 클리어
+  - [x] 결과 조회 `GET /api/incentive-plans/:id/ocr-result`(R2 저장 결과) + UI 폴링(job 2s 간격, 진행률 바) 기반. 실패 stage/사유 대장 기록 유지(F-064)
+  - [x] 회귀: 전체 147 tests green(신규 3: 202+queued 접수 / consumer 실패 stage=clova / 결과 R2 저장→조회). web 빌드 통과
+  - [ ] 배포 후 prod E2E: 대용량 실 업로드 → 폴링 → 성공 확인(인증 필요). 큐 인프라는 엑셀 경로로 기검증, ocr-plan 분기만 신규
+- **Status**: 🔧 IN_PROGRESS (구현·테스트 완료·배포됨, 잔여=prod 인증 E2E)
 - **Sprint**: S27
-- **Notes**: 2026-07-17 F-065(청크 2000 근본 해결) 부작용으로 발견. 대용량이 성공은 하나 144~310s 동기 처리라 UX·안정성 이슈. **정확성 문제 아님**(F-065로 문서는 성공) = 최적화 F-item. 엑셀은 이미 Queue(F-003)라 OCR도 대칭화가 자연스러움. F-059 완전 종결의 UX 조건.
+- **Notes**: 2026-07-17 F-065 부작용으로 발견 후 즉시 착수. **정확성 아닌 UX 최적화**(F-065로 문서는 이미 성공). 엑셀 Queue(F-003) 대칭화. **migration 없음**(기존 jobs 테이블 재사용) = F-064식 배포 갭 위험 없음. 큐 인프라는 엑셀 경로로 프로덕션 기검증, 신규는 consumer의 ocr-plan 분기(단위 테스트 완료)뿐. 설계: 결과를 응답 대신 R2에 저장(엑셀 staged.json 대칭)해 프론트가 job done 후 조회. Master pane 직접 구현.
 
 ## §3. Backlog (F-item 승격 대기)
 

@@ -1,5 +1,6 @@
 // Worker 바인딩 + 큐 메시지 타입 (SoT). 라우트 모듈/큐 소비자가 공유해 순환 import 방지.
-export type ParseJob = {
+// kind로 판별하는 유니온 - 엑셀 파싱(parse-upload)과 시책안 OCR(ocr-plan, F-066)이 같은 큐를 공유.
+export type ParseUploadJob = {
   kind: "parse-upload";
   uploadId: string;
   jobId: string;
@@ -7,6 +8,18 @@ export type ParseJob = {
   insurerId: string;
   docType?: "commission" | "incentive"; // 문서유형 (F-062, 생략 시 commission - 구 메시지 호환)
 };
+
+// F-066: 시책안 OCR 비동기 처리. 동기 처리는 대용량 다청크(144~310s)에서 HTTP 요청을 오래 붙잡아
+// 긴 스피너가 됐다(F-065 부작용). 엑셀 업로드(F-003)와 동일하게 큐로 이관해 즉시 202 반환.
+export type OcrPlanJob = {
+  kind: "ocr-plan";
+  planId: string;
+  jobId: string;
+  r2Key: string;
+  ext: string; // pdf|png|jpg|webp - CLOVA format 판정용
+};
+
+export type ParseJob = ParseUploadJob | OcrPlanJob;
 
 export type Env = {
   DB: D1Database;

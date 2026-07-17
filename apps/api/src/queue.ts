@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import * as XLSX from "xlsx";
-import { jobs, uploads, uploadErrors } from "@ga-settle/schema";
+import { jobs, uploads, uploadErrors, incentivePlans } from "@ga-settle/schema";
+import { extractIncentivePlan, parseSettlementMonth, OcrError } from "./ocr";
 import {
   ONTOLOGY, INCENTIVE_ONTOLOGY, RELATION_DESC, INCENTIVE_RELATION_DESC,
   detectHeaderRow, profileColumns, validateRows, columnMapOf,
@@ -9,7 +10,7 @@ import {
 import { getDb, type Db } from "./db";
 import { resolveTemplate } from "./routes/mapping";
 import { resolveMapping } from "./llm";
-import type { Env, ParseJob } from "./types";
+import type { Env, ParseJob, OcrPlanJob } from "./types";
 
 export type { ParseJob }; // 기존 import 경로(./queue) 호환용 재노출
 
@@ -74,15 +75,61 @@ export async function ingestParsed(
 }
 
 /**
- * Queue Consumer (F-003 진행률 / F-008 실 파싱). R2 xlsx -> Grid -> ingestParsed.
+ * 시책안 OCR job 처리 (F-066). R2 원본 -> extractIncentivePlan -> 결과 R2 저장 + 대장 갱신.
+ * 동기 경로(incentive-plans.ts)와 동일 로직이나, 결과를 응답 대신 R2(`{r2Key}.ocr.json`)에 저장해
+ * 프론트가 job 완료 후 조회하게 한다(엑셀 staged.json 대칭). 실패도 F-064 stage/사유 기록.
+ */
+async function runOcrPlanJob(env: Env, db: Db, body: OcrPlanJob, now: () => string): Promise<void> {
+  const { planId, jobId, r2Key, ext } = body;
+  await db.update(jobs).set({ status: "running", progress: 0.1, updatedAt: now() }).where(eq(jobs.id, jobId));
+  const obj = await env.UPLOADS.get(r2Key);
+  if (!obj) throw new Error(`R2 원본 없음: ${r2Key}`);
+  const bytes = await obj.arrayBuffer();
+
+  try {
+    await db.update(jobs).set({ progress: 0.3, updatedAt: now() }).where(eq(jobs.id, jobId));
+    const result = await extractIncentivePlan(bytes, ext, env);
+    const month = parseSettlementMonth(result.rule.period?.value);
+    const lowCount = result.lowConfidenceKeys.length;
+    // 결과를 R2에 저장 - 프론트가 job done 후 GET /:id/ocr-result로 조회(동기 응답 대체).
+    await env.UPLOADS.put(`${r2Key}.ocr.json`, JSON.stringify(result));
+    await db.update(incentivePlans).set({
+      ocrStatus: lowCount > 0 ? "low_confidence" : "ok",
+      ocrAvgConfidence: result.ocr.avgConfidence,
+      ocrFieldCount: result.ocr.fieldCount,
+      lowConfidenceCount: lowCount,
+      ocrErrorStage: null, ocrErrorMessage: null, // 재시도 성공 시 이전 실패 사유 클리어
+      ...(month ? { settlementMonth: month } : {}),
+      updatedAt: now(),
+    }).where(eq(incentivePlans.id, planId));
+    await db.update(jobs).set({ status: "done", progress: 1, updatedAt: now() }).where(eq(jobs.id, jobId));
+  } catch (e) {
+    // F-064: 실패 단계+사유 저장(동기 경로와 동일). 큐 재시도는 상류 일시 장애만 흡수하도록 throw 유지.
+    const stage = e instanceof OcrError ? e.stage : "unknown";
+    const message = e instanceof Error ? e.message : String(e);
+    await db.update(incentivePlans).set({ ocrStatus: "failed", ocrErrorStage: stage, ocrErrorMessage: message.slice(0, 500), updatedAt: now() })
+      .where(eq(incentivePlans.id, planId));
+    throw e;
+  }
+}
+
+/**
+ * Queue Consumer (F-003 진행률 / F-008 실 파싱 / F-066 OCR). kind로 분기.
  */
 export async function queueConsumer(batch: MessageBatch<ParseJob>, env: Env): Promise<void> {
   const db = getDb(env);
   const now = () => new Date().toISOString();
 
   for (const msg of batch.messages) {
-    const { uploadId, jobId, r2Key, insurerId, docType } = msg.body;
+    const body = msg.body;
+    const jobId = body.jobId;
     try {
+      if (body.kind === "ocr-plan") {
+        await runOcrPlanJob(env, db, body, now);
+        msg.ack();
+        continue;
+      }
+      const { uploadId, r2Key, insurerId, docType } = body;
       await db.update(jobs).set({ status: "running", progress: 0.1, updatedAt: now() }).where(eq(jobs.id, jobId));
       await db.update(uploads).set({ status: "parsing" }).where(eq(uploads.id, uploadId));
 
@@ -96,10 +143,11 @@ export async function queueConsumer(batch: MessageBatch<ParseJob>, env: Env): Pr
       await db.update(jobs).set({ status: "done", progress: 1, updatedAt: now() }).where(eq(jobs.id, jobId));
       msg.ack();
     } catch (e) {
-      console.error(`parse job 실패 job=${jobId} upload=${uploadId}`, e);
+      console.error(`${body.kind} job 실패 job=${jobId}`, e);
       // 원인 미기록이면 사후 진단 불가(F-061 교훈: "파싱 실패"만으론 D1 한도 초과를 특정 못 함)
       const cause = String(e instanceof Error ? e.message : e).slice(0, 200);
-      await db.update(jobs).set({ status: "failed", message: `파싱 실패: ${cause}`, updatedAt: now() }).where(eq(jobs.id, jobId));
+      const label = body.kind === "ocr-plan" ? "OCR 실패" : "파싱 실패";
+      await db.update(jobs).set({ status: "failed", message: `${label}: ${cause}`, updatedAt: now() }).where(eq(jobs.id, jobId));
       msg.retry(); // max_retries 3 이후 DLQ
     }
   }

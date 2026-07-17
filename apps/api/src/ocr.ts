@@ -338,6 +338,15 @@ export async function structureRule(ocrText: string, ocrAvgConfidence: number, e
   return mergeStructured(parts);
 }
 
+// OCR 적용기간 텍스트("2026년 3월" 등) → 정산월 YYYY-MM. 파싱 실패 시 null(수동 보정 보존).
+// 동기 경로(incentive-plans.ts)와 큐 경로(queue.ts, F-066)가 공유.
+export function parseSettlementMonth(period: string | null | undefined): string | null {
+  if (!period) return null;
+  const m = period.match(/(20\d{2})\s*[년.\-/]\s*(1[0-2]|0?[1-9])\b/);
+  if (!m || !m[1] || !m[2]) return null;
+  return `${m[1]}-${m[2].padStart(2, "0")}`;
+}
+
 // 파이프라인: 이미지 → CLOVA OCR → Upstage 구조화 → 저신뢰 필드 표시.
 export async function extractIncentivePlan(image: ArrayBuffer, format: string, env: Env): Promise<OcrExtractResult> {
   const ocr = await clovaOcr(image, format, env);
