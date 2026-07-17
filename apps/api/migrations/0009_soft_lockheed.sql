@@ -1,0 +1,1 @@
+ALTER TABLE `incentive_plan_definitions` ADD `maturity_term` text;

@@ -141,6 +141,7 @@ export const incentivePlanDefinitions = sqliteTable("incentive_plan_definitions"
   lineType: text("line_type"),                    // 손생보: 생보|손보
   product: text("product").notNull(),             // 상품명(상품1[+상품2])
   payTerm: text("pay_term"),                       // 납입기간 (5년납 등)
+  maturityTerm: text("maturity_term"),             // 만기기간 (20년만기|종신 등, F-060). 상품·납입기간 같아도 만기별 지급율 상이(ABL생명)
   payTiming: text("pay_timing"),                   // 지급시점 (익월|13차월|15차월|구간|연속|가동)
   channel: text("channel"),                        // FC|법인
   branch: text("branch"),                          // 적용지점

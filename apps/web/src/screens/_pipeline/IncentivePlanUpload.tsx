@@ -13,6 +13,7 @@ interface RuleField {
 }
 interface PayoutRow {
   payTerm: string | null;
+  maturityTerm: string | null;
   payTiming: string | null;
   rate: string | null;
 }
@@ -197,16 +198,18 @@ export function IncentivePlanUpload() {
               </div>
               {result.payoutRows && result.payoutRows.length > 0 && (
                 <div className="flex flex-col gap-1.5">
-                  <span className="text-xs font-semibold text-axis-text-secondary">납입기간별 지급율</span>
+                  <span className="text-xs font-semibold text-axis-text-secondary">납입기간·만기기간별 지급율</span>
                   <div className="overflow-hidden rounded-md border border-axis-border-default">
-                    <div className="grid grid-cols-[1fr_1fr_1fr] bg-axis-surface-secondary/40 px-2 py-1 text-[10px] font-semibold text-axis-text-tertiary">
+                    <div className="grid grid-cols-[1fr_1fr_1fr_1fr] bg-axis-surface-secondary/40 px-2 py-1 text-[10px] font-semibold text-axis-text-tertiary">
                       <span>납입기간</span>
+                      <span>만기기간</span>
                       <span>지급시점</span>
                       <span className="text-right">지급율</span>
                     </div>
                     {result.payoutRows.map((r, i) => (
-                      <div key={i} className="grid grid-cols-[1fr_1fr_1fr] border-t border-axis-border-default px-2 py-1 text-xs">
+                      <div key={i} className="grid grid-cols-[1fr_1fr_1fr_1fr] border-t border-axis-border-default px-2 py-1 text-xs">
                         <span className="text-axis-text-secondary">{r.payTerm ?? "-"}</span>
+                        <span className="text-axis-text-secondary">{r.maturityTerm ?? "-"}</span>
                         <span className="text-axis-text-secondary">{r.payTiming ?? "-"}</span>
                         <span className="text-right font-medium text-axis-text-primary">{r.rate ?? "-"}</span>
                       </div>
