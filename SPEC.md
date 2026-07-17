@@ -654,15 +654,26 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 ### F-065 · 시책안 OCR Upstage 호출 견고성 (F-059 진짜 fix) (P0, Bug)
 - **REQ-087**: 대용량 시책안(손보 다중 시상, OCR 텍스트 8,000자 초과 다청크)도 Upstage 구조화 단계에서 네트워크 hang 없이 완료되거나, 실패해도 5분 매달림 없이 즉시 명확한 실패 사유(stage=upstage)로 종료된다
 - **Acceptance**:
-  - [ ] `callUpstage`에 `AbortController` 기반 호출당 타임아웃(기본 60s, env 조정 가능) - 무한 hang(현 undici 300s) 차단
-  - [ ] 네트워크 실패(`fetch failed`)·타임아웃 시 재시도(1회, 짧은 백오프) - 상류 일시 장애 흡수
-  - [ ] 재시도 후에도 실패하면 raw 예외가 아니라 `OcrError(stage=upstage)`로 승격 - 현재 `stage=unknown`으로 유실되던 진단성 확보(F-064 컬럼과 정합)
-  - [ ] 단위 테스트: fetch hang(무응답) mock → 타임아웃 발동 + 재시도 + 최종 `OcrError.stage='upstage'`. 정상 응답 회귀 무변경
-  - [ ] **실 원본 검증**: F-059 실패 원본(32p `43294869…`)을 진단 하니스(`scripts/diagnose-f059.mjs`)로 재시도 → 성공 또는 5분 미만 명확 실패. 39p 건도 확인
-  - [ ] 배포 후 프로덕션 재현: 실패 원본 재업로드 → 성공 또는 대장에 stage=upstage 명시 → F-059 잔여 항목 종결
-- **Status**: 🔧 IN_PROGRESS
+  - [x] `callUpstage`에 `AbortController` 기반 호출당 타임아웃(기본 60s, env 조정 가능) - 무한 hang(현 undici 300s) 차단
+  - [x] 네트워크 실패(`fetch failed`)·타임아웃 시 재시도(1회, 짧은 백오프) - 상류 일시 장애 흡수
+  - [x] 재시도 후에도 실패하면 raw 예외가 아니라 `OcrError(stage=upstage)`로 승격 - `stage=unknown` 유실 해소(F-064 컬럼과 정합)
+  - [x] 단위 테스트: fetch hang(무응답) mock → 타임아웃 발동 + 재시도 + 최종 `OcrError.stage='upstage'`(fake timer). 정상 응답 회귀 무변경. 전체 146 green
+  - [x] **실 원본 검증 + 근본 해결 발견(2026-07-17)**: F-059 실패 원본 2건 진단 하니스 실측. 타임아웃/재시도만으론 여전히 실패(hang은 유계화되나 성공 못 함)였으나, **청크 크기 실험에서 근본 해결 발견**: 8,000·4,000자는 60s 타임아웃(실패), **2,000자는 성공**. 32p→51 payoutRows(144s), 39p→45 payoutRows(310s). rate limit 기각(작은 청크가 호출 더 많은데 성공). 원인=solar-mini는 요청당 처리시간이 병목이라 큰 청크에서 hang → `STRUCTURE_CHUNK_CHARS` 8000→2000 하향이 진짜 fix. `callUpstageResilient`는 방어층(실패 유계화+진단)으로 병행.
+  - [ ] 배포 후 프로덕션 재현: 실패 원본 재업로드 → 성공 확인 → F-059 잔여 항목 종결 (인증 필요, 사용자/admin)
+- **Status**: 🔧 IN_PROGRESS (구현·로컬 실측 완료·배포됨, 잔여=prod 인증 재현)
 - **Sprint**: S26
-- **Notes**: 2026-07-17 F-064 진단으로 F-059 근본 원인 확정 후 즉시 착수(B-015 승격). 근본 원인=대용량이 8,000자 청크 다분할→Upstage 다회 호출 중 하나 fetch hang(정확히 5분=undici headersTimeout). **F-059는 맞는 단계(structureRule)·틀린 실패모드(JSON 파싱 vs fetch hang)를 고쳤다** → 본 항목이 진짜 fix. 스코프=Upstage만(clovaOcr는 66초 걸리나 통과, 무관). Master pane 직접 구현+진단 하니스 실측 검증(autopilot 미경유: "고쳤는데 실제 되나"가 핵심이라 실 원본 재현이 필수).
+- **Notes**: 2026-07-17 F-064 진단으로 F-059 근본 원인 확정 후 즉시 착수(B-015 승격). **fix 3겹**: ① `callUpstageResilient`(호출당 60s AbortController 타임아웃 + fetch실패/타임아웃 1회 재시도 + `OcrError(stage=upstage)` 승격) = hang 5분→2분 유계화·진단성. ② **`STRUCTURE_CHUNK_CHARS` 8000→2000 = 진짜 근본 해결**(실측: 8000/4000 실패, 2000 성공. solar-mini 요청당 처리시간 병목이 원인, 컨텍스트 한도 아님). ③ 청크 크기 `env UPSTAGE_CHUNK_CHARS` 조정 가능. **F-059는 맞는 단계·틀린 실패모드를 고쳤음** → 본 항목이 진짜 fix. **⚠️ 부작용 발견→[[F-066]]**: 2000자 다청크로 대용량 OCR이 144~310s 소요인데 OCR이 HTTP 요청 동기 처리(엑셀은 큐인데 OCR은 아님)라 긴 스피너. Workers는 CPU 아닌 fetch 대기라 완주 가능하나 UX·안정성 위해 async/진행률 필요=F-066(정확성 아닌 최적화). Master pane 직접 구현+진단 하니스 실측(autopilot 미경유).
+
+### F-066 · 시책안 OCR 비동기 처리 (진행률/폴링) (P1)
+- **REQ-088**: 대용량 시책안(다청크, 144~310s) 업로드가 긴 동기 대기 없이 즉시 접수(jobId)되고, 담당자는 진행 상태를 폴링으로 확인하며, 클라이언트 연결이 끊겨도 서버가 OCR을 완주해 대장에 결과가 남는다
+- **Acceptance**:
+  - [ ] OCR을 엑셀 업로드(F-003)처럼 Queue consumer로 이관하거나, 최소 `ctx.waitUntil`로 클라 끊김과 서버 완주 분리
+  - [ ] `POST /api/incentive-plans/ocr`가 즉시 202+{planId,jobId} 반환, OCR은 백그라운드
+  - [ ] 진행/완료 폴링(`GET /api/incentive-plans/:id` ocrStatus pending→ok/failed) + UI 스피너를 폴링 기반으로
+  - [ ] 회귀: 소용량(단일 청크)도 동일 경로로 정상, 대장 stage/사유 기록 유지(F-064)
+- **Status**: 📋 PLANNED
+- **Sprint**: S27
+- **Notes**: 2026-07-17 F-065(청크 2000 근본 해결) 부작용으로 발견. 대용량이 성공은 하나 144~310s 동기 처리라 UX·안정성 이슈. **정확성 문제 아님**(F-065로 문서는 성공) = 최적화 F-item. 엑셀은 이미 Queue(F-003)라 OCR도 대칭화가 자연스러움. F-059 완전 종결의 UX 조건.
 
 ## §3. Backlog (F-item 승격 대기)
 

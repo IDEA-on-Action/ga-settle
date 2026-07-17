@@ -177,10 +177,19 @@ export function coercePayoutRows(v: unknown): PayoutRow[] {
     .filter((r): r is PayoutRow => r !== null);
 }
 
-// 손보 다중 시상(12+p) PDF는 OCR 텍스트가 수만 자에 달해 단일 구조화 요청이 깨진다(F-059,
-// 고객 재현: "JSON을 찾지 못했어요" 502). 이 이하로 청크를 잘라 각각 구조화 후 병합한다.
-// solar-mini 32k 컨텍스트 기준 프롬프트+응답 여유를 둔 보수치.
-const STRUCTURE_CHUNK_CHARS = 8000;
+// 손보 다중 시상(12+p) PDF는 OCR 텍스트가 수만 자에 달해 단일 구조화 요청이 깨진다(F-059).
+// 이 이하로 청크를 잘라 각각 구조화 후 병합한다.
+// F-065 실측(2026-07-17): solar-mini는 큰 청크에서 응답을 무한 지연(hang)시킨다. 32p 실패 원본으로
+// 8000·4000자는 60s 타임아웃(모두 실패)인데 2000자(17청크)는 성공(payoutRows 51). 청크는 컨텍스트
+// 한도가 아니라 "요청당 처리 시간"이 병목 - 작게 나눠 각 호출을 가볍게 해야 안정적. 8000→2000 하향.
+// (env UPSTAGE_CHUNK_CHARS로 문서별 조정 가능.)
+const STRUCTURE_CHUNK_CHARS = 2000;
+
+// F-065: Upstage 호출당 타임아웃 + 재시도. 대용량 다청크 문서에서 한 청크의 fetch가 hang하면
+// undici 기본 headersTimeout(300s)까지 매달렸다 raw 예외로 죽었다(F-059 근본 원인, 정확히 5분).
+// AbortController로 호출당 상한을 두고, 네트워크 실패/타임아웃은 짧은 백오프 후 1회 재시도한다.
+const UPSTAGE_TIMEOUT_MS = 60_000;
+const UPSTAGE_RETRY_BACKOFF_MS = 1_500;
 
 // OCR 텍스트를 maxChars 이하 청크로 분할. 공백 경계 우선(단어 절단 회피), 공백이 없으면 하드 컷.
 // ≤maxChars면 원본 1건 그대로(짧은 문서 회귀 무변경). export: F-059 단위 테스트용.
@@ -241,7 +250,7 @@ function buildStructurePrompt(ocrText: string): string {
 
 // Upstage chat/completions 1회 호출. jsonMode=true면 response_format으로 JSON 출력을 강제한다.
 // response_format은 solar-pro-2 이상만 지원 - solar-mini 등 미지원 모델은 400을 반환하므로 호출부에서 fallback.
-async function callUpstage(env: Env, usr: string, jsonMode: boolean): Promise<Response> {
+async function callUpstage(env: Env, usr: string, jsonMode: boolean, signal?: AbortSignal): Promise<Response> {
   const base = env.UPSTAGE_BASE_URL || "https://api.upstage.ai/v1";
   const model = env.UPSTAGE_MODEL || "solar-mini";
   return fetch(`${base}/chat/completions`, {
@@ -253,7 +262,33 @@ async function callUpstage(env: Env, usr: string, jsonMode: boolean): Promise<Re
       messages: [{ role: "system", content: STRUCTURE_SYS }, { role: "user", content: usr }],
       ...(jsonMode ? { response_format: { type: "json_object" } } : {}),
     }),
+    signal,
   });
+}
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// F-065: callUpstage를 호출당 타임아웃(AbortController) + 네트워크 실패/타임아웃 재시도로 감싼다.
+// HTTP 응답(4xx/5xx)은 그대로 반환해 기존 400 fallback·502 처리 경로를 보존한다 - 여기서 다루는 건
+// "응답 자체가 안 오는" 실패(fetch 거부, AbortError)뿐. 재시도 소진 시 OcrError(stage=upstage)로 승격.
+async function callUpstageResilient(env: Env, usr: string, jsonMode: boolean): Promise<Response> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt <= 1; attempt++) {
+    if (attempt > 0) await sleep(UPSTAGE_RETRY_BACKOFF_MS);
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), UPSTAGE_TIMEOUT_MS);
+    try {
+      return await callUpstage(env, usr, jsonMode, ctrl.signal);
+    } catch (e) {
+      lastErr = e; // AbortError(타임아웃) 또는 TypeError("fetch failed") - 재시도 대상
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  const reason = lastErr instanceof Error && lastErr.name === "AbortError"
+    ? `Upstage 응답 시간 초과(${UPSTAGE_TIMEOUT_MS / 1000}s)`
+    : `Upstage 호출 실패(${lastErr instanceof Error ? lastErr.message : String(lastErr)})`;
+  throw new OcrError(`${reason}. ${RETRY_HINT}`, 502, "upstage");
 }
 
 function extractContent(json: unknown): string {
@@ -263,15 +298,16 @@ function extractContent(json: unknown): string {
 // 청크 1개 구조화: JSON 강제 → 미지원 모델(400) fallback → 파싱 실패 1회 재시도.
 async function structureChunk(text: string, env: Env): Promise<Record<string, unknown>> {
   const usr = buildStructurePrompt(text);
-  let res = await callUpstage(env, usr, true);
+  // F-065: raw fetch가 hang하면 5분 매달렸다 죽던 것을 타임아웃+재시도 래퍼로 대체.
+  let res = await callUpstageResilient(env, usr, true);
   // 400은 response_format 미지원 모델(solar-mini 등)일 가능성 - JSON 모드 없이 재시도.
-  if (res.status === 400) res = await callUpstage(env, usr, false);
+  if (res.status === 400) res = await callUpstageResilient(env, usr, false);
   if (!res.ok) throw new OcrError(`Upstage 오류 ${res.status}: ${(await res.text()).slice(0, 200)}. ${RETRY_HINT}`, 502, "upstage");
   try {
     return parseJsonLoose(extractContent(await res.json())) as Record<string, unknown>;
   } catch {
     // temperature 0이어도 상류 비결정으로 비-JSON/절단 응답이 관찰됨(고객 재현) - 1회 재시도.
-    const retry = await callUpstage(env, usr, false);
+    const retry = await callUpstageResilient(env, usr, false);
     if (!retry.ok) throw new OcrError(`Upstage 오류 ${retry.status}: ${(await retry.text()).slice(0, 200)}. ${RETRY_HINT}`, 502, "upstage");
     return parseJsonLoose(extractContent(await retry.json())) as Record<string, unknown>;
   }
@@ -292,7 +328,9 @@ function buildRule(parsed: Record<string, unknown>, ocrAvgConfidence: number): {
 // 긴 텍스트(손보 다중 시상)는 청크 분할 구조화 후 병합(F-059). 청크는 순차 호출(상류 rate limit 배려).
 export async function structureRule(ocrText: string, ocrAvgConfidence: number, env: Env): Promise<{ rule: StructuredRule; payoutRows: PayoutRow[] }> {
   if (!env.UPSTAGE_API_KEY) throw new OcrError("Upstage 미설정 (UPSTAGE_API_KEY)", 503, "upstage");
-  const chunks = splitTextForStructure(ocrText, STRUCTURE_CHUNK_CHARS);
+  // F-065: 청크 크기 env 조정 가능. 대용량에서 큰 청크가 Upstage를 hang시키면 작게 줄여 각 호출을 가볍게.
+  const chunkChars = Number(env.UPSTAGE_CHUNK_CHARS) || STRUCTURE_CHUNK_CHARS;
+  const chunks = splitTextForStructure(ocrText, chunkChars);
   const parts: { rule: StructuredRule; payoutRows: PayoutRow[] }[] = [];
   for (const chunk of chunks) {
     parts.push(buildRule(await structureChunk(chunk, env), ocrAvgConfidence));
