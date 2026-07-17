@@ -584,9 +584,9 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
   - [x] 긴 OCR 텍스트(>8,000자) 청크 분할 구조화 + 병합(rule=신뢰도 최고값, payoutRows=concat+dedupe), 짧은 문서 회귀 무변경(단일 청크 동일 경로)
   - [x] 실패 시 오류 메시지에 재시도 안내 포함 + 비-JSON 응답 1회 자동 재시도 + 절단 JSON도 502 OcrError(500 방지). 대장 failed·멱등 재시도는 기존 F-048 경로 실측 확인
   - [ ] 고객 재현 케이스([손해보험]26.05월 1주차 시상 유형의 다중 페이지 손보 PDF) 성공 처리 - **재현 실패의 근본 원인 규명 완료(2026-07-17, F-064 진단 컬럼 활용)**: F-059가 고친 JSON 견고성 단계가 아니라 그 앞 Upstage `fetch failed`(네트워크 hang)가 원인. **진짜 fix는 B-015로 분리** - 본 항목은 그 fix 후 재확인
-- **Status**: 🔧 IN_PROGRESS (근본 원인 해결·배포 완료(F-065, 2026-07-17), 잔여=prod 인증 재현 확인)
-- **Sprint**: S23 (예정)
-- **종결 조건**: F-065(청크 8000→2000)로 근본 원인 해결·prod 배포됨(`77e9e5e`). 로컬에서 prod 동일 키로 실패 원본 2건 성공 실측(32p 51행·39p 45행). **잔여**: admin 인증으로 prod 실 재업로드 성공 확인 → 확인 시 ✅. 대용량 동기 지연은 [[F-066]](UX 최적화, 정확성 무관).
+- **Status**: ✅ DONE (2026-07-17 프로덕션 실측 종결)
+- **Sprint**: S23
+- **종결 조건 충족(2026-07-17)**: F-065(청크 8000→2000)로 근본 해결. **프로덕션 실측**: 3번 실패했던 32p 손보설계사시상 원본(`[손해보험]26.05월 4주차 시상_에이티.pdf`)을 admin UI 재업로드 → F-066 비동기(failed→pending→job running→done) → **`ocr_status=ok`, field_count=7190, avg_conf=0.858, low_confidence=0**(저신뢰 0, 깨끗한 성공). D1 폴링 실측. F-059/F-065/F-066 동시 종결. (잔여 사소: settlement_month 자동파싱 null - period 텍스트 미매치, 수동 보정 가능·별건.)
 - **Notes**: 2026-07-14 고객(김혜경) 테스트 리포트. 손보설계사시상 PDF 업로드 시 `ocr.ts parseJsonLoose`에서 502. CLOVA 10p 분할(F-049)은 통과했으나 구조화 단계는 텍스트 길이 무방비. 실패 건은 F-048 대장에 failed로 기록됨(멱등 재시도 가능) 확인. **구현(2026-07-14)**: `ocr.ts` - splitTextForStructure(8,000자, 공백 경계)·mergeStructured·structureChunk(JSON 모드→400 fallback→파싱 실패 1회 재시도). Upstage 문서상 response_format은 solar-pro-2 이상 지원이나 **실호출 실측(2026-07-14): solar-mini-250422도 200 + 유효 JSON 반환** - JSON 강제가 1차 경로로 즉시 작동, 400 fallback은 방어층으로 유지. 테스트 10건 신규(ocr-structure-robust), 전체 130 PASS. **2026-07-16 프로덕션 실측 - 배포 후에도 재현 실패**: F-059 배포(2026-07-14 07:50 UTC) 이후인 **07-15 04:11 UTC 업로드된 `sonbo_planner`(손보설계사시상) 32p·3.4MB PDF가 04:15에 `ocr_status=failed`** (배포 20시간 후 = 수정본 경유 확정). 07-14 05:18 업로드된 `sonbo_self` 39p·4.2MB 건도 07-15 04:00에 재시도됐으나 여전히 failed. 즉 잔여 항목은 "고객 재업로드 대기"가 아니라 **"재현 시도했고 실패"** 상태. 시책안 전수 7건 중 실패 2건이 모두 대용량 스캔본(39p/32p)이고, 통과한 5건은 3·4·27·29p(다만 27·29p는 low_confidence)라 **페이지 수·스캔 여부와의 상관**이 보인다(n=7이라 상관일 뿐 인과 미확정). **원인 미확정 - 관측 공백**: `incentive_plans`에 오류 메시지 컬럼이 없어 `failed`만 남고 사유가 유실된다(F-061이 `jobs.message`에 원인을 넣은 것의 OCR 경로 대응 부재). 진단 가능화는 **F-064로 분리 등록(2026-07-16, Sprint S25)** - F-064가 실패 단계·사유를 저장·노출하고, 그 뒤 R2 보존 원본 2건 재시도로 근본 원인을 규명해 결과를 본 항목에 반영한다. 즉 **F-059 잔여 항목은 F-064 선행 의존**. 원본은 R2 보존 중(`incentive-plans/{sha}.pdf`, 멱등 재시도 가능).
 
 ### F-060 · 시상정의 만기기간 차원 추가 (P1)
@@ -661,7 +661,7 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
   - [x] 단위 테스트: fetch hang(무응답) mock → 타임아웃 발동 + 재시도 + 최종 `OcrError.stage='upstage'`(fake timer). 정상 응답 회귀 무변경. 전체 146 green
   - [x] **실 원본 검증 + 근본 해결 발견(2026-07-17)**: F-059 실패 원본 2건 진단 하니스 실측. 타임아웃/재시도만으론 여전히 실패(hang은 유계화되나 성공 못 함)였으나, **청크 크기 실험에서 근본 해결 발견**: 8,000·4,000자는 60s 타임아웃(실패), **2,000자는 성공**. 32p→51 payoutRows(144s), 39p→45 payoutRows(310s). rate limit 기각(작은 청크가 호출 더 많은데 성공). 원인=solar-mini는 요청당 처리시간이 병목이라 큰 청크에서 hang → `STRUCTURE_CHUNK_CHARS` 8000→2000 하향이 진짜 fix. `callUpstageResilient`는 방어층(실패 유계화+진단)으로 병행.
   - [ ] 배포 후 프로덕션 재현: 실패 원본 재업로드 → 성공 확인 → F-059 잔여 항목 종결 (인증 필요, 사용자/admin)
-- **Status**: 🔧 IN_PROGRESS (구현·로컬 실측 완료·배포됨, 잔여=prod 인증 재현)
+- **Status**: ✅ DONE (2026-07-17 프로덕션 실측 종결 - 32p 원본 admin 재업로드 → ocr_status=ok/field 7190/저신뢰 0. [[F-059]] 종결 조건과 동일 실측)
 - **Sprint**: S26
 - **Notes**: 2026-07-17 F-064 진단으로 F-059 근본 원인 확정 후 즉시 착수(B-015 승격). **fix 3겹**: ① `callUpstageResilient`(호출당 60s AbortController 타임아웃 + fetch실패/타임아웃 1회 재시도 + `OcrError(stage=upstage)` 승격) = hang 5분→2분 유계화·진단성. ② **`STRUCTURE_CHUNK_CHARS` 8000→2000 = 진짜 근본 해결**(실측: 8000/4000 실패, 2000 성공. solar-mini 요청당 처리시간 병목이 원인, 컨텍스트 한도 아님). ③ 청크 크기 `env UPSTAGE_CHUNK_CHARS` 조정 가능. **F-059는 맞는 단계·틀린 실패모드를 고쳤음** → 본 항목이 진짜 fix. **⚠️ 부작용 발견→[[F-066]]**: 2000자 다청크로 대용량 OCR이 144~310s 소요인데 OCR이 HTTP 요청 동기 처리(엑셀은 큐인데 OCR은 아님)라 긴 스피너. Workers는 CPU 아닌 fetch 대기라 완주 가능하나 UX·안정성 위해 async/진행률 필요=F-066(정확성 아닌 최적화). Master pane 직접 구현+진단 하니스 실측(autopilot 미경유).
 
@@ -673,7 +673,7 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
   - [x] 결과 조회 `GET /api/incentive-plans/:id/ocr-result`(R2 저장 결과) + UI 폴링(job 2s 간격, 진행률 바) 기반. 실패 stage/사유 대장 기록 유지(F-064)
   - [x] 회귀: 전체 147 tests green(신규 3: 202+queued 접수 / consumer 실패 stage=clova / 결과 R2 저장→조회). web 빌드 통과
   - [ ] 배포 후 prod E2E: 대용량 실 업로드 → 폴링 → 성공 확인(인증 필요). 큐 인프라는 엑셀 경로로 기검증, ocr-plan 분기만 신규
-- **Status**: 🔧 IN_PROGRESS (구현·테스트 완료·배포됨, 잔여=prod 인증 E2E)
+- **Status**: ✅ DONE (2026-07-17 프로덕션 실측 종결 - 32p 재업로드가 202→job running(progress 0.3)→done 비동기 흐름 실증, 대장 ocr_status=ok. 큐 consumer·폴링·결과 R2 저장 프로덕션 정상 작동)
 - **Sprint**: S27
 - **Notes**: 2026-07-17 F-065 부작용으로 발견 후 즉시 착수. **정확성 아닌 UX 최적화**(F-065로 문서는 이미 성공). 엑셀 Queue(F-003) 대칭화. **migration 없음**(기존 jobs 테이블 재사용) = F-064식 배포 갭 위험 없음. 큐 인프라는 엑셀 경로로 프로덕션 기검증, 신규는 consumer의 ocr-plan 분기(단위 테스트 완료)뿐. 설계: 결과를 응답 대신 R2에 저장(엑셀 staged.json 대칭)해 프론트가 job done 후 조회. Master pane 직접 구현.
 
