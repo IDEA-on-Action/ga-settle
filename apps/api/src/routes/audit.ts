@@ -10,6 +10,19 @@ import { getDb, decNum } from "../db";
 // /api/* 인증 게이트 뒤. 앵커는 lineId | ruleId | definitionId 중 하나 이상.
 export const auditRoutes = new Hono<{ Bindings: Env }>();
 
+// settlement_lines.breakdown_json은 이름과 달리 룰 엔진 basis(사람이 읽는 산출 근거 문자열,
+// 예 "[정의] 상품 · 익월: 보험료 200000 x 1.5 = 300000")를 담는다 - JSON이 아니다.
+// 과거 데이터에 JSON이 섞였을 수 있어 방어적으로: 파싱되면 그 값, 아니면 원문 문자열 반환.
+// (JSON.parse를 무방비로 부르면 비-JSON basis에서 throw → lineId 역추적 500.)
+function parseBreakdown(raw: string | null): unknown {
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return raw;
+  }
+}
+
 auditRoutes.get("/api/audit/incentive-trace", async (c) => {
   const db = getDb(c.env);
   const sp = new URL(c.req.url).searchParams;
@@ -26,7 +39,7 @@ auditRoutes.get("/api/audit/incentive-trace", async (c) => {
     out.line = {
       id: line.id, runId: line.runId, agentId: line.agentId,
       amount: await decNum(line.amountEnc, c.env.FIELD_ENCRYPTION_KEY),
-      breakdown: line.breakdownJson ? JSON.parse(line.breakdownJson) : null,
+      breakdown: parseBreakdown(line.breakdownJson),
     };
     ruleId = ruleId ?? line.ruleId;
     const cr = await db.select().from(commissionRecords).where(eq(commissionRecords.id, line.commissionRecordId)).get();
