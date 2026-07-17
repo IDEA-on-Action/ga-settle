@@ -15,6 +15,16 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+      # B-016: E2E 게이트(2026-07-17 e2e-audit). E2E가 CI 미포함이라 F-035~F-042 UI 진화(텍스트→선택기)를
+      # spec이 못 따라가 전부 stale 실패한 걸 오래 미감지했다. mock 기반이라 빠르고 결정적. webServer(vite)는
+      # playwright가 자동 기동. deploy는 needs:verify라 E2E 실패 시 자동으로 배포도 차단된다.
+      - name: Playwright 브라우저 캐시
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - run: pnpm -F web exec playwright install --with-deps chromium
+      - run: pnpm -F web e2e
 
   # B-014: main push 시 자동 배포. 과거엔 배포가 완전 수동(wrangler deploy)이라
   # F-064 migration + F-065/F-066 코드가 CI green인데 prod 미배포로 방치된 사고가 있었다(2026-07-17).

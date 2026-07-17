@@ -680,7 +680,7 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 ## §3. Backlog (F-item 승격 대기)
 
 | ID | 한 줄 | 승격 기준 충족? | 우선 |
-| B-016 | E2E를 CI 게이트에 추가(ci.yml) - **2026-07-17 e2e-audit 발견**: E2E가 CI 미포함(unit만)이라 F-035~F-042 UI 진화(텍스트→선택기)를 spec 01~05가 못 따라가 전부 stale 실패한 걸 오래 미감지. 5개는 복구(9/9 green)했으나 재발 방지엔 CI 게이트 필요. B-014 deploy 잡 앞에 E2E 스텝 추가(webServer+chromium 설치, 배포 전 관문) | CI 신뢰성 | mid |
+| ~~B-016~~ | ~~E2E를 CI 게이트에 추가~~ -> **완료(2026-07-17)**: ci.yml verify 잡에 E2E 스텝 추가(chromium `--with-deps` 설치 + 브라우저 캐시 + `pnpm -F web e2e`, webServer는 playwright 자동 기동). deploy가 needs:verify라 E2E 실패 시 배포도 자동 차단. PR에서도 실행(머지 전 관문). 로컬 실측 9/9 green | 완료 | - |
 | B-017 | 시책안 OCR(F-043~F-066) E2E 커버리지 - **2026-07-17 e2e-audit 발견**: 시책안 OCR 전 기능 E2E 0건. 특히 F-066 비동기 폴링(업로드→202→job 폴링→진행률→결과)은 unit만 검증. `/app` incentive-plans OCR 흐름 E2E 추가(mock 202+job+ocr-result) | 회귀 취약 | mid |
 |---|---|---|---|
 | B-001 | 설계사 개인 조회 포털 (고도화) | — | low |
