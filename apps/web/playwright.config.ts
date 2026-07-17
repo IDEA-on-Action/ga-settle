@@ -17,12 +17,17 @@ export default defineConfig({
     trace: "retain-on-failure",
   },
   webServer: {
-    command: "pnpm exec vite --port 4319 --strictPort",
+    // B-016: CI에선 vite dev 서버가 ready 신호를 못 내 타임아웃(콜드 스타트/의존성 번들링).
+    // verify 잡이 E2E 앞에서 이미 build하므로 CI에선 preview(dist 정적 서빙, 즉시 기동)로 전환.
+    // 로컬은 dev 유지(빌드 없이 편하게). preview는 --host 명시로 playwright url(127.0.0.1)과 정렬.
+    command: process.env.CI
+      ? "pnpm exec vite preview --port 4319 --strictPort --host 127.0.0.1"
+      : "pnpm exec vite --port 4319 --strictPort",
     url: "http://127.0.0.1:4319",
     reuseExistingServer: !process.env.CI,
-    // B-016: CI(GitHub 러너)는 vite 콜드 스타트 시 의존성 사전 번들링으로 60s를 넘겨 타임아웃났다.
-    // 로컬은 즉시 뜨므로 120s 상향은 로컬 영향 없이 CI 콜드 스타트 여유만 확보.
     timeout: 120_000,
+    stdout: "pipe",
+    stderr: "pipe",
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
 });
