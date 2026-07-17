@@ -12,13 +12,17 @@ export const TEST_AUTH = {
 };
 
 const STORAGE_KEY = "ga_settle_auth";
+// F-034 첫 로그인 온보딩 투어(Tour.tsx)는 aria-modal 오버레이로 클릭을 가로챈다.
+// E2E에선 완료 플래그를 미리 심어 투어를 띄우지 않는다(실 UI 검증엔 무관, 상호작용만 방해).
+const TOUR_DONE_KEY = "ga-settle-tour-done-v1";
 
-/** 다음 페이지 로드 전에 localStorage에 인증 토큰을 심어 ProtectedLayout 가드를 통과시킨다. */
+/** 다음 페이지 로드 전에 localStorage에 인증 토큰 + 투어 완료 플래그를 심는다. */
 export async function seedAuth(page: Page): Promise<void> {
   await page.addInitScript(
-    ([key, auth]) => {
+    ([key, auth, tourKey]) => {
       window.localStorage.setItem(key as string, JSON.stringify(auth));
+      window.localStorage.setItem(tourKey as string, "1");
     },
-    [STORAGE_KEY, TEST_AUTH] as const,
+    [STORAGE_KEY, TEST_AUTH, TOUR_DONE_KEY] as const,
   );
 }

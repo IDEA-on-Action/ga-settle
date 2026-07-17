@@ -12,6 +12,10 @@ test("매핑 확정 -> TemplateVersion 저장 + 이력 반영", async ({ page })
   let confirmed = false;
 
   await mockApi(page, {
+    // F-035/F-036: 원수사·업로드 입력이 선택기로 바뀌어 목록 API mock 필요.
+    "GET /api/insurers": (route) => json(route, { insurers: [{ id: insurerId, name: "라이나생명" }] }),
+    "GET /api/uploads": (route) => json(route, { uploads: [{ id: uploadId, insurerName: "라이나생명", settlementMonth: "2026-06", status: "review" }] }),
+
     "GET /api/insurers/:id/templates": (route) => {
       if (!confirmed) return json(route, []);
       return json(route, [
@@ -34,22 +38,21 @@ test("매핑 확정 -> TemplateVersion 저장 + 이력 반영", async ({ page })
   await seedAuth(page);
   await page.goto("/app/mapping-admin");
 
-  // 1) 확정 전: 이력 조회 -> 빈 목록
-  await page.getByLabel("원수사 ID").fill(insurerId);
-  await page.getByRole("button", { name: "조회" }).click();
+  // 1) 확정 전: 원수사 선택(F-035 선택기, 조회 버튼 없이 자동 이력 조회) -> 빈 목록
+  await page.locator("#ma-insurer-id").click();
+  await page.getByRole("button", { name: "라이나생명" }).click();
   await expect(page.getByText("등록된 버전이 없어요.")).toBeVisible();
 
-  // 2) 매핑 확정
-  await page.getByLabel("Upload ID").fill(uploadId);
+  // 2) 매핑 확정: 업로드 선택(F-036 선택기) + 원본 헤더(텍스트 유지). columnMap은 기본값 사용.
+  await page.locator("#ma-upload-id").click();
+  await page.getByRole("button", { name: "라이나생명 · 2026-06 · review" }).click();
   await page.getByLabel("원본 헤더 (콤마 구분)").fill("계약번호, 설계사코드, 상품명, 계약일, 보험료, 지급수수료");
   await page.getByRole("button", { name: "매핑 확정" }).click();
 
   await expect(page.getByText(/TemplateVersion v1 \(신규 등록\)/)).toBeVisible();
   await expect(page.getByText(/id: tv-e2e-001/)).toBeVisible();
 
-  // 3) 이력 재조회 -> v1 노출
-  await page.getByLabel("원수사 ID").fill(insurerId);
-  await page.getByRole("button", { name: "조회" }).click();
+  // 3) 확정 후 이력 자동 갱신(confirm이 insurer-templates invalidate -> 재선택 불필요) -> v1 노출
   await expect(page.getByText("v1", { exact: true })).toBeVisible();
   await expect(page.getByText("사용 중")).toBeVisible();
   await expect(page.getByText("sig-abc123")).toBeVisible();

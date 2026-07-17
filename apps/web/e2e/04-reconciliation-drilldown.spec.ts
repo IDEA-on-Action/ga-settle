@@ -9,6 +9,11 @@ test("대사 차액 드릴다운 + 병행 검증", async ({ page }) => {
   const runId = "run-e2e-004";
 
   await mockApi(page, {
+    // F-037/F-042: Run 입력이 텍스트에서 RunSelect 선택기로 바뀌어 목록 API를 mock해야 옵션이 뜬다.
+    "GET /api/runs": (route) => json(route, { runs: [{ id: runId, settlementMonth: "2026-06", status: "draft" }] }),
+    // F-063: 화면이 시책 대사도 조회 - 미mock이면 {} 폴백이라 무해하나 명시.
+    "GET /api/runs/:id/incentive-reconciliation": (route) => json(route, { runId, insurers: [] }),
+
     "GET /api/runs/:id/reconciliation": (route) =>
       json(route, {
         runId,
@@ -40,8 +45,9 @@ test("대사 차액 드릴다운 + 병행 검증", async ({ page }) => {
   await seedAuth(page);
   await page.goto("/app/reconciliation");
 
-  await page.getByLabel("Run ID").fill(runId);
-  await page.getByRole("button", { name: "조회" }).click();
+  // F-037/F-042: 텍스트 입력 + "조회" 버튼 → RunSelect 선택기. 트리거 클릭 후 옵션 선택 시 자동 조회.
+  await page.locator("#recon-run-id").click();
+  await page.getByRole("button", { name: "2026-06 · draft" }).click();
 
   // 1) 합계 카드
   await expect(page.getByText("₩3,000,000")).toBeVisible(); // 원수사 보고 총액

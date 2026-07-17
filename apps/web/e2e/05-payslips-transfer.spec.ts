@@ -10,6 +10,9 @@ test("지급 내역서 생성 + 이체 마스터 CSV 다운로드", async ({ pag
   let generated = false;
 
   await mockApi(page, {
+    // F-037/F-042: Run 입력이 RunSelect 선택기로 바뀌어 목록 API mock 필요.
+    "GET /api/runs": (route) => json(route, { runs: [{ id: runId, settlementMonth: "2026-06", status: "draft" }] }),
+
     "GET /api/runs/:id/payslips": (route) => {
       if (!generated) return json(route, []);
       return json(route, [
@@ -42,9 +45,9 @@ test("지급 내역서 생성 + 이체 마스터 CSV 다운로드", async ({ pag
   await seedAuth(page);
   await page.goto("/app/payslips");
 
-  // 1) Run 불러오기 -> 아직 생성 전
-  await page.getByLabel("정산 Run ID").fill(runId);
-  await page.getByRole("button", { name: "불러오기" }).click();
+  // 1) Run 선택 -> 자동 로드(F-037/F-042 선택기, "불러오기" 버튼 없음) -> 아직 생성 전
+  await page.locator("#run-id").click();
+  await page.getByRole("button", { name: "2026-06 · draft" }).click();
   await expect(page.getByText("아직 생성된 내역서가 없어요")).toBeVisible();
 
   // 2) 내역서 생성

@@ -66,7 +66,13 @@ test("업로드 -> 진행률 폴링 -> 매핑 검토 -> 승인", async ({ page }
       approved = true;
       return json(route, { committed: 95, status: "approved" });
     },
+
+    // F-035: 원수사 입력이 InsurerSelect 선택기로 바뀌어 목록 API mock 필요.
+    "GET /api/insurers": (route) => json(route, { insurers: [{ id: "ins-001", name: "한화생명" }] }),
   });
+
+  // F-034 온보딩 투어는 첫 로그인 후 뜨며 오버레이가 클릭을 가로챈다(seedAuth 미사용 흐름이라 직접 심는다).
+  await page.addInitScript(() => window.localStorage.setItem("ga-settle-tour-done-v1", "1"));
 
   // 1) 로그인
   await page.goto("/app/login");
@@ -79,7 +85,9 @@ test("업로드 -> 진행률 폴링 -> 매핑 검토 -> 승인", async ({ page }
   await page.getByRole("link", { name: "업로드" }).click();
   await expect(page).toHaveURL(/\/upload$/);
 
-  await page.getByLabel("원수사 ID").fill("ins-001");
+  // F-035: 원수사 텍스트 입력 → InsurerSelect 선택기(트리거 클릭 후 옵션 선택). 정산월은 텍스트 입력 유지.
+  await page.locator("#insurerId").click();
+  await page.getByRole("button", { name: "한화생명" }).click();
   await page.getByLabel("정산월").fill("2026-06");
   await page.locator('input[type="file"]').setInputFiles({
     name: "commission-2026-06.xlsx",
