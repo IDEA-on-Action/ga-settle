@@ -40,7 +40,7 @@ const MILESTONES: Milestone[] = [
 ];
 
 const DELIVERABLES: Deliverable[] = [
-  { title: "사용 가이드", kind: "가이드", status: "done", note: "전체 파이프라인 8단계 안내 PDF", href: "/guide/ga-settle-guide.pdf" },
+  { title: "사용 가이드", kind: "가이드", status: "done", note: "전체 파이프라인 10단계 안내 PDF", href: "/guide/ga-settle-guide.pdf" },
   { title: "IA 설계 문서", kind: "문서", status: "wip", note: "고객 협업 포털 정보구조 (v0.1 초안)", gated: true },
   { title: "시상정의 카탈로그", kind: "데이터", status: "done", note: "생보·손보 14,590건 (원본 무손실)", gated: true },
   { title: "정산·대사 시스템", kind: "시스템", status: "wip", note: "업로드→매핑→정산→대사→마감→내역서", href: "/app", gated: true },
