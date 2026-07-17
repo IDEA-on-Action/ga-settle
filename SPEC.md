@@ -651,6 +651,19 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 - **Sprint**: S25
 - **Notes**: 2026-07-16 세션에서 F-059 잔여 항목을 실측하다 발견. **F-059 근본 원인 규명의 선행 조건** - 현재 prod 실패 2건이 `failed`로만 남아 "왜"를 알 수 없다(F-061이 `jobs.message`에 원인을 넣은 것의 OCR 경로 대응 부재 = 비대칭). 단계만 알아도 "F-059가 고친 Upstage 구조화 경로인가, 그 앞의 CLOVA인가"가 즉시 갈려 다음 수를 정할 수 있다. 실패 2건은 전수 7건 중 유이한 대용량 스캔본(39p/32p)이고 통과 5건은 3·4·27·29p(27·29p는 low_confidence) - 페이지수/스캔 상관이 보이나 n=7이라 인과 미확정, 본 F-item의 단계 데이터가 그 판정 재료. 승격 근거: D1 migration + 5파일 이상(schema·migration·ocr.ts·routes·web) + 사용자 관찰 가능. **완료(PR #63 Match 100%, 2026-07-16)** - OcrError.stage 8곳 태깅(clova/upstage/parse) + D1 migration 0008(ocr_error_stage/ocr_error_message) + route catch 저장·목록 노출 + UI failed 행 단계·사유 표시 + 신규 테스트 7건(ocr-error-stage.test.ts)+통합 1건, 전체 api 143 PASS. 잔존 항목(R2 원본 2건 재시도)은 배포 후 prod 자격증명 필요 - Master가 배포 확인 후 수행하고 결과를 F-059에 반영한다.
 
+### F-065 · 시책안 OCR Upstage 호출 견고성 (F-059 진짜 fix) (P0, Bug)
+- **REQ-087**: 대용량 시책안(손보 다중 시상, OCR 텍스트 8,000자 초과 다청크)도 Upstage 구조화 단계에서 네트워크 hang 없이 완료되거나, 실패해도 5분 매달림 없이 즉시 명확한 실패 사유(stage=upstage)로 종료된다
+- **Acceptance**:
+  - [ ] `callUpstage`에 `AbortController` 기반 호출당 타임아웃(기본 60s, env 조정 가능) - 무한 hang(현 undici 300s) 차단
+  - [ ] 네트워크 실패(`fetch failed`)·타임아웃 시 재시도(1회, 짧은 백오프) - 상류 일시 장애 흡수
+  - [ ] 재시도 후에도 실패하면 raw 예외가 아니라 `OcrError(stage=upstage)`로 승격 - 현재 `stage=unknown`으로 유실되던 진단성 확보(F-064 컬럼과 정합)
+  - [ ] 단위 테스트: fetch hang(무응답) mock → 타임아웃 발동 + 재시도 + 최종 `OcrError.stage='upstage'`. 정상 응답 회귀 무변경
+  - [ ] **실 원본 검증**: F-059 실패 원본(32p `43294869…`)을 진단 하니스(`scripts/diagnose-f059.mjs`)로 재시도 → 성공 또는 5분 미만 명확 실패. 39p 건도 확인
+  - [ ] 배포 후 프로덕션 재현: 실패 원본 재업로드 → 성공 또는 대장에 stage=upstage 명시 → F-059 잔여 항목 종결
+- **Status**: 🔧 IN_PROGRESS
+- **Sprint**: S26
+- **Notes**: 2026-07-17 F-064 진단으로 F-059 근본 원인 확정 후 즉시 착수(B-015 승격). 근본 원인=대용량이 8,000자 청크 다분할→Upstage 다회 호출 중 하나 fetch hang(정확히 5분=undici headersTimeout). **F-059는 맞는 단계(structureRule)·틀린 실패모드(JSON 파싱 vs fetch hang)를 고쳤다** → 본 항목이 진짜 fix. 스코프=Upstage만(clovaOcr는 66초 걸리나 통과, 무관). Master pane 직접 구현+진단 하니스 실측 검증(autopilot 미경유: "고쳤는데 실제 되나"가 핵심이라 실 원본 재현이 필수).
+
 ## §3. Backlog (F-item 승격 대기)
 
 | ID | 한 줄 | 승격 기준 충족? | 우선 |
@@ -667,7 +680,7 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 | B-010 | 실제 ATA 로고 파일 임베드(현재 SVG 재현) | 관찰가능 | low |
 | B-011 | 원수사 코드 체계 실제 값으로 조정(현재 영문 슬러그) | 데이터 | low |
 | ~~B-012~~ | ~~OCR 시책안 정식 구현~~ -> F-043(OCR 실연동)+F-044(스키마 확장·OCR결선·손보 구조화·운영룰 확정 UI·감사 소명)로 전량 완료 | 완료 | - |
-| B-015 | **시책안 OCR Upstage 호출 견고성(F-059 진짜 fix, P0)** - 2026-07-17 실측 확정: 대용량 시책안(textLen>8,000자, 손보 다중 시상)이 8,000자 청크 다분할→Upstage 다회 호출 중 하나가 `fetch failed`(hang, 정확히 5분=undici headersTimeout). F-059(JSON 견고성)·F-064(진단)로 커버 안 됨=별개 실패 모드. **필요 작업**: `callUpstage`에 (1) `AbortController` 타임아웃(예 60s/호출) (2) fetch 실패 시 재시도(지수 백오프) (3) 청크 병렬 대신 순차+부분성공 허용 검토 (4) 실패 청크만 stage=upstage OcrError로 승격(현재 raw예외라 stage=unknown). 진단 하니스: `apps/api/scripts/diagnose-f059.mjs`. clovaOcr(66s 소요)도 느리나 실패 아님 - Upstage만 대상 | F-059 해결 선행 | high |
+| ~~B-015~~ | ~~시책안 OCR Upstage 호출 견고성(F-059 진짜 fix)~~ -> **F-065로 승격**(P0, Sprint S26) | 승격 | - |
 | B-014 | `deploy.yml`에 D1 migration 자동 적용 단계 추가 - **2026-07-16 F-064(migration 0008) 배포 시 CI green인데 prod 스키마 미적용 발견**(deploy가 Worker 코드만 배포, migration은 수동 `d1:migrate:remote` 규약). 매 migration 재발 구조. `d1_migrations` 자동 기록으로 drift도 해소. ⚠️ CLAUDE.md의 "트리거는 0001 수동 유지"와 상충 없는지 확인 필요(트리거 SQL만 수동, 컬럼 migration은 자동화 가능) | CI 신뢰성 | high |
 | B-013 | 시책안 PDF 사전 선별(TextBased면 OCR 생략, [pdf-inspector](https://github.com/firecrawl/pdf-inspector) 류) - **조건부 보류**: 2026-07-16 프로덕션 전수 7건 실측에서 전제 붕괴. TextBased 1/7(14%)뿐이고 6건은 추출 문자 0(페이지당 전면 이미지 = 순수 스캔본). 참고글 주장 54%는 웹 크롤링 PDF 분포라 본 도메인(원수사 판촉 편집물) 미전이. 실패 2건은 전부 대용량 스캔본(39p·32p)이라 선별로 해소 불가(이미 OCR 경로로 감). Rust 네이티브라 Workers 미실행(WASM/별도 서비스 필요). **재검토 조건**: 시책안 월 볼륨 100건+ 또는 TextBased 비율 40%+ 관측 시 | 미충족(이득 14%·총 7건) | low |
 
