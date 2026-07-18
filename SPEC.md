@@ -689,7 +689,7 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 | B-004 | 원수사 API 직접 연동 | - | low |
 | ~~B-005~~ | ~~전 엔드포인트 인증 롤아웃~~ -> F-024로 승격·완료 | 완료 | - |
 | B-006 | 정식 SPA 운영 UI + Playwright 브라우저 E2E (현재 루트는 F-032 데모 랜딩 임시 대체) | 3+파일·관찰가능 | mid |
-| B-007 | OTP 이메일 발송 설정(Resend API 키 + 도메인 검증) - F-033 실사용 요건 | 인프라 설정 | high |
+| B-007 | OTP 이메일 발송 설정(Resend API 키 + 도메인 검증) - F-033 실사용 요건. **런북 작성 완료(2026-07-18, `docs/OTP-EMAIL-SETUP.md`)**: 앱 로직 기구현, 잔여=운영(Resend 계정 생각과행동 소유·atasset.co.kr root 검증(누리호스팅 DNS, MailPlug MX/SPF와 send.* 서브도메인으로 공존)·RESEND_API_KEY prod 시크릿·발송 테스트 후 OTP_ENFORCED=true). 순서 준수 필수(발송 확인 전 플래그 켜면 @atasset 락아웃). Resend 계정·DNS 접근은 사용자 실행 | 인프라 설정(런북 완료, ops 대기) | high |
 | B-008 | 세분화 RBAC - 엔드포인트별 role/org 스코프(마스터변경 admin, 조직데이터 스코프) | 다수 파일 | mid |
 | B-009 | 토큰 폐기(token_version) + 비번 해시 PBKDF2/argon2 강화 | 다수 파일 | mid |
 | B-010 | 실제 ATA 로고 파일 임베드(현재 SVG 재현) | 관찰가능 | low |
