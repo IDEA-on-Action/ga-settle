@@ -15,7 +15,7 @@
 | GS-PLAN-001 | 개발계획서 | [GS-PLAN-001-개발계획서.md](GS-PLAN-001-개발계획서.md) | v0.1 | 초안 | - | |
 | GS-PLAN-002 | WBS | [GS-PLAN-002-WBS.md](GS-PLAN-002-WBS.md) | v0.1 | 초안 | - | W1~W15 상대 주차 |
 | GS-TRC-001 | 요구사항 추적표 | [GS-TRC-001-요구사항추적표.md](GS-TRC-001-요구사항추적표.md) | v0.1 | 초안 | - | FR 26·NFR 7 전수, 전달 전 PRD 원문 대조 필요 |
-| GS-HIS-001 | 개발이력 | (예정) | - | 계획 | - | B-019: CHANGELOG + Sprint 이력 |
+| GS-HIS-001 | 개발이력 | [GS-HIS-001-개발이력.md](GS-HIS-001-개발이력.md) | v0.1 | 초안 | - | 정본은 git+CHANGELOG.md, 마일스톤마다 재파생 |
 
 ## 날짜 placeholder 규약
 
