@@ -9,8 +9,8 @@ echo "[1/4] dot-* rename"
 [ -f .claude/hooks/*.sh ] 2>/dev/null && chmod +x .claude/hooks/*.sh || true
 
 echo "[2/4] 로컬 시크릿 템플릿"
-[ -f apps/api/.dev.vars ] || cp .dev.vars.example apps/api/.dev.vars
-[ -f apps/web/.env ] || cp .env.example apps/web/.env
+[ -f apps/api/.dev.vars ] || cp apps/api/.dev.vars.example apps/api/.dev.vars
+[ -f apps/web/.env ] || cp apps/web/.env.example apps/web/.env
 
 echo "[3/4] git init"
 if [ ! -d .git ]; then
