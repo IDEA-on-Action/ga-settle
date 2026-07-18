@@ -12,7 +12,7 @@ export async function sendEmail(env: Env, to: string, subject: string, html: str
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
-      body: JSON.stringify({ from: env.OTP_FROM_EMAIL ?? "no-reply@atasset.co.kr", to, subject, html }),
+      body: JSON.stringify({ from: env.OTP_FROM_EMAIL ?? "no-reply@ideaonaction.ai", to, subject, html }),
     });
     if (!res.ok) console.error("이메일 발송 실패", res.status, await res.text().catch(() => ""));
     return res.ok;
