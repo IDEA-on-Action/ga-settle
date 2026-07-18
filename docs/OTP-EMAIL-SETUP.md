@@ -28,6 +28,29 @@
 
 ---
 
+## 대안: 발신 도메인을 minu.best로 (고객 도메인 접근 불가 시) ⭐
+
+> **2026-07-18 상황**: atasset.co.kr은 **고객(ATA) 소유 도메인**이라 생각과 행동이 DNS를 편집할 권한이 없다 → root 검증(Step 2~4) 불가로 B-007 보류. 아래 대안으로 **고객 DNS 없이** 활성화할 수 있다.
+
+**핵심**: OTP를 **보내는 대상**은 `@atasset.co.kr` 메일함이지만, **발신(from) 도메인은 우리가 통제하는 아무 도메인**이나 된다. `minu.best`는 생각과 행동 **Cloudflare zone**(계정 `02ae9a2bead25d99caa8f3258b81f568`)이라 DNS를 자유롭게 편집할 수 있다. `no-reply@ata.minu.best`(또는 `@send.minu.best`)에서 @atasset 메일함으로 OTP를 보낸다.
+
+**차이점(root 방식 대비)**:
+- 발신 주소가 `no-reply@atasset.co.kr` → **`no-reply@ata.minu.best`**로 변경 (브랜딩만 다름, 기능 동일). `wrangler.toml`의 `OTP_FROM_EMAIL` 1줄 수정.
+- Resend 도메인 검증 대상이 `atasset.co.kr` → **`minu.best`**(또는 `ata.minu.best` 서브도메인).
+- **DNS는 우리 Cloudflare zone이라 자체 추가 가능** (누리호스팅/고객 개입 불요). Resend 계정 가입만 사용자 몫.
+- 수신측(@atasset) 스팸 필터가 minu.best 발신을 걸 가능성은 낮음(정상 SPF/DKIM 검증 도메인이면). 우려되면 이체/공지 메일과 동일 도메인 평판 관리.
+
+**대안 절차 요약**:
+1. Resend 계정(생각과 행동) 가입 (Step 1 동일).
+2. Resend에 **`minu.best`** 도메인 추가 → DNS 레코드 수령.
+3. **Cloudflare 대시보드(또는 API/wrangler)로 minu.best zone에 레코드 추가**: 우리 zone이라 즉시 가능. Resend Verify.
+4. `OTP_FROM_EMAIL = "no-reply@ata.minu.best"`로 `wrangler.toml` 수정 (코드/PR 경유).
+5. 이후 Step 5(시크릿)에서 Step 8(테스트·플래그)은 동일.
+
+> 고객이 나중에 atasset.co.kr DNS 접근을 열어주면 그때 root 방식(위 본문)으로 전환하고 `OTP_FROM_EMAIL`을 되돌리면 된다. 대안은 **접근 제약을 우회하는 임시/영구 경로**이지 기능 손실이 아니다.
+
+---
+
 ## Step 1. Resend 계정 (생각과 행동)
 
 1. https://resend.com 에서 **생각과 행동 소유** 계정으로 로그인/가입 (예: sinclairseo@gmail.com 또는 회사 공용 계정).
