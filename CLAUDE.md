@@ -70,7 +70,7 @@ pnpm -F api d1:migrate:local           # 로컬 D1에 마이그레이션 적용 
 - POST /api/family/detect · /:id/confirm · /:id/release · GET /api/family - 가족계약 감지 HITL. 확정자(confirmedBy)는 인증 사용자 자동 (F-011/F-038). GET은 {items,total} 페이지네이션(?limit/?offset, F-042)
 - POST /api/users · POST /api/auth/login · GET /api/orgs/:id/agents - 계정/세션인증/RBAC 조직스코프 (F-017)
 - POST /api/auth/change-password · POST /api/users/:id/reset-password - 본인 비번 변경(현재 비번 확인, mustChangePassword 해제)·admin 초기화(mustChangePassword=true 임시 비번 발급) (F-031/F-033)
-- POST /api/auth/otp/request · POST /api/auth/otp/verify - @atasset.co.kr 이메일 OTP(6자리, 5분). OTP_ENFORCED=true일 때만 비번 차단, 기본 off는 임시 비번 로그인 허용 (F-033)
+- POST /api/auth/otp/request · POST /api/auth/otp/verify - @atasset.co.kr 이메일 OTP(6자리, 5분). **프로덕션 OTP_ENFORCED=true 활성(2026-07-18, B-007)**: @atasset 비번 로그인 차단→OTP 전용, 발신 no-reply@ideaonaction.ai(Resend 검증 도메인), admin @gmail은 비번 유지. dev는 off(임시 비번 허용) (F-033)
 - GET /api/runs - 정산 Run 목록(id,정산월,상태,마감시각) 월/Run 선택기용 (F-037)
 - POST /api/runs · POST /api/runs/:id/calculate · GET /api/runs/:id - 월 정산 run + 룰 계산(재현성) (F-013)
 - GET /api/runs/:id/reconciliation - 대사(원수사 보고액 vs 계산액, 계약 단위 차액 드릴다운) (F-014)
