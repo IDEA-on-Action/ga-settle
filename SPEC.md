@@ -688,6 +688,16 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 - **Sprint**: S28
 - **Notes**: 2026-07-18 세션 인터뷰 결정 4건: ① 산출물=docs 정본+포털 연동(연동은 B-020 후속) ② 일정=계약 15주 재산정+선행 구현 완료 반영 ③ 1차 범위=착수보고·개발계획서·WBS 3종 ④ 요구사항=SPEC SoT 유지+고객 대면 추적표 파생(B-018). 개발이력 체계는 B-019. Master pane 직접 작성(autopilot 미경유).
 
+### F-068 · 요구사항 추적표: PRD FR ↔ SPEC REQ ↔ F-item (P1)
+- **REQ-091**: 위시켓 PRD의 FR-01~26·NFR-01~07이 SPEC REQ와 구현 F-item에 어떻게 대응·검증되는지 고객 대면 추적표(GS-TRC-001)로 제공되어야 한다
+- **Acceptance**:
+  - [x] GS-TRC-001 작성 - FR 26건·NFR 7건 전수 + 계약 범위 외 추가 구현 7그룹 구분 표기
+  - [x] 산출물 대장(README) GS-TRC-001 행 갱신 (v0.1 초안)
+  - [x] FR 요지는 SPEC REQ 문맥 복원 기반임을 문서 상단에 명시 (PRD 원문 대조는 고객 전달 전 사용자 확인)
+- **Status**: ✅ DONE (2026-07-18 v0.1 초안. REQ↔F-item 1:1 매핑 91건 실측 기반, FR 태그 29곳 문맥 복원)
+- **Sprint**: S28
+- **Notes**: B-018 승격(2026-07-18). PRD 실물(위시켓_PRD_156459)은 리포 부재 - SPEC REQ 참조 문맥(FR 태그 29곳)에서 요지 복원. SPEC=SoT 유지, 추적표는 파생 뷰(F-067 인터뷰 결정 ④).
+
 ## §3. Backlog (F-item 승격 대기)
 
 | ID | 한 줄 | 승격 기준 충족? | 우선 |
@@ -708,7 +718,7 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 | ~~B-012~~ | ~~OCR 시책안 정식 구현~~ -> F-043(OCR 실연동)+F-044(스키마 확장·OCR결선·손보 구조화·운영룰 확정 UI·감사 소명)로 전량 완료 | 완료 | - |
 | ~~B-015~~ | ~~시책안 OCR Upstage 호출 견고성(F-059 진짜 fix)~~ -> **F-065로 승격**(P0, Sprint S26) | 승격 | - |
 | ~~B-014~~ | ~~배포 자동화(ci.yml deploy 잡 + D1 migration)~~ -> **구현 완료(2026-07-17), secret 설정 대기**. **실체 정정**: F-064 때 "migration 갭"으로 봤으나 실제는 **배포 자동화 자체가 없었음**(ci.yml=verify만, 배포는 수동 `wrangler deploy`). F-064/065/066이 CI green인데 07-17 07:51까지 prod 미배포 방치되다 수동 일괄 배포로 확인. fix: ci.yml에 `deploy` 잡(verify 후 main push, migration→web build→deploy→헬스 스모크, `d1_migrations` 자동 기록으로 drift 해소). **✅ 완료·검증(2026-07-17)**: secret 추가 + 토큰 권한(D1 Edit/Workers Scripts Edit/Workers Routes Edit) 부여 후 자동 배포 실작동 확인. 빈 커밋 트리거로 verify→migration→build→deploy→헬스 전자동 통과, 활성 버전 `3eff90f7`→`2dd3d75f` 실제 변경 실측. 이제 main push 시 자동 배포. **"CI green인데 미배포" 갭 구조적 해소**(F-064 방치 사고 재발 불가). 검증법: `wrangler deployments status --env production` 버전 ID 변경 | 완료 | - |
-| B-018 | 요구사항 추적표 파생 - 위시켓 PRD FR ↔ SPEC REQ ↔ F-item 매핑 고객 대면 뷰 (F-067 인터뷰 결정 ④, SPEC=SoT 유지) | 3+파일·관찰가능 | high |
+| ~~B-018~~ | ~~요구사항 추적표 파생~~ -> **F-068로 승격(2026-07-18)** | 승격 | - |
 | B-019 | 개발이력 체계 - CHANGELOG.md 도출 + Sprint 0~28 이력 고객용 정리 (F-067 후속) | 관찰가능 | mid |
 | B-020 | 포털 산출물 대장 연동 - portal.ts 하드코딩 → docs/deliverables 대장 기반 목록·다운로드 (F-067 인터뷰 결정 ①) | 3+파일·관찰가능 | mid |
 | B-013 | 시책안 PDF 사전 선별(TextBased면 OCR 생략, [pdf-inspector](https://github.com/firecrawl/pdf-inspector) 류) - **조건부 보류**: 2026-07-16 프로덕션 전수 7건 실측에서 전제 붕괴. TextBased 1/7(14%)뿐이고 6건은 추출 문자 0(페이지당 전면 이미지 = 순수 스캔본). 참고글 주장 54%는 웹 크롤링 PDF 분포라 본 도메인(원수사 판촉 편집물) 미전이. 실패 2건은 전부 대용량 스캔본(39p·32p)이라 선별로 해소 불가(이미 OCR 경로로 감). Rust 네이티브라 Workers 미실행(WASM/별도 서비스 필요). **재검토 조건**: 시책안 월 볼륨 100건+ 또는 TextBased 비율 40%+ 관측 시 | 미충족(이득 14%·총 7건) | low |
