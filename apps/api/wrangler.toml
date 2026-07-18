@@ -53,6 +53,7 @@ routes = [
 ENV = "production"
 OTP_EMAIL_DOMAIN = "atasset.co.kr"
 OTP_FROM_EMAIL = "no-reply@ideaonaction.ai"
+OTP_ENFORCED = "true"          # B-007: @atasset OTP 전용(비번 차단). 발신 delivered 확인 후 활성
 
 # 프로덕션 정적 자산 (env-scoped라 재선언)
 [env.production.assets]
