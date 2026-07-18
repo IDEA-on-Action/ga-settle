@@ -80,6 +80,13 @@ if [ -n "$NUM_CLAIMS" ]; then
   done <<< "$NUM_CLAIMS"
 fi
 
+# ── 5) 산출물 대장 ↔ 포털 gen 파일 drift (F-070) ──────────
+if [ -f scripts/gen-portal-deliverables.mjs ]; then
+  if ! node scripts/gen-portal-deliverables.mjs --check >/dev/null 2>&1; then
+    note "portal-deliverables drift: 대장/문서 변경이 gen에 미반영 - node scripts/gen-portal-deliverables.mjs 실행"
+  fi
+fi
+
 # ── 출력 ──────────────────────────────────────────────────
 if [ "$JSON_MODE" = "1" ]; then
   printf '{"warn":%d,"findings":[' "$WARN"

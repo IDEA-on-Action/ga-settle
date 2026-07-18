@@ -65,6 +65,7 @@ pnpm -F api d1:migrate:local           # 로컬 D1에 마이그레이션 적용 
 - POST /api/incentive-plan-definitions/promote - 선택 정의를 정산 엔진 운영룰(incentive_rules)로 확정 승격(HITL). rule-{defId} 결정적·idempotent, condition/action 매핑. 목록에 promoted 플래그. UI: /app/plan-definitions (F-044)
 - GET /api/incentive-plan-definitions/:id/image - 원본 시책안 이미지 R2 스트림(OCR 출처만, 인증). 감사 소명 (F-044)
 - GET /api/audit/incentive-trace - 감사 역추적(?lineId|ruleId|definitionId): 지급건→실적원본(upload+row)→운영룰→시상정의→원본 시책안. UI: /app/audit (F-044)
+- GET /api/deliverables · GET /api/deliverables/:code/file - 산출물 대장 목록(메타)·마크다운 다운로드. SoT는 docs/deliverables/README.md, `scripts/gen-portal-deliverables.mjs`가 `portal-deliverables.gen.ts` 생성(대장/문서 수정 시 재실행, content-currency-check가 drift 감지). 포털 /deliverables '프로젝트 문서' 섹션은 메타 공개, 파일은 인증 필수 (F-070)
 - POST /api/rules · GET /api/rules · DELETE /api/rules/:id - 시책 룰 CRUD(선언형 조건+액션) (F-010)
 - POST /api/rules/simulate - 룰 변경 지급액 diff 미리보기(실데이터 무영향) (F-012)
 - POST /api/family/detect · /:id/confirm · /:id/release · GET /api/family - 가족계약 감지 HITL. 확정자(confirmedBy)는 인증 사용자 자동 (F-011/F-038). GET은 {items,total} 페이지네이션(?limit/?offset, F-042)

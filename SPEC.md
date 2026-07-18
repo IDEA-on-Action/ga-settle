@@ -708,6 +708,18 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 - **Sprint**: S28
 - **Notes**: B-019 승격(2026-07-18). 정본=git+CHANGELOG, GS-HIS-001은 마일스톤 시점 재파생 뷰. 태그 부재라 버전 대신 일자 단위 섹션.
 
+### F-070 · 포털 산출물 대장 연동 (P2)
+- **REQ-093**: 포털 /deliverables가 portal.ts 하드코딩 대신 `docs/deliverables/README.md` 대장을 SoT로 렌더링하고, 문서 파일은 인증 후 다운로드 가능해야 한다 (목록 메타는 공개, 파일·비고는 로그인 보호 - 계약 금액 등 민감정보 공개 차단)
+- **Acceptance**:
+  - [x] `scripts/gen-portal-deliverables.mjs` - 대장 파싱 → `portal-deliverables.gen.ts` 생성 + `--check` drift 모드 (5건 동기)
+  - [x] 포털 /deliverables에 "프로젝트 문서" 섹션 (코드·버전·상태 공개, 🔒 파일은 로그인, note 내부 비고 미노출)
+  - [x] GET /api/deliverables(목록) + /api/deliverables/:code/file(마크다운 다운로드) - /api/* 인증 게이트 뒤
+  - [x] 테스트 4건: 무인증 401, 목록 content 미노출, 다운로드 attachment, 미존재 404 (전체 161 green)
+  - [x] content-currency-check.sh §5 대장↔gen drift 점검 추가
+- **Status**: ✅ DONE (2026-07-18 로컬 161 tests green. prod 배포 확인은 push 후 CI 자동)
+- **Sprint**: S28
+- **Notes**: B-020 승격(2026-07-18). 접근 정책은 기존 포털 관례("파일 다운로드·민감 자료는 로그인 후 제공") 준수. 생성 파일 커밋 방식(빌드 의존 없음) + 현행성 스크립트 drift 감지.
+
 ## §3. Backlog (F-item 승격 대기)
 
 | ID | 한 줄 | 승격 기준 충족? | 우선 |
@@ -730,7 +742,7 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 | ~~B-014~~ | ~~배포 자동화(ci.yml deploy 잡 + D1 migration)~~ -> **구현 완료(2026-07-17), secret 설정 대기**. **실체 정정**: F-064 때 "migration 갭"으로 봤으나 실제는 **배포 자동화 자체가 없었음**(ci.yml=verify만, 배포는 수동 `wrangler deploy`). F-064/065/066이 CI green인데 07-17 07:51까지 prod 미배포 방치되다 수동 일괄 배포로 확인. fix: ci.yml에 `deploy` 잡(verify 후 main push, migration→web build→deploy→헬스 스모크, `d1_migrations` 자동 기록으로 drift 해소). **✅ 완료·검증(2026-07-17)**: secret 추가 + 토큰 권한(D1 Edit/Workers Scripts Edit/Workers Routes Edit) 부여 후 자동 배포 실작동 확인. 빈 커밋 트리거로 verify→migration→build→deploy→헬스 전자동 통과, 활성 버전 `3eff90f7`→`2dd3d75f` 실제 변경 실측. 이제 main push 시 자동 배포. **"CI green인데 미배포" 갭 구조적 해소**(F-064 방치 사고 재발 불가). 검증법: `wrangler deployments status --env production` 버전 ID 변경 | 완료 | - |
 | ~~B-018~~ | ~~요구사항 추적표 파생~~ -> **F-068로 승격(2026-07-18)** | 승격 | - |
 | ~~B-019~~ | ~~개발이력 체계~~ -> **F-069로 승격(2026-07-18)** | 승격 | - |
-| B-020 | 포털 산출물 대장 연동 - portal.ts 하드코딩 → docs/deliverables 대장 기반 목록·다운로드 (F-067 인터뷰 결정 ①) | 3+파일·관찰가능 | mid |
+| ~~B-020~~ | ~~포털 산출물 대장 연동~~ -> **F-070으로 승격(2026-07-18)** | 승격 | - |
 | B-013 | 시책안 PDF 사전 선별(TextBased면 OCR 생략, [pdf-inspector](https://github.com/firecrawl/pdf-inspector) 류) - **조건부 보류**: 2026-07-16 프로덕션 전수 7건 실측에서 전제 붕괴. TextBased 1/7(14%)뿐이고 6건은 추출 문자 0(페이지당 전면 이미지 = 순수 스캔본). 참고글 주장 54%는 웹 크롤링 PDF 분포라 본 도메인(원수사 판촉 편집물) 미전이. 실패 2건은 전부 대용량 스캔본(39p·32p)이라 선별로 해소 불가(이미 OCR 경로로 감). Rust 네이티브라 Workers 미실행(WASM/별도 서비스 필요). **재검토 조건**: 시책안 월 볼륨 100건+ 또는 TextBased 비율 40%+ 관측 시 | 미충족(이득 14%·총 7건) | low |
 
 > 프로덕션: `https://ata.minu.best` 배포·운영 중. admin=sinclairseo@gmail.com(비번). @atasset.co.kr=OTP. 주요 원수사 26곳 등록. 상세 next-task는 세션 Task 목록(#1~#7) 참조.

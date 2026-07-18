@@ -16,6 +16,7 @@ import { insurersRoutes } from "./routes/insurers";
 import { incentivePlansRoutes } from "./routes/incentive-plans";
 import { incentivePlanDefinitionsRoutes } from "./routes/incentive-plan-definitions";
 import { auditRoutes } from "./routes/audit";
+import { deliverablesRoutes } from "./routes/deliverables";
 import { DEMO_HTML } from "./demo";
 import { portalHome, portalOverview, portalStatus, portalDeliverables, portalProtected } from "./portal";
 
@@ -62,6 +63,7 @@ app.route("/", insurersRoutes); // F-026 원수사 마스터 CRUD
 app.route("/", incentivePlansRoutes); // F-043 시책안 OCR 인식
 app.route("/", incentivePlanDefinitionsRoutes); // F-044 시상정의 카탈로그
 app.route("/", auditRoutes); // F-044 감사 소명 역추적
+app.route("/", deliverablesRoutes); // F-070 산출물 대장 목록/다운로드
 
 // SPA 서빙 (B-006 단일 오리진, run_worker_first=true라 모든 요청이 Worker 경유).
 // 루트=랜딩(위 app.get("/")), /api·/health는 위에서 처리. 그 외(/app, /app/*, /assets/*)는:

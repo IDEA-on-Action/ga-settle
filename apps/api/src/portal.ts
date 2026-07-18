@@ -2,6 +2,8 @@
 // 공개 레이어(홈·개요·진행현황·산출물 목록)는 서버 렌더 HTML(자격증명 미포함), 보호 영역(자료실·소통)은
 // 로그인(/app, F-024)으로 유도. 진행 현황은 프로젝트 실상태를 큐레이션(SoT는 SPEC.md, 여기선 고객 대상 요약).
 
+import { DELIVERABLE_DOCS } from "./portal-deliverables.gen";
+
 type StageStatus = "done" | "active" | "planned";
 interface Stage {
   key: string;
@@ -217,7 +219,21 @@ export function portalStatus(): string {
   return page("진행 현황", "status", body);
 }
 
+// F-070: 대장(docs/deliverables/README.md) 상태 → 포털 pill 매핑. note는 내부 비고라 공개 화면 미노출.
+const DOC_STATUS_PILL: Record<string, { cls: string; ko: string }> = {
+  계획: { cls: "planned", ko: "계획" },
+  초안: { cls: "wip", ko: "초안" },
+  내부검토: { cls: "wip", ko: "검토중" },
+  전달: { cls: "done", ko: "전달" },
+  확정: { cls: "done", ko: "확정" },
+};
+
 export function portalDeliverables(): string {
+  const docRows = DELIVERABLE_DOCS.map((d) => {
+    const pill = DOC_STATUS_PILL[d.status] ?? { cls: "planned", ko: d.status };
+    const right = d.file ? '<span class="lock">🔒 로그인 후</span>' : '<span class="lock">준비 중</span>';
+    return `<div class="dl"><div class="ic">📄</div><div class="g1"><b>${d.title}</b><span>${d.code}${d.version ? ` · ${d.version}` : ""}${d.delivered ? ` · 전달 ${d.delivered}` : ""}</span></div><span class="pill ${pill.cls}">${pill.ko}</span>${right}</div>`;
+  }).join("");
   const rows = DELIVERABLES.map((d) => {
     const right =
       d.href && d.href.startsWith("/guide")
@@ -232,7 +248,8 @@ export function portalDeliverables(): string {
   const body = `
   <div class="hero"><span class="kicker">산출물</span><h1>주요 산출물</h1>
   <p class="lead">계획된 산출물과 현재 상태입니다. 공개 자료는 바로 받으실 수 있고, 그 외는 로그인 후 이용하실 수 있어요.</p></div>
-  <section><div class="dlist">${rows}</div>
+  <section><div class="card" style="margin-bottom:16px"><h3>프로젝트 문서</h3><div class="dlist" style="margin-top:12px">${docRows}</div></div>
+  <div class="dlist">${rows}</div>
   <div class="note" style="margin-top:16px">파일 다운로드와 민감 자료는 자료 유출 방지를 위해 로그인(실 시스템 계정) 후 제공됩니다.</div></section>`;
   return page("산출물", "deliverables", body);
 }
