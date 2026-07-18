@@ -677,6 +677,17 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 - **Sprint**: S27
 - **Notes**: 2026-07-17 F-065 부작용으로 발견 후 즉시 착수. **정확성 아닌 UX 최적화**(F-065로 문서는 이미 성공). 엑셀 Queue(F-003) 대칭화. **migration 없음**(기존 jobs 테이블 재사용) = F-064식 배포 갭 위험 없음. 큐 인프라는 엑셀 경로로 프로덕션 기검증, 신규는 consumer의 ocr-plan 분기(단위 테스트 완료)뿐. 설계: 결과를 응답 대신 R2에 저장(엑셀 staged.json 대칭)해 프론트가 job done 후 조회. Master pane 직접 구현.
 
+### F-067 · 실개발 전환 산출물 1차: 착수보고·개발계획서·WBS (P1)
+- **REQ-089**: 계약(33,000,000원·105일/15주·마일스톤 1=W4 매핑엔진·마일스톤 2=W8 대사시연) 기준의 착수보고서·개발계획서·WBS가 `docs/deliverables/`에 산출물 코드 체계(GS-{TYPE}-{NNN})로 관리되어야 한다
+- **REQ-090**: WBS는 W1~W15 상대 주차로 재산정하되(계약 시작일 미정 - `{{CONTRACT_START}}` placeholder 1곳 관리), 프로토타입 선행 구현(F-001~F-066, prod 운영)을 완료 항목으로 명시 반영해야 한다
+- **Acceptance**:
+  - [ ] `docs/deliverables/README.md` 산출물 대장(코드·문서명·버전·상태·전달일) 생성
+  - [ ] GS-RPT-001 착수보고서 / GS-PLAN-001 개발계획서 / GS-PLAN-002 WBS 3종 작성
+  - [ ] 계약 시작일 확정 시 날짜 치환 지점이 placeholder로 일원화되어 있음
+- **Status**: IN_PROGRESS
+- **Sprint**: S28
+- **Notes**: 2026-07-18 세션 인터뷰 결정 4건: ① 산출물=docs 정본+포털 연동(연동은 B-020 후속) ② 일정=계약 15주 재산정+선행 구현 완료 반영 ③ 1차 범위=착수보고·개발계획서·WBS 3종 ④ 요구사항=SPEC SoT 유지+고객 대면 추적표 파생(B-018). 개발이력 체계는 B-019. Master pane 직접 작성(autopilot 미경유).
+
 ## §3. Backlog (F-item 승격 대기)
 
 | ID | 한 줄 | 승격 기준 충족? | 우선 |
@@ -697,6 +708,9 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 | ~~B-012~~ | ~~OCR 시책안 정식 구현~~ -> F-043(OCR 실연동)+F-044(스키마 확장·OCR결선·손보 구조화·운영룰 확정 UI·감사 소명)로 전량 완료 | 완료 | - |
 | ~~B-015~~ | ~~시책안 OCR Upstage 호출 견고성(F-059 진짜 fix)~~ -> **F-065로 승격**(P0, Sprint S26) | 승격 | - |
 | ~~B-014~~ | ~~배포 자동화(ci.yml deploy 잡 + D1 migration)~~ -> **구현 완료(2026-07-17), secret 설정 대기**. **실체 정정**: F-064 때 "migration 갭"으로 봤으나 실제는 **배포 자동화 자체가 없었음**(ci.yml=verify만, 배포는 수동 `wrangler deploy`). F-064/065/066이 CI green인데 07-17 07:51까지 prod 미배포 방치되다 수동 일괄 배포로 확인. fix: ci.yml에 `deploy` 잡(verify 후 main push, migration→web build→deploy→헬스 스모크, `d1_migrations` 자동 기록으로 drift 해소). **✅ 완료·검증(2026-07-17)**: secret 추가 + 토큰 권한(D1 Edit/Workers Scripts Edit/Workers Routes Edit) 부여 후 자동 배포 실작동 확인. 빈 커밋 트리거로 verify→migration→build→deploy→헬스 전자동 통과, 활성 버전 `3eff90f7`→`2dd3d75f` 실제 변경 실측. 이제 main push 시 자동 배포. **"CI green인데 미배포" 갭 구조적 해소**(F-064 방치 사고 재발 불가). 검증법: `wrangler deployments status --env production` 버전 ID 변경 | 완료 | - |
+| B-018 | 요구사항 추적표 파생 - 위시켓 PRD FR ↔ SPEC REQ ↔ F-item 매핑 고객 대면 뷰 (F-067 인터뷰 결정 ④, SPEC=SoT 유지) | 3+파일·관찰가능 | high |
+| B-019 | 개발이력 체계 - CHANGELOG.md 도출 + Sprint 0~28 이력 고객용 정리 (F-067 후속) | 관찰가능 | mid |
+| B-020 | 포털 산출물 대장 연동 - portal.ts 하드코딩 → docs/deliverables 대장 기반 목록·다운로드 (F-067 인터뷰 결정 ①) | 3+파일·관찰가능 | mid |
 | B-013 | 시책안 PDF 사전 선별(TextBased면 OCR 생략, [pdf-inspector](https://github.com/firecrawl/pdf-inspector) 류) - **조건부 보류**: 2026-07-16 프로덕션 전수 7건 실측에서 전제 붕괴. TextBased 1/7(14%)뿐이고 6건은 추출 문자 0(페이지당 전면 이미지 = 순수 스캔본). 참고글 주장 54%는 웹 크롤링 PDF 분포라 본 도메인(원수사 판촉 편집물) 미전이. 실패 2건은 전부 대용량 스캔본(39p·32p)이라 선별로 해소 불가(이미 OCR 경로로 감). Rust 네이티브라 Workers 미실행(WASM/별도 서비스 필요). **재검토 조건**: 시책안 월 볼륨 100건+ 또는 TextBased 비율 40%+ 관측 시 | 미충족(이득 14%·총 7건) | low |
 
 > 프로덕션: `https://ata.minu.best` 배포·운영 중. admin=sinclairseo@gmail.com(비번). @atasset.co.kr=OTP. 주요 원수사 26곳 등록. 상세 next-task는 세션 Task 목록(#1~#7) 참조.
