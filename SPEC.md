@@ -681,7 +681,7 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 
 | ID | 한 줄 | 승격 기준 충족? | 우선 |
 | ~~B-016~~ | ~~E2E를 CI 게이트에 추가~~ -> **완료(2026-07-17)**: ci.yml verify 잡에 E2E 스텝 추가(chromium `--with-deps` 설치 + 브라우저 캐시 + `pnpm -F web e2e`, webServer는 playwright 자동 기동). deploy가 needs:verify라 E2E 실패 시 배포도 자동 차단. PR에서도 실행(머지 전 관문). 로컬 실측 9/9 green | 완료 | - |
-| B-017 | 시책안 OCR(F-043~F-066) E2E 커버리지 - **2026-07-17 e2e-audit 발견**: 시책안 OCR 전 기능 E2E 0건. 특히 F-066 비동기 폴링(업로드→202→job 폴링→진행률→결과)은 unit만 검증. `/app` incentive-plans OCR 흐름 E2E 추가(mock 202+job+ocr-result) | 회귀 취약 | mid |
+| ~~B-017~~ | ~~시책안 OCR(F-043~F-066) E2E 커버리지~~ → **✅ 완료(2026-07-18)**: `e2e/08-incentive-plan-ocr.spec.ts` 신규 2케이스. ① 성공: OCR 탭→대분류→파일→**202 접수→job 폴링(running→done)→진행률 바→결과 카드**(필드값·저신뢰 '확인' 배지·**만기기간 payoutRows F-060**·HITL 확정 링크) ② 실패: job status=failed→에러 표시·결과 미노출(F-064). page.route로 202/job/ocr-result mock(실 CLOVA/Upstage/큐 불요). F-066 비동기 폴링 그동안 unit만 검증이던 것 E2E 결선. CI verify에서 실행(B-016). '종신' targetProduct 중복 회피 exact 매칭 | 회귀 취약 | mid |
 |---|---|---|---|
 | B-001 | 설계사 개인 조회 포털 (고도화) | — | low |
 | B-002 | 대사 차액 원인 LLM 자연어 설명 | — | mid |
