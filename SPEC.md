@@ -681,10 +681,10 @@ ga-settle — GA(법인보험대리점) 수수료·시책 통합 정산/대사 �
 - **REQ-089**: 계약(33,000,000원·105일/15주·마일스톤 1=W4 매핑엔진·마일스톤 2=W8 대사시연) 기준의 착수보고서·개발계획서·WBS가 `docs/deliverables/`에 산출물 코드 체계(GS-{TYPE}-{NNN})로 관리되어야 한다
 - **REQ-090**: WBS는 W1~W15 상대 주차로 재산정하되(계약 시작일 미정 - `{{CONTRACT_START}}` placeholder 1곳 관리), 프로토타입 선행 구현(F-001~F-066, prod 운영)을 완료 항목으로 명시 반영해야 한다
 - **Acceptance**:
-  - [ ] `docs/deliverables/README.md` 산출물 대장(코드·문서명·버전·상태·전달일) 생성
-  - [ ] GS-RPT-001 착수보고서 / GS-PLAN-001 개발계획서 / GS-PLAN-002 WBS 3종 작성
-  - [ ] 계약 시작일 확정 시 날짜 치환 지점이 placeholder로 일원화되어 있음
-- **Status**: IN_PROGRESS
+  - [x] `docs/deliverables/README.md` 산출물 대장(코드·문서명·버전·상태·전달일) 생성
+  - [x] GS-RPT-001 착수보고서 / GS-PLAN-001 개발계획서 / GS-PLAN-002 WBS 3종 작성 (v0.1 초안)
+  - [x] 계약 시작일 확정 시 날짜 치환 지점이 `{{CONTRACT_START}}`로 일원화 (`grep -rn CONTRACT_START docs/deliverables/`)
+- **Status**: ✅ DONE (2026-07-18 v0.1 초안 작성 완료. 고객 전달 전 사용자 검토 필요 - 전달·확정 이력은 대장에서 추적)
 - **Sprint**: S28
 - **Notes**: 2026-07-18 세션 인터뷰 결정 4건: ① 산출물=docs 정본+포털 연동(연동은 B-020 후속) ② 일정=계약 15주 재산정+선행 구현 완료 반영 ③ 1차 범위=착수보고·개발계획서·WBS 3종 ④ 요구사항=SPEC SoT 유지+고객 대면 추적표 파생(B-018). 개발이력 체계는 B-019. Master pane 직접 작성(autopilot 미경유).
 
