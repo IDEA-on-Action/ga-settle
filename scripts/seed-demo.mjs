@@ -6,11 +6,11 @@
 // 실행:
 //   ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=... node scripts/seed-demo.mjs
 // 옵션:
-//   BASE (기본 https://ata.minu.best), RUN_ID (재실행 시 기존 run id 재사용), MONTH (기본 2026-07)
+//   BASE (기본 https://z01.minu.best), RUN_ID (재실행 시 기존 run id 재사용), MONTH (기본 2026-07)
 //
 // 멱등: 이미 있는 org/agent/rule은 409를 무시하고 계속. calculate/payslips는 서버가 delete+재생성이라 재실행 안전.
 
-const BASE = (process.env.BASE || "https://ata.minu.best").replace(/\/$/, "");
+const BASE = (process.env.BASE || "https://z01.minu.best").replace(/\/$/, "");
 const EMAIL = process.env.ADMIN_EMAIL;
 const PASSWORD = process.env.ADMIN_PASSWORD;
 const MONTH = process.env.MONTH || "2026-07";

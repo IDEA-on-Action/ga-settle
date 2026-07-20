@@ -40,13 +40,13 @@ html_handling = "none"
 
 # ─────────────────────────────────────────────────────────────
 # 프로덕션 환경 (배포: wrangler deploy --env production)
-# 커스텀 도메인 ata.minu.best (minu.best 가 이 CF 계정의 zone이어야 자동 DNS/cert 발급).
+# 커스텀 도메인 z01.minu.best (minu.best 가 이 CF 계정의 zone이어야 자동 DNS/cert 발급).
 # env-scoped라 바인딩/vars/routes 재선언 필요. 리소스는 dev와 동일 원격 리소스 공유
 # (로컬 dev는 --local이라 원격 미영향). 시크릿은 --env production으로 별도 설정 필요.
 # ─────────────────────────────────────────────────────────────
 [env.production]
 routes = [
-  { pattern = "ata.minu.best", custom_domain = true },
+  { pattern = "z01.minu.best", custom_domain = true },
 ]
 
 [env.production.vars]

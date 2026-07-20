@@ -1,4 +1,4 @@
-// 고객 협업 포털 (F-054, ata.minu.best 루트). IA 설계 docs/specs/portal-ia/ia-design-v0.1.md 구현.
+// 고객 협업 포털 (F-054, z01.minu.best 루트). IA 설계 docs/specs/portal-ia/ia-design-v0.1.md 구현.
 // 공개 레이어(홈·개요·진행현황·산출물 목록)는 서버 렌더 HTML(자격증명 미포함), 보호 영역(자료실·소통)은
 // 로그인(/app, F-024)으로 유도. 진행 현황은 프로젝트 실상태를 큐레이션(SoT는 SPEC.md, 여기선 고객 대상 요약).
 

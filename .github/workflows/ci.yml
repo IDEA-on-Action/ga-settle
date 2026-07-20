@@ -70,6 +70,6 @@ jobs:
       - if: steps.guard.outputs.ready == 'true'
         run: |
           sleep 5
-          code=$(curl -sL -o /dev/null -w '%{http_code}' --max-time 15 https://ata.minu.best/health)
+          code=$(curl -sL -o /dev/null -w '%{http_code}' --max-time 15 https://z01.minu.best/health)
           echo "health: $code"
           [ "$code" = "200" ] || { echo "헬스체크 실패"; exit 1; }

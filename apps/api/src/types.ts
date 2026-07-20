@@ -45,6 +45,6 @@ export type Env = {
   UPSTAGE_BASE_URL?: string;     // 기본 https://api.upstage.ai/v1
   UPSTAGE_MODEL?: string;        // 기본 solar-mini
   UPSTAGE_CHUNK_CHARS?: string;  // 구조화 청크 크기 조정(기본 8000, F-065 대용량 튜닝)
-  // 정적 자산(SPA) 바인딩 - apps/web/dist를 같은 오리진(ata.minu.best)에서 서빙 (B-006 단일 오리진).
+  // 정적 자산(SPA) 바인딩 - apps/web/dist를 같은 오리진(z01.minu.best)에서 서빙 (B-006 단일 오리진).
   ASSETS: Fetcher;
 };
